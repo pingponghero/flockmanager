@@ -5,6 +5,7 @@ import '../screens/home/home_screen.dart';
 import '../screens/flocks/flock_list_screen.dart';
 import '../screens/flocks/flock_form_screen.dart';
 import '../screens/birds/bird_list_screen.dart';
+import '../screens/birds/bird_form_screen.dart';
 import '../screens/settings/settings_screen.dart';
 
 final router = GoRouter(
@@ -43,16 +44,17 @@ final router = GoRouter(
         GoRoute(
           path: 'new',
           name: 'bird-new',
-          builder: (context, state) => const Scaffold(
-            body: Center(child: Text('Bird Form - Coming in Task 2.5')),
-          ),
+          builder: (context, state) => const BirdFormScreen(),
         ),
         GoRoute(
           path: ':id',
           name: 'bird-detail',
-          builder: (context, state) => const Scaffold(
-            body: Center(child: Text('Bird Detail - Coming in Task 2.6')),
-          ),
+          builder: (context, state) {
+            final birdId = state.pathParameters['id']!;
+            // For now, use the form screen for editing
+            // Task 2.6 will add a proper detail screen
+            return BirdFormScreen(birdId: birdId);
+          },
         ),
       ],
     ),
