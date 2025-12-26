@@ -1,4 +1,10 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nComplete Phase 1: Foundation \\(Tasks 1.1-1.4\\)\n\nPhase 1 implements the core foundation of the Flock Manager app:\n\nTask 1.1 - Project Setup:\n- Flutter project with folder structure per architecture spec\n- Dependencies: Riverpod, GoRouter, sqflite, freezed, uuid, etc.\n\nTask 1.2 - Theme and App Shell:\n- Light theme with barn red primary, forest green accent\n- GoRouter with routes: /, /flocks, /birds, /settings\n- Placeholder screens with navigation\n\nTask 1.3 - Database Setup:\n- DatabaseHelper singleton with SQLite\n- 8 tables defined in tables.dart\n- Version-based migration structure\n\nTask 1.4 - Models:\n- 7 freezed model classes with toMap/fromMap\n- 6 enums with displayName getters\n- 76 unit tests passing\n\nAlso includes:\n- Split CLAUDE.md into README.md and .claude/settings.local.json\n- Comprehensive test suite for models and database\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nImplement Task 2.1: Flock Repository and Provider\n\nFlockRepository \\(lib/repositories/flock_repository.dart\\):\n- getAllFlocks\\(\\) with optional includeArchived parameter\n- getFlockById\\(String id\\)\n- insertFlock\\(Flock flock\\)\n- updateFlock\\(Flock flock\\)\n- archiveFlock\\(String id\\) - soft delete\n- unarchiveFlock\\(String id\\)\n- deleteFlock\\(String id\\) - permanent delete\n- getBirdCount\\(String flockId\\)\n\nFlockProvider \\(lib/providers/flock_provider.dart\\):\n- flocksProvider: AsyncNotifier for flock list\n- selectedFlockIdProvider: persisted to SharedPreferences\n- selectedFlockProvider: FutureProvider for selected flock object\n- flockByIdProvider: FutureProvider.family for single flock\n- flockBirdCountProvider: FutureProvider.family for bird count\n\nAll 76 tests passing.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  },
   "instructions": [
     "Always run `flutter test` and `flutter analyze` before considering a task complete",
     "Commit changes frequently with clear messages referencing the task/phase",
@@ -85,10 +91,5 @@
       ]
     }
   },
-  "schema_version": 1,
-  "permissions": {
-    "allow": [
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nComplete Phase 1: Foundation \\(Tasks 1.1-1.4\\)\n\nPhase 1 implements the core foundation of the Flock Manager app:\n\nTask 1.1 - Project Setup:\n- Flutter project with folder structure per architecture spec\n- Dependencies: Riverpod, GoRouter, sqflite, freezed, uuid, etc.\n\nTask 1.2 - Theme and App Shell:\n- Light theme with barn red primary, forest green accent\n- GoRouter with routes: /, /flocks, /birds, /settings\n- Placeholder screens with navigation\n\nTask 1.3 - Database Setup:\n- DatabaseHelper singleton with SQLite\n- 8 tables defined in tables.dart\n- Version-based migration structure\n\nTask 1.4 - Models:\n- 7 freezed model classes with toMap/fromMap\n- 6 enums with displayName getters\n- 76 unit tests passing\n\nAlso includes:\n- Split CLAUDE.md into README.md and .claude/settings.local.json\n- Comprehensive test suite for models and database\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
-    ]
-  }
+  "schema_version": 1
 }
