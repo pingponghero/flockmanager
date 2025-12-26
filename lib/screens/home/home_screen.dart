@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../database/database_helper.dart';
+import '../../widgets/egg_quick_log.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -34,6 +35,16 @@ class HomeScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 32),
+            // Quick log button (prominent)
+            FilledButton.icon(
+              onPressed: () => showEggQuickLog(context),
+              icon: const Icon(Icons.egg),
+              label: const Text('Log Eggs'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+            ),
+            const SizedBox(height: 24),
             Wrap(
               spacing: 16,
               runSpacing: 16,
@@ -60,6 +71,11 @@ class HomeScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showEggQuickLog(context),
+        icon: const Icon(Icons.egg),
+        label: const Text('Log Eggs'),
       ),
     );
   }
