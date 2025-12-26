@@ -6,6 +6,7 @@ import '../screens/flocks/flock_list_screen.dart';
 import '../screens/flocks/flock_form_screen.dart';
 import '../screens/birds/bird_list_screen.dart';
 import '../screens/birds/bird_form_screen.dart';
+import '../screens/birds/bird_detail_screen.dart';
 import '../screens/settings/settings_screen.dart';
 
 final router = GoRouter(
@@ -51,10 +52,18 @@ final router = GoRouter(
           name: 'bird-detail',
           builder: (context, state) {
             final birdId = state.pathParameters['id']!;
-            // For now, use the form screen for editing
-            // Task 2.6 will add a proper detail screen
-            return BirdFormScreen(birdId: birdId);
+            return BirdDetailScreen(birdId: birdId);
           },
+          routes: [
+            GoRoute(
+              path: 'edit',
+              name: 'bird-edit',
+              builder: (context, state) {
+                final birdId = state.pathParameters['id']!;
+                return BirdFormScreen(birdId: birdId);
+              },
+            ),
+          ],
         ),
       ],
     ),
