@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../screens/home/home_screen.dart';
 import '../screens/flocks/flock_list_screen.dart';
+import '../screens/flocks/flock_form_screen.dart';
 import '../screens/birds/bird_list_screen.dart';
 import '../screens/settings/settings_screen.dart';
 
@@ -18,6 +19,21 @@ final router = GoRouter(
       path: '/flocks',
       name: 'flocks',
       builder: (context, state) => const FlockListScreen(),
+      routes: [
+        GoRoute(
+          path: 'new',
+          name: 'flock-new',
+          builder: (context, state) => const FlockFormScreen(),
+        ),
+        GoRoute(
+          path: ':id',
+          name: 'flock-detail',
+          builder: (context, state) {
+            final flockId = state.pathParameters['id']!;
+            return FlockFormScreen(flockId: flockId);
+          },
+        ),
+      ],
     ),
     GoRoute(
       path: '/birds',
