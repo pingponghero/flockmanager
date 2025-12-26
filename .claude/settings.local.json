@@ -1,0 +1,94 @@
+{
+  "instructions": [
+    "Always run `flutter test` and `flutter analyze` before considering a task complete",
+    "Commit changes frequently with clear messages referencing the task/phase",
+    "Prefer composition over inheritance for widgets",
+    "Keep widgets small - extract when exceeding ~100 lines",
+    "Use const constructors wherever possible",
+    "Don't add packages without explicit approval",
+    "When creating screens, include loading and error states",
+    "Test database operations manually before moving on",
+    "Keep the egg logging flow as simple as possible - this is the core UX"
+  ],
+  "conventions": {
+    "naming": {
+      "files": "snake_case.dart",
+      "classes": "PascalCase",
+      "variables": "camelCase",
+      "functions": "camelCase",
+      "database_tables": "snake_case",
+      "database_columns": "snake_case"
+    },
+    "models": [
+      "Use freezed for immutable data classes with copyWith",
+      "All models have toMap() and fromMap() for SQLite",
+      "Use uuid package for IDs (not auto-increment)",
+      "Dates stored as ISO8601 strings in SQLite"
+    ],
+    "database": [
+      "Single DatabaseHelper singleton",
+      "Version-based migrations in onUpgrade",
+      "Repositories handle all SQL queries",
+      "Never expose raw database outside repositories"
+    ],
+    "providers": [
+      "One provider file per domain",
+      "Use AsyncNotifier for data that loads from DB",
+      "Computed providers for derived data (analytics)",
+      "Keep providers focused - split if they get complex"
+    ],
+    "ui": [
+      "Screens are full pages, receive IDs as params",
+      "Widgets are reusable components, receive data as params",
+      "Use ref.watch in build methods, ref.read in callbacks",
+      "Forms use Flutter's built-in Form/TextFormField",
+      "Show loading states with AsyncValue.when()"
+    ],
+    "error_handling": [
+      "Repositories return data or throw exceptions",
+      "Providers catch exceptions and expose via AsyncValue",
+      "UI shows user-friendly error messages",
+      "Log errors but don't crash"
+    ]
+  },
+  "patterns": {
+    "quick_egg_log": {
+      "description": "Bottom sheet triggered from FAB anywhere in app",
+      "flow": [
+        "Load last-used flock as default",
+        "Show number picker (default: yesterday's count for this flock)",
+        "Single 'Save' button",
+        "Haptic feedback + toast on success",
+        "Dismiss sheet"
+      ]
+    },
+    "trial_state": {
+      "storage": "SharedPreferences",
+      "fields": [
+        "trial_start_date (ISO8601)",
+        "is_purchased (bool)"
+      ],
+      "provider_exposes": [
+        "trialDaysRemaining: int",
+        "isTrialActive: bool",
+        "isPurchased: bool",
+        "isReadOnly: bool (trial expired AND not purchased)"
+      ]
+    },
+    "flock_context": {
+      "description": "Global selected flock provider",
+      "behavior": [
+        "Persisted to SharedPreferences",
+        "null means 'all flocks'",
+        "Egg logging respects this as default",
+        "Analytics filter by this"
+      ]
+    }
+  },
+  "schema_version": 1,
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nComplete Phase 1: Foundation \\(Tasks 1.1-1.4\\)\n\nPhase 1 implements the core foundation of the Flock Manager app:\n\nTask 1.1 - Project Setup:\n- Flutter project with folder structure per architecture spec\n- Dependencies: Riverpod, GoRouter, sqflite, freezed, uuid, etc.\n\nTask 1.2 - Theme and App Shell:\n- Light theme with barn red primary, forest green accent\n- GoRouter with routes: /, /flocks, /birds, /settings\n- Placeholder screens with navigation\n\nTask 1.3 - Database Setup:\n- DatabaseHelper singleton with SQLite\n- 8 tables defined in tables.dart\n- Version-based migration structure\n\nTask 1.4 - Models:\n- 7 freezed model classes with toMap/fromMap\n- 6 enums with displayName getters\n- 76 unit tests passing\n\nAlso includes:\n- Split CLAUDE.md into README.md and .claude/settings.local.json\n- Comprehensive test suite for models and database\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
