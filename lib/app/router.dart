@@ -39,6 +39,22 @@ final router = GoRouter(
       path: '/birds',
       name: 'birds',
       builder: (context, state) => const BirdListScreen(),
+      routes: [
+        GoRoute(
+          path: 'new',
+          name: 'bird-new',
+          builder: (context, state) => const Scaffold(
+            body: Center(child: Text('Bird Form - Coming in Task 2.5')),
+          ),
+        ),
+        GoRoute(
+          path: ':id',
+          name: 'bird-detail',
+          builder: (context, state) => const Scaffold(
+            body: Center(child: Text('Bird Detail - Coming in Task 2.6')),
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: '/settings',
