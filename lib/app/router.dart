@@ -9,6 +9,7 @@ import '../screens/birds/bird_form_screen.dart';
 import '../screens/birds/bird_detail_screen.dart';
 import '../screens/eggs/egg_history_screen.dart';
 import '../screens/eggs/egg_log_screen.dart';
+import '../screens/analytics/analytics_screen.dart';
 import '../screens/settings/settings_screen.dart';
 
 final router = GoRouter(
@@ -83,6 +84,11 @@ final router = GoRouter(
           },
         ),
       ],
+    ),
+    GoRoute(
+      path: '/analytics',
+      name: 'analytics',
+      builder: (context, state) => const AnalyticsScreen(),
     ),
     GoRoute(
       path: '/settings',
