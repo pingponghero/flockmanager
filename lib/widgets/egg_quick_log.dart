@@ -231,7 +231,18 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
   void _initializeDefaults() {
     _isInitialized = true;
 
-    // Get selected flock or last logged flock
+    // Check flocks first - if only one exists, always use it
+    final flocksAsync = ref.read(flocksProvider);
+    final flocks = flocksAsync.valueOrNull ?? [];
+
+    if (flocks.length == 1) {
+      // Single flock - always auto-select it
+      _selectedFlockId = flocks.first.id;
+      _updateDefaultCount(_selectedFlockId);
+      return;
+    }
+
+    // Multiple flocks: try selected flock, then last logged flock
     final selectedFlockId = ref.read(selectedFlockIdProvider);
     if (selectedFlockId != null) {
       _selectedFlockId = selectedFlockId;
@@ -323,6 +334,7 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
 }
 
 /// Flock selector dropdown for quick log.
+/// Auto-selects and hides when only one flock exists.
 class _FlockSelector extends ConsumerWidget {
   final String? selectedFlockId;
   final ValueChanged<String?> onChanged;
@@ -355,6 +367,35 @@ class _FlockSelector extends ConsumerWidget {
           );
         }
 
+        // Single flock: auto-select and show as simple label (no dropdown)
+        if (flocks.length == 1) {
+          final flock = flocks.first;
+          // Ensure it's selected
+          if (selectedFlockId != flock.id) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              onChanged(flock.id);
+            });
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.groups,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  flock.name,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ],
+            ),
+          );
+        }
+
+        // Multiple flocks: show dropdown
         return DropdownButtonFormField<String>(
           value: selectedFlockId,
           decoration: const InputDecoration(

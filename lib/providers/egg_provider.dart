@@ -53,10 +53,19 @@ class EggLogsNotifier extends AsyncNotifier<List<EggLog>> {
   }
 
   void _invalidateEggCountProviders() {
+    // Base providers
     ref.invalidate(todayEggCountProvider);
     ref.invalidate(weekEggCountProvider);
     ref.invalidate(monthEggCountProvider);
     ref.invalidate(totalEggCountProvider);
+    // Flock-filtered providers (used by home screen)
+    ref.invalidate(todayEggCountByFlockProvider);
+    ref.invalidate(yesterdayEggCountByFlockProvider);
+    ref.invalidate(weekEggCountByFlockProvider);
+    ref.invalidate(monthEggCountByFlockProvider);
+    // Activity feed and charts
+    ref.invalidate(recentEggLogsProvider);
+    ref.invalidate(last7DaysEggCountsProvider);
   }
 }
 

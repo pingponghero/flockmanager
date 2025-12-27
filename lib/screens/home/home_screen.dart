@@ -17,6 +17,10 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
     final selectedFlockAsync = ref.watch(selectedFlockProvider);
+    final recentLogsAsync = ref.watch(recentEggLogsProvider);
+
+    // Only show FAB when there are existing egg logs (empty state has its own CTA)
+    final hasEggLogs = recentLogsAsync.valueOrNull?.isNotEmpty ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -72,11 +76,13 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showEggQuickLog(context),
-        icon: const Icon(Icons.egg),
-        label: const Text('Log Eggs'),
-      ),
+      floatingActionButton: hasEggLogs
+          ? FloatingActionButton.extended(
+              onPressed: () => showEggQuickLog(context),
+              icon: const Icon(Icons.egg),
+              label: const Text('Log Eggs'),
+            )
+          : null,
     );
   }
 }
