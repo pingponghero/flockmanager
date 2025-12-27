@@ -7,6 +7,8 @@ import '../screens/flocks/flock_form_screen.dart';
 import '../screens/birds/bird_list_screen.dart';
 import '../screens/birds/bird_form_screen.dart';
 import '../screens/birds/bird_detail_screen.dart';
+import '../screens/eggs/egg_history_screen.dart';
+import '../screens/eggs/egg_log_screen.dart';
 import '../screens/settings/settings_screen.dart';
 
 final router = GoRouter(
@@ -64,6 +66,21 @@ final router = GoRouter(
               },
             ),
           ],
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/eggs',
+      name: 'eggs',
+      builder: (context, state) => const EggHistoryScreen(),
+      routes: [
+        GoRoute(
+          path: 'log',
+          name: 'egg-log',
+          builder: (context, state) {
+            // Can receive DateTime or EggLog via extra
+            return EggLogScreen(initialData: state.extra);
+          },
         ),
       ],
     ),

@@ -16,6 +16,7 @@ void main() {
 
     // Verify that the home screen is displayed
     expect(find.text('Flock Manager'), findsOneWidget);
-    expect(find.text('Home Screen'), findsOneWidget);
+    // The home screen now shows "All Flocks" when no flock is selected
+    expect(find.text('All Flocks'), findsOneWidget);
   });
 }
