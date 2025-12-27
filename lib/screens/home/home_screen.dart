@@ -77,10 +77,10 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: hasEggLogs
-          ? FloatingActionButton.extended(
+          ? FloatingActionButton(
               onPressed: () => showEggQuickLog(context),
-              icon: const Icon(Icons.egg),
-              label: const Text('Log Eggs'),
+              tooltip: 'Log Eggs',
+              child: const Icon(Icons.egg),
             )
           : null,
     );
@@ -253,7 +253,7 @@ class _SparkLineCard extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 60,
+              height: 80,
               child: countsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stack) => const Center(child: Text('--')),
