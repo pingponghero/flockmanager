@@ -11,6 +11,7 @@ import '../screens/eggs/egg_history_screen.dart';
 import '../screens/eggs/egg_log_screen.dart';
 import '../screens/expenses/expense_list_screen.dart';
 import '../screens/expenses/expense_form_screen.dart';
+import '../screens/medications/medication_screen.dart';
 import '../screens/analytics/analytics_screen.dart';
 import '../screens/settings/settings_screen.dart';
 
@@ -119,6 +120,11 @@ final router = GoRouter(
           },
         ),
       ],
+    ),
+    GoRoute(
+      path: '/medications',
+      name: 'medications',
+      builder: (context, state) => const MedicationScreen(),
     ),
     GoRoute(
       path: '/analytics',
