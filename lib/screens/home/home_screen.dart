@@ -468,12 +468,24 @@ class _QuickActions extends StatelessWidget {
                 label: const Text('Birds'),
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/expenses'),
+                icon: const Icon(Icons.attach_money),
+                label: const Text('Finances'),
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => context.push('/eggs'),
-                icon: const Icon(Icons.calendar_month),
-                label: const Text('History'),
+                onPressed: () => context.push('/analytics'),
+                icon: const Icon(Icons.bar_chart),
+                label: const Text('Analytics'),
               ),
             ),
           ],

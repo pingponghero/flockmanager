@@ -9,6 +9,8 @@ import '../screens/birds/bird_form_screen.dart';
 import '../screens/birds/bird_detail_screen.dart';
 import '../screens/eggs/egg_history_screen.dart';
 import '../screens/eggs/egg_log_screen.dart';
+import '../screens/expenses/expense_list_screen.dart';
+import '../screens/expenses/expense_form_screen.dart';
 import '../screens/analytics/analytics_screen.dart';
 import '../screens/settings/settings_screen.dart';
 
@@ -81,6 +83,39 @@ final router = GoRouter(
           builder: (context, state) {
             // Can receive DateTime or EggLog via extra
             return EggLogScreen(initialData: state.extra);
+          },
+        ),
+      ],
+    ),
+    GoRoute(
+      path: '/expenses',
+      name: 'expenses',
+      builder: (context, state) => const ExpenseListScreen(),
+      routes: [
+        GoRoute(
+          path: 'new',
+          name: 'expense-new',
+          builder: (context, state) => const ExpenseFormScreen(),
+        ),
+        GoRoute(
+          path: 'income/new',
+          name: 'income-new',
+          builder: (context, state) => const IncomeFormScreen(),
+        ),
+        GoRoute(
+          path: 'income/:id',
+          name: 'income-edit',
+          builder: (context, state) {
+            final incomeId = state.pathParameters['id']!;
+            return IncomeFormScreen(incomeId: incomeId);
+          },
+        ),
+        GoRoute(
+          path: ':id',
+          name: 'expense-edit',
+          builder: (context, state) {
+            final expenseId = state.pathParameters['id']!;
+            return ExpenseFormScreen(expenseId: expenseId);
           },
         ),
       ],
