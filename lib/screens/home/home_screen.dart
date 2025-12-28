@@ -8,6 +8,7 @@ import '../../models/flock.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../providers/medication_provider.dart';
 import '../../widgets/egg_quick_log.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -53,7 +54,10 @@ class HomeScreen extends ConsumerWidget {
             _GreetingHeader(
               selectedFlock: selectedFlockAsync.valueOrNull,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Withdrawal warning banner
+            _WithdrawalWarning(),
 
             // Today's eggs with comparison
             _TodayEggCard(selectedFlockId: selectedFlockId),
@@ -126,6 +130,72 @@ class _GreetingHeader extends StatelessWidget {
                 ),
           ),
       ],
+    );
+  }
+}
+
+class _WithdrawalWarning extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final withdrawalsAsync = ref.watch(activeWithdrawalsProvider);
+
+    return withdrawalsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (withdrawals) {
+        if (withdrawals.isEmpty) return const SizedBox(height: 8);
+
+        // Find the soonest withdrawal end
+        int? minDays;
+        for (final w in withdrawals) {
+          final days = w.withdrawalDaysRemaining;
+          if (days != null && (minDays == null || days < minDays)) {
+            minDays = days;
+          }
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: GestureDetector(
+            onTap: () => context.push('/medications'),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.amber.shade700),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Egg Withdrawal Active',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                        Text(
+                          minDays != null && minDays > 0
+                              ? '$minDays days remaining'
+                              : 'Ends today',
+                          style: TextStyle(color: Colors.amber.shade800, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: Colors.amber.shade700),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
