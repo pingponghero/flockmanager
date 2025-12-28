@@ -1,0 +1,45 @@
+# Flutter Launcher Icons Configuration
+# Run: dart run flutter_launcher_icons
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+
+  # iOS specific
+  remove_alpha_ios: true
+
+  # Android adaptive icon
+  adaptive_icon_background: "#C41E3A"  # Barn red from our theme
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
+
+  # Web favicon
+  web:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+    background_color: "#C41E3A"
+    theme_color: "#C41E3A"
+
+  # Windows
+  windows:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+    icon_size: 48
+
+  # macOS
+  macos:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+
+# Icon Design Guidelines:
+# -----------------------
+# The app icon should feature:
+# - A friendly chicken silhouette or stylized chicken head
+# - Barn red background (#C41E3A) matching the default theme
+# - Clean, modern design that works at small sizes
+# - No text (icons should be recognizable without text)
+#
+# Required assets to create:
+# - assets/icons/app_icon.png (1024x1024, with background)
+# - assets/icons/app_icon_foreground.png (1024x1024, transparent background)
+#   This should be the chicken only, centered with ~30% padding for adaptive icons
