@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../providers/theme_provider.dart';
@@ -18,6 +19,38 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Reference Guides Section
+          Text(
+            'Reference Guides',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.flutter_dash),
+                  title: const Text('Breed Guide'),
+                  subtitle: const Text('50 chicken breeds with details'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/breeds'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.medical_services),
+                  title: const Text('Medication Reference'),
+                  subtitle: const Text('Common treatments & withdrawal periods'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/medications'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Appearance Section
           Text(
             'Appearance',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -45,6 +78,33 @@ class SettingsScreen extends ConsumerWidget {
                       )),
                 ],
               ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // About Section
+          Text(
+            'About',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('Flock Manager'),
+                  subtitle: const Text('Version 1.0.0'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.egg),
+                  title: const Text('Made for backyard chicken keepers'),
+                  subtitle: const Text('Track your flock with love'),
+                ),
+              ],
             ),
           ),
         ],
