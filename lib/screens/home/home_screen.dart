@@ -253,7 +253,7 @@ class _SparkLineCard extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 80,
+              height: 84,
               child: countsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stack) => const Center(child: Text('--')),

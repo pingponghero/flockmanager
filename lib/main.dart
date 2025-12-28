@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/router.dart';
 import 'app/theme.dart';
+import 'providers/theme_provider.dart';
 
 void main() {
   runApp(
@@ -12,14 +13,16 @@ void main() {
   );
 }
 
-class FlockManagerApp extends StatelessWidget {
+class FlockManagerApp extends ConsumerWidget {
   const FlockManagerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = ref.watch(themeProvider);
+
     return MaterialApp.router(
       title: 'Flock Manager',
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.buildTheme(palette),
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

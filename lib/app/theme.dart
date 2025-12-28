@@ -1,53 +1,114 @@
 import 'package:flutter/material.dart';
 
+/// Available color palettes for the app
+enum AppPalette {
+  barnRed,
+  sage,
+  eggInspired,
+}
+
+extension AppPaletteExtension on AppPalette {
+  String get displayName {
+    switch (this) {
+      case AppPalette.barnRed:
+        return 'Barn Red';
+      case AppPalette.sage:
+        return 'Sage & Terracotta';
+      case AppPalette.eggInspired:
+        return 'Egg-Inspired';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case AppPalette.barnRed:
+        return 'Traditional farmhouse nostalgia';
+      case AppPalette.sage:
+        return 'Modern homesteader aesthetic';
+      case AppPalette.eggInspired:
+        return 'Beautiful egg color spectrum';
+    }
+  }
+
+  ColorPaletteData get colors {
+    switch (this) {
+      case AppPalette.barnRed:
+        return ColorPaletteData(
+          primary: const Color(0xFF9B2D30),
+          surface: const Color(0xFFFDF6E3),
+          accent: const Color(0xFFD4A84B),
+          text: const Color(0xFF3D3028),
+        );
+      case AppPalette.sage:
+        return ColorPaletteData(
+          primary: const Color(0xFF6B7F5E),
+          surface: const Color(0xFFFAF7F2),
+          accent: const Color(0xFFC67B5C),
+          text: const Color(0xFF2C3E2D),
+        );
+      case AppPalette.eggInspired:
+        return ColorPaletteData(
+          primary: const Color(0xFF5B8C85),
+          surface: const Color(0xFFF5F0E6),
+          accent: const Color(0xFF6B4423),
+          secondary: const Color(0xFF7D8B6A),
+          text: const Color(0xFF3D3D3D),
+        );
+    }
+  }
+}
+
+/// Color data for a palette
+class ColorPaletteData {
+  final Color primary;
+  final Color surface;
+  final Color accent;
+  final Color? secondary;
+  final Color text;
+
+  const ColorPaletteData({
+    required this.primary,
+    required this.surface,
+    required this.accent,
+    this.secondary,
+    required this.text,
+  });
+}
+
 class AppTheme {
   AppTheme._();
 
-  // Colors - warm barn red as primary
-  static const Color primaryColor = Color(0xFF8B4513); // Saddle brown
-  static const Color primaryDark = Color(0xFF5D2E0C);
-  static const Color primaryLight = Color(0xFFCD853F);
+  static ThemeData buildTheme(AppPalette palette) {
+    final colors = palette.colors;
+    final textSecondary = colors.text.withValues(alpha: 0.7);
+    final textHint = colors.text.withValues(alpha: 0.5);
 
-  // Accent - forest green
-  static const Color accentColor = Color(0xFF2E7D32);
-
-  // Neutrals
-  static const Color background = Color(0xFFFAF8F5);
-  static const Color surface = Colors.white;
-  static const Color error = Color(0xFFB00020);
-
-  // Text colors
-  static const Color textPrimary = Color(0xFF1C1B1F);
-  static const Color textSecondary = Color(0xFF49454F);
-  static const Color textHint = Color(0xFF79747E);
-
-  static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
 
       // Color scheme
       colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
+        seedColor: colors.primary,
         brightness: Brightness.light,
-        primary: primaryColor,
-        secondary: accentColor,
-        surface: surface,
-        error: error,
+        primary: colors.primary,
+        secondary: colors.secondary ?? colors.accent,
+        surface: colors.surface,
+        error: const Color(0xFFB00020),
       ),
 
       // Scaffold
-      scaffoldBackgroundColor: background,
+      scaffoldBackgroundColor: colors.surface,
 
       // App bar
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 1,
-        backgroundColor: surface,
-        foregroundColor: textPrimary,
+        backgroundColor: Colors.white,
+        foregroundColor: colors.text,
         titleTextStyle: TextStyle(
-          color: textPrimary,
+          color: colors.text,
           fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
@@ -58,30 +119,30 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.grey.shade200),
+          side: BorderSide(color: colors.text.withValues(alpha: 0.1)),
         ),
-        color: surface,
+        color: Colors.white,
       ),
 
       // Input decoration
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surface,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: colors.text.withValues(alpha: 0.2)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: colors.text.withValues(alpha: 0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryColor, width: 2),
+          borderSide: BorderSide(color: colors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: error),
+          borderSide: const BorderSide(color: Color(0xFFB00020)),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
@@ -89,7 +150,7 @@ class AppTheme {
       // Elevated button
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
+          backgroundColor: colors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -103,18 +164,30 @@ class AppTheme {
         ),
       ),
 
+      // Filled button
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+
       // Floating action button
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: primaryColor,
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colors.primary,
         foregroundColor: Colors.white,
         elevation: 2,
-        shape: CircleBorder(),
+        shape: const CircleBorder(),
       ),
 
       // Bottom navigation
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: surface,
-        selectedItemColor: primaryColor,
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: Colors.white,
+        selectedItemColor: colors.primary,
         unselectedItemColor: textHint,
         type: BottomNavigationBarType.fixed,
         elevation: 8,
@@ -122,8 +195,8 @@ class AppTheme {
 
       // Chip theme
       chipTheme: ChipThemeData(
-        backgroundColor: Colors.grey.shade100,
-        selectedColor: primaryColor.withValues(alpha: 0.2),
+        backgroundColor: colors.text.withValues(alpha: 0.08),
+        selectedColor: colors.primary.withValues(alpha: 0.2),
         labelStyle: const TextStyle(fontSize: 14),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(
@@ -133,50 +206,50 @@ class AppTheme {
 
       // Divider
       dividerTheme: DividerThemeData(
-        color: Colors.grey.shade200,
+        color: colors.text.withValues(alpha: 0.1),
         thickness: 1,
         space: 1,
       ),
 
       // Text theme
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         headlineLarge: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.bold,
-          color: textPrimary,
+          color: colors.text,
         ),
         headlineMedium: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.w600,
-          color: textPrimary,
+          color: colors.text,
         ),
         headlineSmall: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: textPrimary,
+          color: colors.text,
         ),
         titleLarge: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: textPrimary,
+          color: colors.text,
         ),
         titleMedium: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: textPrimary,
+          color: colors.text,
         ),
         titleSmall: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: textPrimary,
+          color: colors.text,
         ),
         bodyLarge: TextStyle(
           fontSize: 16,
-          color: textPrimary,
+          color: colors.text,
         ),
         bodyMedium: TextStyle(
           fontSize: 14,
-          color: textPrimary,
+          color: colors.text,
         ),
         bodySmall: TextStyle(
           fontSize: 12,
@@ -185,7 +258,7 @@ class AppTheme {
         labelLarge: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: textPrimary,
+          color: colors.text,
         ),
         labelMedium: TextStyle(
           fontSize: 12,
