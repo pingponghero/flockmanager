@@ -11,8 +11,7 @@ A cross-platform mobile app for backyard chicken keepers to track flocks, log eg
 - **Navigation:** GoRouter
 - **Charts:** fl_chart
 - **Photos:** image_picker
-- **In-App Purchase:** in_app_purchase
-- **Local Notifications:** flutter_local_notifications
+- **Preferences:** shared_preferences
 
 ## Getting Started
 
@@ -74,6 +73,9 @@ lib/
 ├── app/
 │   ├── router.dart           # GoRouter configuration
 │   └── theme.dart            # ThemeData, colors, text styles
+├── data/                     # Static reference data
+│   ├── breeds.dart           # 50 chicken breeds
+│   └── medications.dart      # Medication reference guide
 ├── models/                   # Freezed data classes
 ├── database/
 │   ├── database_helper.dart  # SQLite singleton, migrations
@@ -124,16 +126,23 @@ flutter test --coverage
 Test structure:
 - `test/models/` - Model unit tests (toMap, fromMap, computed properties)
 - `test/database/` - Database schema tests
-- `test/widget_test.dart` - Widget tests
+- `test/repositories/` - Repository CRUD tests (flock, bird, egg)
+- `test/providers/` - Provider and analytics class tests
+- `test/helpers/` - Test utilities and mocks
 
 ## Key Features
 
 - **Quick Egg Logging** - Log daily eggs in 2 taps from anywhere in the app
-- **Flock Management** - Organize birds into flocks
-- **Bird Profiles** - Track individual birds with photos, breed, and age
-- **Expense Tracking** - Monitor costs with category breakdown
+- **Flock Management** - Organize birds into multiple flocks
+- **Bird Profiles** - Track individual birds with photos, breed, hatch date, and status
+- **Expense Tracking** - Monitor costs with category breakdown and recurring expenses
+- **Income Tracking** - Log egg sales with price-per-egg calculations
 - **Medication Tracking** - Log treatments with egg withdrawal period alerts
-- **Analytics** - View production trends and per-bird statistics
+- **Health Notes** - Record observations, symptoms, and vet visits per bird
+- **Analytics** - View production trends, per-bird statistics, and cost analysis
+- **Breed Reference** - Built-in guide to 50 chicken breeds with egg color, temperament, and production info
+- **Medication Reference** - Common treatments with dosages and withdrawal periods
+- **Theme Customization** - Three color palettes (Barn Red, Sage, Egg-Inspired)
 
 ## License
 
