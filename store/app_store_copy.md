@@ -8,17 +8,7 @@ Prepared copy for iOS App Store and Google Play Store listings.
 
 Primary name options (30 character limit for iOS, 50 for Android):
 
-| Option | Characters | Notes |
-|--------|-----------|-------|
-| Coop | 4 | Short, memorable, might have conflicts |
-| Roost | 5 | Evocative, easy to say |
-| Hensight | 8 | Clever pun, unique |
-| Coop Log | 8 | Descriptive |
-| Flock | 5 | Simple, clear |
-| Henkeeper | 9 | Descriptive |
-| The Coop | 8 | Friendly, approachable |
-
-**Recommendation**: "Coop" or "Roost" for brevity; "Hensight" for uniqueness.
+**Final Name**: Flock Manager (13 characters)
 
 ---
 
@@ -26,22 +16,11 @@ Primary name options (30 character limit for iOS, 50 for Android):
 
 *iOS: 30 characters | Android: 80 characters*
 
-### iOS Subtitle Options (30 chars)
-- `Backyard Chicken Tracker` (25)
-- `Track Your Flock` (16)
-- `Egg & Flock Tracker` (19)
-- `Chicken Keeping Made Easy` (25)
-- `Your Flock, Organized` (21)
+### iOS Subtitle
+**Final**: `Backyard Chicken Tracker` (25 chars)
 
-### Android Short Description (80 chars)
-- `Track eggs, manage flocks, and keep your backyard chickens healthy. No subscription.` (83 — trim to 80)
-- `Simple egg logging and flock management for backyard chicken keepers.` (69)
-- `Track eggs, birds, expenses & health. Local storage. One-time purchase.` (71)
-- `The chicken keeping app that respects your privacy and your wallet.` (67)
-
-**Recommendation**:
-- iOS: "Backyard Chicken Tracker"
-- Android: "Track eggs, birds, expenses & health. Local storage. One-time purchase."
+### Android Short Description
+**Final**: `Simple, offline flock tracking for backyard chickens. Eggs, health, feed & costs.` (80 chars)
 
 ---
 
@@ -53,9 +32,9 @@ Primary name options (30 character limit for iOS, 50 for Android):
 
 ---
 
-**Finally, a chicken keeping app that doesn't nickel and dime you.**
+**Finally, a simple chicken keeping app that doesn't nickel and dime you.**
 
-[App Name] is a simple, powerful app for backyard chicken keepers who want to track their flock without the hassle of subscriptions, accounts, or complicated features you'll never use.
+Flock Manager is a simple, powerful app for backyard chicken keepers who want to track their flock without the hassle of subscriptions, accounts, or complicated features you'll never use.
 
 **LOG EGGS IN 2 TAPS**
 
@@ -196,7 +175,7 @@ For future updates:
 ### Example: Version 1.0 (Launch)
 
 ```
-Welcome to [App Name]!
+Welcome to Flock Manager!
 
 Track your backyard flock with ease:
 • Quick 2-tap egg logging
@@ -222,7 +201,7 @@ Thanks for the great feedback! Here's what's new:
 • Improved calendar performance
 • Fixed: Egg count sometimes showing yesterday's date
 
-Love [App Name]? A review helps other chicken keepers find us!
+Love Flock Manager? A review helps other chicken keepers find us!
 ```
 
 ---

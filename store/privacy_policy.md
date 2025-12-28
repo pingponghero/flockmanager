@@ -1,18 +1,18 @@
 # Privacy Policy
 
-**[App Name]**
+**Flock Manager**
 
 *Last updated: [Date]*
 
 ## The Short Version
 
-[App Name] is a private, offline-first app. Your data stays on your device. We don't have accounts, we don't collect your information, and we can't see your chickens (as much as we'd like to).
+Flock Manager is a private, offline-first app. Your data stays on your device. We don't have accounts, we don't collect your information, and we can't see your chickens (as much as we'd like to).
 
 ---
 
 ## Introduction
 
-This Privacy Policy describes how [App Name] ("we", "our", or "the app") handles information when you use our mobile application. We built this app with privacy in mind—your flock data belongs to you.
+This Privacy Policy describes how Flock Manager ("we", "our", or "the app") handles information when you use our mobile application. We built this app with privacy in mind—your flock data belongs to you.
 
 ## Information We Do NOT Collect
 
