@@ -106,11 +106,33 @@ class _ExpensesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expensesAsync = ref.watch(expensesProvider);
-    final monthTotalAsync = ref.watch(monthExpensesProvider);
-    final costPerEggAsync = ref.watch(costPerEggProvider);
+    final selectedRange = ref.watch(financeDateRangeProvider);
+    final rangeTotalAsync = ref.watch(selectedRangeExpensesProvider);
+    final costPerEggAsync = ref.watch(selectedRangeCostPerEggProvider);
 
     return Column(
       children: [
+        // Date range selector
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: FinanceDateRange.values.map((range) {
+              final isSelected = selectedRange == range;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(range.displayName),
+                  selected: isSelected,
+                  onSelected: (_) {
+                    ref.read(financeDateRangeProvider.notifier).state = range;
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+
         // Summary header
         Container(
           width: double.infinity,
@@ -123,10 +145,10 @@ class _ExpensesTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'This Month',
+                      'Total Spent',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    monthTotalAsync.when(
+                    rangeTotalAsync.when(
                       loading: () => const Text('...'),
                       error: (_, __) => const Text('--'),
                       data: (total) => Text(
@@ -344,11 +366,33 @@ class _IncomeTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final incomeAsync = ref.watch(incomeProvider);
-    final monthTotalAsync = ref.watch(monthIncomeProvider);
-    final profitLossAsync = ref.watch(monthProfitLossProvider);
+    final selectedRange = ref.watch(financeDateRangeProvider);
+    final rangeTotalAsync = ref.watch(selectedRangeIncomeProvider);
+    final profitLossAsync = ref.watch(selectedRangeProfitLossProvider);
 
     return Column(
       children: [
+        // Date range selector (shared with expenses tab)
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: FinanceDateRange.values.map((range) {
+              final isSelected = selectedRange == range;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: ChoiceChip(
+                  label: Text(range.displayName),
+                  selected: isSelected,
+                  onSelected: (_) {
+                    ref.read(financeDateRangeProvider.notifier).state = range;
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+
         // Summary header
         Container(
           width: double.infinity,
@@ -361,10 +405,10 @@ class _IncomeTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'This Month',
+                      'Total Income',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    monthTotalAsync.when(
+                    rangeTotalAsync.when(
                       loading: () => const Text('...'),
                       error: (_, __) => const Text('--'),
                       data: (total) => Text(

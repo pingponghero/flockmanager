@@ -257,4 +257,134 @@ class EggRepository {
 
     return (result.first['total'] as int?) ?? 0;
   }
+
+  // ==================== ACHIEVEMENT QUERIES ====================
+
+  /// Get the maximum eggs logged in a single day
+  Future<int> getMaxEggsInOneDay() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COALESCE(MAX(daily_total), 0) as max_eggs FROM (
+        SELECT date(date) as day, SUM(count) as daily_total
+        FROM egg_logs
+        GROUP BY date(date)
+      )
+    ''');
+
+    return (result.first['max_eggs'] as int?) ?? 0;
+  }
+
+  /// Get current consecutive logging streak (days in a row with logs ending today or yesterday)
+  Future<int> getCurrentLoggingStreak() async {
+    final db = await _db.database;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Get all distinct dates with logs, ordered descending
+    final result = await db.rawQuery('''
+      SELECT DISTINCT date(date) as log_date
+      FROM egg_logs
+      ORDER BY log_date DESC
+    ''');
+
+    if (result.isEmpty) return 0;
+
+    int streak = 0;
+    DateTime? expectedDate;
+
+    for (final row in result) {
+      final dateStr = row['log_date'] as String;
+      final logDate = DateTime.parse(dateStr);
+      final normalizedDate = DateTime(logDate.year, logDate.month, logDate.day);
+
+      if (expectedDate == null) {
+        // First entry - must be today or yesterday to count
+        final diffFromToday = today.difference(normalizedDate).inDays;
+        if (diffFromToday > 1) break; // Streak broken
+        expectedDate = normalizedDate;
+        streak = 1;
+      } else {
+        // Check if this is the previous day
+        final expectedPrevious = expectedDate.subtract(const Duration(days: 1));
+        if (normalizedDate == expectedPrevious) {
+          streak++;
+          expectedDate = normalizedDate;
+        } else {
+          break; // Streak broken
+        }
+      }
+    }
+
+    return streak;
+  }
+
+  /// Get set of months (1-12) that have egg logs
+  Future<Set<int>> getMonthsWithEggs() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT DISTINCT CAST(strftime('%m', date) AS INTEGER) as month
+      FROM egg_logs
+    ''');
+
+    return result.map((r) => r['month'] as int).toSet();
+  }
+
+  /// Check if any log was created before a specific hour
+  Future<bool> hasLogBeforeHour(int hour) async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM egg_logs
+      WHERE CAST(strftime('%H', created_at) AS INTEGER) < ?
+    ''', [hour]);
+
+    return ((result.first['count'] as int?) ?? 0) > 0;
+  }
+
+  /// Check if any log was created after a specific hour
+  Future<bool> hasLogAfterHour(int hour) async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM egg_logs
+      WHERE CAST(strftime('%H', created_at) AS INTEGER) >= ?
+    ''', [hour]);
+
+    return ((result.first['count'] as int?) ?? 0) > 0;
+  }
+
+  /// Get count of distinct days with egg logs (for "days using app")
+  Future<int> getDistinctLogDays() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COUNT(DISTINCT date(date)) as days FROM egg_logs
+    ''');
+
+    return (result.first['days'] as int?) ?? 0;
+  }
+
+  /// Check if any double yolk egg has been logged
+  Future<bool> hasDoubleYolkEgg() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM egg_logs WHERE quality = 'doubleYolk'
+    ''');
+
+    return ((result.first['count'] as int?) ?? 0) > 0;
+  }
+
+  /// Check if any abnormal/fairy egg has been logged
+  Future<bool> hasAbnormalEgg() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM egg_logs WHERE quality = 'abnormal'
+    ''');
+
+    return ((result.first['count'] as int?) ?? 0) > 0;
+  }
 }

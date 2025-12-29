@@ -63,8 +63,8 @@ final List<Map<String, dynamic>> testFlocks = [
     'id': TestIds.flockBackyard,
     'name': 'Backyard Layers',
     'description': 'Main egg production flock - mixed breeds for colorful egg basket',
-    'icon': '🥚',
-    'color': '#4CAF50', // Green
+    'icon': 'egg',
+    'color': '4CAF50', // Green
     'is_archived': 0,
     'created_at': _daysAgoFull(180),
   },
@@ -72,8 +72,8 @@ final List<Map<String, dynamic>> testFlocks = [
     'id': TestIds.flockBantams,
     'name': 'Bantam Buddies',
     'description': 'Small ornamental flock - mostly pets',
-    'icon': '🐤',
-    'color': '#FF9800', // Orange
+    'icon': 'pets',
+    'color': 'FF9800', // Orange
     'is_archived': 0,
     'created_at': _daysAgoFull(90),
   },
@@ -81,8 +81,8 @@ final List<Map<String, dynamic>> testFlocks = [
     'id': TestIds.flockBreeding,
     'name': 'Marans Project',
     'description': 'Black Copper Marans breeding for dark eggs',
-    'icon': '🪺',
-    'color': '#795548', // Brown
+    'icon': 'nature',
+    'color': '795548', // Brown
     'is_archived': 0,
     'created_at': _daysAgoFull(60),
   },

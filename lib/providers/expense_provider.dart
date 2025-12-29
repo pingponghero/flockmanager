@@ -110,6 +110,38 @@ final incomeProvider = AsyncNotifierProvider<IncomeNotifier, List<Income>>(() {
 
 // ==================== DATE RANGE HELPERS ====================
 
+/// Date range options for financial reports
+enum FinanceDateRange {
+  thisMonth('This Month'),
+  last90Days('Last 90 Days'),
+  thisYear('This Year'),
+  allTime('All Time');
+
+  final String displayName;
+  const FinanceDateRange(this.displayName);
+
+  (DateTime start, DateTime end) get dates {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+    switch (this) {
+      case FinanceDateRange.thisMonth:
+        return (DateTime(now.year, now.month, 1), today);
+      case FinanceDateRange.last90Days:
+        return (DateTime(now.year, now.month, now.day - 90), today);
+      case FinanceDateRange.thisYear:
+        return (DateTime(now.year, 1, 1), today);
+      case FinanceDateRange.allTime:
+        return (DateTime(2000, 1, 1), today);
+    }
+  }
+}
+
+/// Selected date range for finances screen
+final financeDateRangeProvider = StateProvider<FinanceDateRange>((ref) {
+  return FinanceDateRange.thisMonth;
+});
+
 DateTime _startOfMonth() {
   final now = DateTime.now();
   return DateTime(now.year, now.month, 1);
@@ -125,6 +157,43 @@ DateTime _startOfAllTime() {
 }
 
 // ==================== FINANCIAL SUMMARY PROVIDERS ====================
+
+/// Total expenses for selected date range
+final selectedRangeExpensesProvider = FutureProvider<double>((ref) async {
+  final repository = ref.read(expenseRepositoryProvider);
+  final range = ref.watch(financeDateRangeProvider);
+  final (start, end) = range.dates;
+  return repository.getTotalExpenses(start, end);
+});
+
+/// Total income for selected date range
+final selectedRangeIncomeProvider = FutureProvider<double>((ref) async {
+  final repository = ref.read(expenseRepositoryProvider);
+  final range = ref.watch(financeDateRangeProvider);
+  final (start, end) = range.dates;
+  return repository.getTotalIncome(start, end);
+});
+
+/// Profit/loss for selected date range
+final selectedRangeProfitLossProvider = FutureProvider<double>((ref) async {
+  final income = await ref.watch(selectedRangeIncomeProvider.future);
+  final expenses = await ref.watch(selectedRangeExpensesProvider.future);
+  return income - expenses;
+});
+
+/// Cost per egg for selected date range
+final selectedRangeCostPerEggProvider = FutureProvider<double?>((ref) async {
+  final repository = ref.read(expenseRepositoryProvider);
+  final eggRepository = ref.read(eggRepositoryProvider);
+  final range = ref.watch(financeDateRangeProvider);
+  final (start, end) = range.dates;
+
+  final totalExpenses = await repository.getTotalExpenses(start, end);
+  final totalEggs = await eggRepository.getEggCountByDateRange(start, end);
+
+  if (totalEggs == 0) return null;
+  return totalExpenses / totalEggs;
+});
 
 /// This month's total expenses
 final monthExpensesProvider = FutureProvider<double>((ref) async {

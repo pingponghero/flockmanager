@@ -21,7 +21,7 @@ class AnalyticsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Analytics'),
+        title: const Text('Egg Stats'),
       ),
       body: RefreshIndicator(
         onRefresh: () async {

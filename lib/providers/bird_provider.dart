@@ -138,3 +138,84 @@ final birdCountsByStatusProvider =
   final repository = ref.read(birdRepositoryProvider);
   return repository.getBirdCountsByStatus(flockId);
 });
+
+// ==================== FUN FEATURES ====================
+
+/// Fun titles for Chicken of the Week (rotates with the bird)
+const _chickenOfTheWeekTitles = [
+  'Flock Favorite',
+  'Coop Celebrity',
+  'Featured Friend',
+  "This Week's Star",
+  'Feathered VIP',
+  'Top Hen',
+  'Clucky Champion',
+];
+
+/// Chicken of the Week - cycles through active birds by ID (fair rotation)
+final chickenOfTheWeekProvider = FutureProvider<({Bird bird, String title})?>(
+  (ref) async {
+    final birds = await ref.watch(activeBirdsProvider.future);
+    if (birds.isEmpty) return null;
+
+    // Sort by ID for consistent, fair rotation
+    final sortedBirds = [...birds]..sort((a, b) => a.id.compareTo(b.id));
+
+    // Use week number to cycle through birds
+    final now = DateTime.now();
+    final weekOfYear = ((now.difference(DateTime(now.year, 1, 1)).inDays) / 7).floor();
+
+    // Pick bird based on week (cycles through all birds)
+    final birdIndex = weekOfYear % sortedBirds.length;
+    final titleIndex = weekOfYear % _chickenOfTheWeekTitles.length;
+
+    return (
+      bird: sortedBirds[birdIndex],
+      title: _chickenOfTheWeekTitles[titleIndex],
+    );
+  },
+);
+
+/// Birds with birthdays coming up (within next 7 days) or today
+final upcomingBirthdaysProvider = FutureProvider<List<({Bird bird, int daysUntil, int age})>>(
+  (ref) async {
+    final birds = await ref.watch(activeBirdsProvider.future);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final birthdays = <({Bird bird, int daysUntil, int age})>[];
+
+    for (final bird in birds) {
+      if (bird.hatchDate == null) continue;
+
+      // Calculate this year's birthday
+      var birthdayThisYear = DateTime(
+        now.year,
+        bird.hatchDate!.month,
+        bird.hatchDate!.day,
+      );
+
+      // If birthday already passed this year, check next year
+      if (birthdayThisYear.isBefore(today)) {
+        birthdayThisYear = DateTime(
+          now.year + 1,
+          bird.hatchDate!.month,
+          bird.hatchDate!.day,
+        );
+      }
+
+      final daysUntil = birthdayThisYear.difference(today).inDays;
+
+      // Include if within next 7 days
+      if (daysUntil <= 7) {
+        final age = birthdayThisYear.year - bird.hatchDate!.year;
+        birthdays.add((bird: bird, daysUntil: daysUntil, age: age));
+      }
+    }
+
+    // Sort by days until birthday
+    birthdays.sort((a, b) => a.daysUntil.compareTo(b.daysUntil));
+
+    return birthdays;
+  },
+);

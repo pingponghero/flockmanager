@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../models/egg_log.dart';
 import '../../models/flock.dart';
+import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
@@ -55,6 +56,15 @@ class HomeScreen extends ConsumerWidget {
               selectedFlock: selectedFlockAsync.valueOrNull,
             ),
             const SizedBox(height: 16),
+
+            // Chicken of the Week
+            const _ChickenOfTheWeek(),
+
+            // Birthday callouts
+            const _BirthdayCallouts(),
+
+            // Achievements badge row
+            const _AchievementsBadges(),
 
             // Withdrawal warning banner
             _WithdrawalWarning(),
@@ -555,7 +565,7 @@ class _QuickActions extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: () => context.push('/analytics'),
                 icon: const Icon(Icons.bar_chart),
-                label: const Text('Analytics'),
+                label: const Text('Egg Stats'),
               ),
             ),
           ],
@@ -695,5 +705,297 @@ class _ActivityTile extends ConsumerWidget {
     } else {
       return DateFormat.MMMd().format(dateTime);
     }
+  }
+}
+
+class _ChickenOfTheWeek extends ConsumerWidget {
+  const _ChickenOfTheWeek();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chickenAsync = ref.watch(chickenOfTheWeekProvider);
+
+    return chickenAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (data) {
+        if (data == null) return const SizedBox.shrink();
+
+        final bird = data.bird;
+        final title = data.title;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Card(
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => context.push('/birds/${bird.id}'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Photo or fallback
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(32),
+                      ),
+                      child: bird.photoPrimary != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(32),
+                              child: Image.network(
+                                bird.photoPrimary!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Icon(
+                                  Icons.flutter_dash,
+                                  size: 32,
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              Icons.flutter_dash,
+                              size: 32,
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.star,
+                                size: 16,
+                                color: Colors.amber.shade600,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                title,
+                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                      color: Colors.amber.shade700,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            bird.name,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          if (bird.breed != null)
+                            Text(
+                              bird.breed!,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                          if (bird.notes != null && bird.notes!.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              bird.notes!,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BirthdayCallouts extends ConsumerWidget {
+  const _BirthdayCallouts();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final birthdaysAsync = ref.watch(upcomingBirthdaysProvider);
+
+    return birthdaysAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (birthdays) {
+        if (birthdays.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            children: birthdays.map((b) {
+              final isToday = b.daysUntil == 0;
+              final message = isToday
+                  ? '${b.bird.name} turns ${b.age} today!'
+                  : b.daysUntil == 1
+                      ? "${b.bird.name}'s birthday is tomorrow!"
+                      : "${b.bird.name}'s birthday is in ${b.daysUntil} days";
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GestureDetector(
+                  onTap: () => context.push('/birds/${b.bird.id}'),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isToday ? Colors.pink.shade50 : Colors.purple.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isToday ? Colors.pink.shade200 : Colors.purple.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isToday ? Icons.cake : Icons.event,
+                          color: isToday ? Colors.pink.shade600 : Colors.purple.shade600,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            message,
+                            style: TextStyle(
+                              color: isToday ? Colors.pink.shade900 : Colors.purple.shade900,
+                              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                        if (isToday)
+                          const Text(
+                            '🎂',
+                            style: TextStyle(fontSize: 20),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AchievementsBadges extends ConsumerWidget {
+  const _AchievementsBadges();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final achievementsAsync = ref.watch(earnedAchievementsProvider);
+    final summaryAsync = ref.watch(achievementSummaryProvider);
+
+    return achievementsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (earned) {
+        if (earned.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.emoji_events,
+                        size: 18,
+                        color: Colors.amber.shade600,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Achievements',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const Spacer(),
+                      summaryAsync.when(
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                        data: (summary) => Text(
+                          '${summary.earned}/${summary.total}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Show badges in a wrap
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: earned.map((achievement) {
+                      return Tooltip(
+                        message: '${achievement.name}\n${achievement.description}',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: achievement.color.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: achievement.color.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                achievement.icon,
+                                size: 16,
+                                color: achievement.color,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                achievement.name,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: achievement.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
