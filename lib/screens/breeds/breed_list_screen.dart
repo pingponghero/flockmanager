@@ -69,7 +69,9 @@ class _BreedListScreenState extends State<BreedListScreen> {
                   onSelected: (color) => setState(() => _selectedEggColor = color),
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: null, child: Text('All Colors')),
-                    ...EggColor.values.map((color) => PopupMenuItem(
+                    ...EggColor.values
+                        .where((c) => c != EggColor.green && c != EggColor.pink)
+                        .map((color) => PopupMenuItem(
                           value: color,
                           child: Row(
                             children: [
