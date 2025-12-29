@@ -1202,16 +1202,23 @@ Breed? getBreedById(String id) {
   }
 }
 
-/// Search breeds by name or AKA
+/// Search breeds by name or AKA (returns alphabetically sorted)
 List<Breed> searchBreeds(String query) {
   final q = query.toLowerCase().trim();
-  if (q.isEmpty) return breeds;
+  List<Breed> results;
 
-  return breeds.where((b) {
-    if (b.name.toLowerCase().contains(q)) return true;
-    if (b.aka.any((a) => a.toLowerCase().contains(q))) return true;
-    return false;
-  }).toList();
+  if (q.isEmpty) {
+    results = List<Breed>.from(breeds);
+  } else {
+    results = breeds.where((b) {
+      if (b.name.toLowerCase().contains(q)) return true;
+      if (b.aka.any((a) => a.toLowerCase().contains(q))) return true;
+      return false;
+    }).toList();
+  }
+
+  results.sort((a, b) => a.name.compareTo(b.name));
+  return results;
 }
 
 /// Filter breeds by egg color
