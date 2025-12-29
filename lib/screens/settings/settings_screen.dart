@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
+import '../../data/test_data.dart';
 import '../../providers/theme_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -106,6 +108,69 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+
+          // Developer Section (debug mode only)
+          if (kDebugMode) ...[
+            const SizedBox(height: 24),
+            Text(
+              'Developer',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.storage),
+                    title: const Text('Load Test Data'),
+                    subtitle: const Text('Populate with sample flocks & eggs'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _showSeedConfirmation(context, ref),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showSeedConfirmation(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Load Test Data?'),
+        content: const Text(
+          'This will DELETE all existing data and replace it with sample data.\n\n'
+          '• 3 flocks\n'
+          '• 12 birds\n'
+          '• 35 days of egg logs\n'
+          '• Expenses & income\n'
+          '• Medication records\n\n'
+          'This cannot be undone!',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await TestData.seedDatabase();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Test data loaded! Restart app to see changes.'),
+                  ),
+                );
+              }
+            },
+            child: const Text('Load Data'),
           ),
         ],
       ),

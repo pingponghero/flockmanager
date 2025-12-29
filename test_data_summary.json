@@ -1,0 +1,220 @@
+{
+  "metadata": {
+    "generated": "2024-12-28",
+    "description": "Test data for Flock Manager app - 35 days of realistic chicken keeping data",
+    "version": "1.0"
+  },
+  "flocks": [
+    {
+      "id": "flock-backyard-001",
+      "name": "Backyard Layers",
+      "description": "Main egg production flock - mixed breeds for colorful egg basket",
+      "icon": "🥚",
+      "color": "#4CAF50",
+      "is_archived": 0
+    },
+    {
+      "id": "flock-bantams-002",
+      "name": "Bantam Buddies",
+      "description": "Small ornamental flock - mostly pets",
+      "icon": "🐤",
+      "color": "#FF9800",
+      "is_archived": 0
+    },
+    {
+      "id": "flock-breeding-003",
+      "name": "Marans Project",
+      "description": "Black Copper Marans breeding for dark eggs",
+      "icon": "🪺",
+      "color": "#795548",
+      "is_archived": 0
+    }
+  ],
+  "birds": [
+    {
+      "id": "bird-henrietta-001",
+      "flock_id": "flock-backyard-001",
+      "name": "Henrietta",
+      "breed": "Barred Plymouth Rock",
+      "breed_id": "plymouth_rock_barred",
+      "egg_color": "Brown",
+      "status": "active",
+      "notes": "Flock leader. First to the treat bowl, keeps everyone in line.",
+      "age_days": 540,
+      "source": "Local feed store"
+    },
+    {
+      "id": "bird-ginger-002",
+      "flock_id": "flock-backyard-001",
+      "name": "Ginger",
+      "breed": "Buff Orpington",
+      "breed_id": "orpington_buff",
+      "egg_color": "Brown",
+      "status": "active",
+      "notes": "Sweetest bird in the flock. Goes broody every spring.",
+      "age_days": 510,
+      "source": "Local feed store"
+    },
+    {
+      "id": "bird-pepper-003",
+      "flock_id": "flock-backyard-001",
+      "name": "Pepper",
+      "breed": "Silver Laced Wyandotte",
+      "breed_id": "wyandotte",
+      "egg_color": "Brown",
+      "status": "active",
+      "notes": "Beautiful lacing. Consistent layer even in winter.",
+      "age_days": 400,
+      "source": "Neighbor hatched"
+    },
+    {
+      "id": "bird-dottie-004",
+      "flock_id": "flock-backyard-001",
+      "name": "Dottie",
+      "breed": "Speckled Sussex",
+      "breed_id": "sussex_speckled",
+      "egg_color": "Brown",
+      "status": "active",
+      "notes": "Most curious bird - always investigating everything.",
+      "age_days": 380,
+      "source": "Tractor Supply"
+    },
+    {
+      "id": "bird-olive-005",
+      "flock_id": "flock-backyard-001",
+      "name": "Olive",
+      "breed": "Olive Egger",
+      "breed_id": "olive_egger",
+      "egg_color": "Olive",
+      "status": "active",
+      "notes": "Beautiful olive eggs! F1 cross from Marans x Ameraucana.",
+      "age_days": 320,
+      "source": "Online hatchery"
+    },
+    {
+      "id": "bird-hazel-006",
+      "flock_id": "flock-backyard-001",
+      "name": "Hazel",
+      "breed": "Easter Egger",
+      "breed_id": "easter_egger",
+      "egg_color": "Blue",
+      "status": "active",
+      "notes": "Lays pretty blue eggs. Has a cute beard and muffs.",
+      "age_days": 290,
+      "source": "Local breeder"
+    },
+    {
+      "id": "bird-maple-007",
+      "flock_id": "flock-backyard-001",
+      "name": "Maple",
+      "breed": "Rhode Island Red",
+      "breed_id": "rhode_island_red",
+      "egg_color": "Brown",
+      "status": "deceased",
+      "status_date": "2024-12-13",
+      "status_notes": "Found in coop, passed peacefully in sleep. Good layer for 2 years.",
+      "notes": "Was our best layer. RIP sweet girl.",
+      "age_days": 600,
+      "source": "Friend's farm"
+    },
+    {
+      "id": "bird-pebbles-008",
+      "flock_id": "flock-bantams-002",
+      "name": "Pebbles",
+      "breed": "Silkie",
+      "breed_id": "silkie",
+      "egg_color": "Cream",
+      "status": "active",
+      "notes": "White silkie. Goes broody constantly - great foster mom.",
+      "age_days": 450,
+      "source": "Poultry show"
+    },
+    {
+      "id": "bird-cookie-009",
+      "flock_id": "flock-bantams-002",
+      "name": "Cookie",
+      "breed": "Sebright",
+      "breed_id": "sebright",
+      "egg_color": "Cream",
+      "status": "active",
+      "notes": "Golden Sebright. Tiny eggs but so pretty!",
+      "age_days": 380,
+      "source": "Poultry show"
+    },
+    {
+      "id": "bird-midnight-010",
+      "flock_id": "flock-breeding-003",
+      "name": "Midnight",
+      "breed": "Black Copper Marans",
+      "breed_id": "marans_black_copper",
+      "egg_color": "Chocolate",
+      "status": "active",
+      "notes": "Best egg color in the flock. Eggs consistently #6-7 on Marans scale.",
+      "age_days": 300,
+      "source": "Marans breeder - show quality"
+    },
+    {
+      "id": "bird-copper-011",
+      "flock_id": "flock-breeding-003",
+      "name": "Copper",
+      "breed": "Black Copper Marans",
+      "breed_id": "marans_black_copper",
+      "egg_color": "Chocolate",
+      "status": "active",
+      "notes": "Beautiful copper hackles. Eggs lighter than Midnight (#5).",
+      "age_days": 310,
+      "source": "Marans breeder - show quality"
+    },
+    {
+      "id": "bird-shadow-012",
+      "flock_id": "flock-breeding-003",
+      "name": "Shadow",
+      "breed": "Black Copper Marans",
+      "breed_id": "marans_black_copper",
+      "egg_color": "Chocolate",
+      "status": "active",
+      "notes": "Rooster. Great temperament, protective but not aggressive.",
+      "age_days": 295,
+      "source": "Marans breeder - show quality"
+    }
+  ],
+  "egg_log_summary": {
+    "period_days": 35,
+    "total_eggs": 196,
+    "daily_average": 5.6,
+    "by_flock": {
+      "flock-backyard-001": { "total": 152, "daily_avg": 4.3 },
+      "flock-bantams-002": { "total": 12, "daily_avg": 0.3 },
+      "flock-breeding-003": { "total": 62, "daily_avg": 1.8 }
+    },
+    "notable_events": [
+      { "day": 8, "note": "Soft shell egg - calcium issue" },
+      { "day": 10, "note": "Pebbles went broody" },
+      { "day": 15, "note": "Maple (RIR) passed away" },
+      { "day": 20, "note": "Cold snap began - production dip" },
+      { "day": 22, "note": "Cold snap ended" },
+      { "day": 25, "note": "Double yolker!" }
+    ]
+  },
+  "expenses_summary": {
+    "total": 269.89,
+    "by_category": {
+      "feed": 74.97,
+      "bedding": 15.49,
+      "supplies": 31.48,
+      "medical": 12.95,
+      "equipment": 89.00,
+      "other": 45.00
+    }
+  },
+  "income_summary": {
+    "total": 42.00,
+    "eggs_sold": 84
+  },
+  "active_withdrawal": {
+    "flock": "flock-breeding-003",
+    "medication": "Valbazen",
+    "withdrawal_days": 14,
+    "ends_in_days": 11
+  }
+}
