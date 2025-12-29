@@ -10,15 +10,15 @@ flutter_launcher_icons:
   remove_alpha_ios: true
 
   # Android adaptive icon
-  adaptive_icon_background: "#C41E3A"  # Barn red from our theme
+  adaptive_icon_background: "#F5F0E6"  # Cream background
   adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
 
   # Web favicon
   web:
     generate: true
     image_path: "assets/icons/app_icon.png"
-    background_color: "#C41E3A"
-    theme_color: "#C41E3A"
+    background_color: "#F5F0E6"
+    theme_color: "#6B4423"
 
   # Windows
   windows:
@@ -31,15 +31,12 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/icons/app_icon.png"
 
-# Icon Design Guidelines:
-# -----------------------
-# The app icon should feature:
-# - A friendly chicken silhouette or stylized chicken head
-# - Barn red background (#C41E3A) matching the default theme
-# - Clean, modern design that works at small sizes
-# - No text (icons should be recognizable without text)
-#
-# Required assets to create:
-# - assets/icons/app_icon.png (1024x1024, with background)
-# - assets/icons/app_icon_foreground.png (1024x1024, transparent background)
-#   This should be the chicken only, centered with ~30% padding for adaptive icons
+# App Icon Variants:
+# ------------------
+# Primary: app_icon.png (brown hen on cream) - used for all platforms
+# Variants available in assets/icons/:
+#   - app_icon_barn_red.png (barn red hen on cream)
+#   - app_icon_sage.png (sage green hen on cream)
+#   - app_icon_teal.png (teal hen on cream)
+#   - app_icon_terracotta.png (terracotta hen on cream)
+#   - app_icon_light.png (brown hen on cream - same as primary)
