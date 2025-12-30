@@ -575,6 +575,24 @@ final achievements = <Achievement>[
     // This needs specific date check - approximating with December for now
     check: (ctx) => ctx.monthsWithEggs.contains(12),
   ),
+  Achievement(
+    id: 'spring_awakening',
+    name: 'Spring Awakening',
+    description: 'Log eggs in March after a quiet February',
+    icon: Icons.local_florist,
+    color: Colors.pink,
+    category: 'Seasonal',
+    check: (ctx) => ctx.monthsWithEggs.contains(3),
+  ),
+  Achievement(
+    id: 'molt_survivor',
+    name: 'Molt Survivor',
+    description: 'Log eggs through October (molting season)',
+    icon: Icons.autorenew,
+    color: Colors.brown,
+    category: 'Seasonal',
+    check: (ctx) => ctx.monthsWithEggs.contains(10),
+  ),
 ];
 
 /// Provider for earned achievements
