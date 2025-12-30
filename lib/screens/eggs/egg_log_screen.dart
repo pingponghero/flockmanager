@@ -29,8 +29,8 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
   DateTime _date = DateTime.now();
   String? _selectedFlockId;
   String? _selectedBirdId;
-  EggSize? _selectedSize;
-  EggQuality? _selectedQuality;
+  EggSize? _selectedSize = EggSize.medium;
+  EggQuality? _selectedQuality = EggQuality.normal;
   bool _isLoading = false;
 
   EggLog? _editingLog;
