@@ -45,6 +45,7 @@ enum EggQuality {
   normal,
   softShell,
   doubleYolk,
+  fairy,
   abnormal;
 
   String get displayName {
@@ -55,8 +56,49 @@ enum EggQuality {
         return 'Soft Shell';
       case EggQuality.doubleYolk:
         return 'Double Yolk';
+      case EggQuality.fairy:
+        return 'Fairy';
       case EggQuality.abnormal:
         return 'Abnormal';
+    }
+  }
+}
+
+/// Bird sex
+enum BirdSex {
+  female,
+  male,
+  unknown;
+
+  String get displayName {
+    switch (this) {
+      case BirdSex.female:
+        return 'Hen';
+      case BirdSex.male:
+        return 'Rooster';
+      case BirdSex.unknown:
+        return 'Unknown';
+    }
+  }
+}
+
+/// Bird species
+enum BirdSpecies {
+  chicken,
+  duck,
+  turkey,
+  other;
+
+  String get displayName {
+    switch (this) {
+      case BirdSpecies.chicken:
+        return 'Chicken';
+      case BirdSpecies.duck:
+        return 'Duck';
+      case BirdSpecies.turkey:
+        return 'Turkey';
+      case BirdSpecies.other:
+        return 'Other';
     }
   }
 }

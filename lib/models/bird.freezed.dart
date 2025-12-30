@@ -27,6 +27,8 @@ mixin _$Bird {
   DateTime? get acquiredDate => throw _privateConstructorUsedError;
   String? get source => throw _privateConstructorUsedError;
   String? get eggColor => throw _privateConstructorUsedError;
+  BirdSex get sex => throw _privateConstructorUsedError;
+  BirdSpecies get species => throw _privateConstructorUsedError;
   BirdStatus get status => throw _privateConstructorUsedError;
   DateTime? get statusDate => throw _privateConstructorUsedError;
   String? get statusNotes => throw _privateConstructorUsedError;
@@ -55,6 +57,8 @@ abstract class $BirdCopyWith<$Res> {
     DateTime? acquiredDate,
     String? source,
     String? eggColor,
+    BirdSex sex,
+    BirdSpecies species,
     BirdStatus status,
     DateTime? statusDate,
     String? statusNotes,
@@ -88,6 +92,8 @@ class _$BirdCopyWithImpl<$Res, $Val extends Bird>
     Object? acquiredDate = freezed,
     Object? source = freezed,
     Object? eggColor = freezed,
+    Object? sex = null,
+    Object? species = null,
     Object? status = null,
     Object? statusDate = freezed,
     Object? statusNotes = freezed,
@@ -136,6 +142,14 @@ class _$BirdCopyWithImpl<$Res, $Val extends Bird>
                 ? _value.eggColor
                 : eggColor // ignore: cast_nullable_to_non_nullable
                       as String?,
+            sex: null == sex
+                ? _value.sex
+                : sex // ignore: cast_nullable_to_non_nullable
+                      as BirdSex,
+            species: null == species
+                ? _value.species
+                : species // ignore: cast_nullable_to_non_nullable
+                      as BirdSpecies,
             status: null == status
                 ? _value.status
                 : status // ignore: cast_nullable_to_non_nullable
@@ -181,6 +195,8 @@ abstract class _$$BirdImplCopyWith<$Res> implements $BirdCopyWith<$Res> {
     DateTime? acquiredDate,
     String? source,
     String? eggColor,
+    BirdSex sex,
+    BirdSpecies species,
     BirdStatus status,
     DateTime? statusDate,
     String? statusNotes,
@@ -211,6 +227,8 @@ class __$$BirdImplCopyWithImpl<$Res>
     Object? acquiredDate = freezed,
     Object? source = freezed,
     Object? eggColor = freezed,
+    Object? sex = null,
+    Object? species = null,
     Object? status = null,
     Object? statusDate = freezed,
     Object? statusNotes = freezed,
@@ -259,6 +277,14 @@ class __$$BirdImplCopyWithImpl<$Res>
             ? _value.eggColor
             : eggColor // ignore: cast_nullable_to_non_nullable
                   as String?,
+        sex: null == sex
+            ? _value.sex
+            : sex // ignore: cast_nullable_to_non_nullable
+                  as BirdSex,
+        species: null == species
+            ? _value.species
+            : species // ignore: cast_nullable_to_non_nullable
+                  as BirdSpecies,
         status: null == status
             ? _value.status
             : status // ignore: cast_nullable_to_non_nullable
@@ -298,6 +324,8 @@ class _$BirdImpl extends _Bird {
     this.acquiredDate,
     this.source,
     this.eggColor,
+    this.sex = BirdSex.female,
+    this.species = BirdSpecies.chicken,
     this.status = BirdStatus.active,
     this.statusDate,
     this.statusNotes,
@@ -327,6 +355,12 @@ class _$BirdImpl extends _Bird {
   final String? eggColor;
   @override
   @JsonKey()
+  final BirdSex sex;
+  @override
+  @JsonKey()
+  final BirdSpecies species;
+  @override
+  @JsonKey()
   final BirdStatus status;
   @override
   final DateTime? statusDate;
@@ -339,7 +373,7 @@ class _$BirdImpl extends _Bird {
 
   @override
   String toString() {
-    return 'Bird(id: $id, flockId: $flockId, name: $name, breed: $breed, breedId: $breedId, photoPrimary: $photoPrimary, hatchDate: $hatchDate, acquiredDate: $acquiredDate, source: $source, eggColor: $eggColor, status: $status, statusDate: $statusDate, statusNotes: $statusNotes, notes: $notes, createdAt: $createdAt)';
+    return 'Bird(id: $id, flockId: $flockId, name: $name, breed: $breed, breedId: $breedId, photoPrimary: $photoPrimary, hatchDate: $hatchDate, acquiredDate: $acquiredDate, source: $source, eggColor: $eggColor, sex: $sex, species: $species, status: $status, statusDate: $statusDate, statusNotes: $statusNotes, notes: $notes, createdAt: $createdAt)';
   }
 
   @override
@@ -361,6 +395,8 @@ class _$BirdImpl extends _Bird {
             (identical(other.source, source) || other.source == source) &&
             (identical(other.eggColor, eggColor) ||
                 other.eggColor == eggColor) &&
+            (identical(other.sex, sex) || other.sex == sex) &&
+            (identical(other.species, species) || other.species == species) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.statusDate, statusDate) ||
                 other.statusDate == statusDate) &&
@@ -384,6 +420,8 @@ class _$BirdImpl extends _Bird {
     acquiredDate,
     source,
     eggColor,
+    sex,
+    species,
     status,
     statusDate,
     statusNotes,
@@ -412,6 +450,8 @@ abstract class _Bird extends Bird {
     final DateTime? acquiredDate,
     final String? source,
     final String? eggColor,
+    final BirdSex sex,
+    final BirdSpecies species,
     final BirdStatus status,
     final DateTime? statusDate,
     final String? statusNotes,
@@ -440,6 +480,10 @@ abstract class _Bird extends Bird {
   String? get source;
   @override
   String? get eggColor;
+  @override
+  BirdSex get sex;
+  @override
+  BirdSpecies get species;
   @override
   BirdStatus get status;
   @override

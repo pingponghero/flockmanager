@@ -20,6 +20,8 @@ class Bird with _$Bird {
     DateTime? acquiredDate,
     String? source,
     String? eggColor,
+    @Default(BirdSex.female) BirdSex sex,
+    @Default(BirdSpecies.chicken) BirdSpecies species,
     @Default(BirdStatus.active) BirdStatus status,
     DateTime? statusDate,
     String? statusNotes,
@@ -38,6 +40,8 @@ class Bird with _$Bird {
     DateTime? acquiredDate,
     String? source,
     String? eggColor,
+    BirdSex sex = BirdSex.female,
+    BirdSpecies species = BirdSpecies.chicken,
     String? notes,
   }) {
     return Bird(
@@ -51,6 +55,8 @@ class Bird with _$Bird {
       acquiredDate: acquiredDate,
       source: source,
       eggColor: eggColor,
+      sex: sex,
+      species: species,
       notes: notes,
       createdAt: DateTime.now(),
     );
@@ -73,6 +79,14 @@ class Bird with _$Bird {
           : null,
       source: map['source'] as String?,
       eggColor: map['egg_color'] as String?,
+      sex: BirdSex.values.firstWhere(
+        (e) => e.name == (map['sex'] as String? ?? 'female'),
+        orElse: () => BirdSex.female,
+      ),
+      species: BirdSpecies.values.firstWhere(
+        (e) => e.name == (map['species'] as String? ?? 'chicken'),
+        orElse: () => BirdSpecies.chicken,
+      ),
       status: BirdStatus.values.firstWhere(
         (e) => e.name == (map['status'] as String? ?? 'active'),
         orElse: () => BirdStatus.active,
@@ -99,6 +113,8 @@ class Bird with _$Bird {
       'acquired_date': acquiredDate?.toIso8601String(),
       'source': source,
       'egg_color': eggColor,
+      'sex': sex.name,
+      'species': species.name,
       'status': status.name,
       'status_date': statusDate?.toIso8601String(),
       'status_notes': statusNotes,
@@ -119,4 +135,13 @@ class Bird with _$Bird {
     if (days == null) return null;
     return days ~/ 7;
   }
+
+  /// Check if this bird is a hen
+  bool get isHen => sex == BirdSex.female;
+
+  /// Check if this bird is a rooster
+  bool get isRooster => sex == BirdSex.male;
+
+  /// Check if this bird is a chicken
+  bool get isChicken => species == BirdSpecies.chicken;
 }

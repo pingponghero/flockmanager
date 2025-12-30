@@ -382,7 +382,7 @@ class EggRepository {
     final db = await _db.database;
 
     final result = await db.rawQuery('''
-      SELECT COUNT(*) as count FROM egg_logs WHERE quality = 'abnormal'
+      SELECT COUNT(*) as count FROM egg_logs WHERE quality IN ('abnormal', 'fairy')
     ''');
 
     return ((result.first['count'] as int?) ?? 0) > 0;

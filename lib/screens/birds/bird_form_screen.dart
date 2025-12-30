@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../data/breeds.dart';
 import '../../models/bird.dart';
+import '../../models/enums.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/flock_provider.dart';
 
@@ -34,6 +35,8 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
 
   String? _selectedFlockId;
   String? _selectedBreedId;
+  BirdSex _selectedSex = BirdSex.female;
+  BirdSpecies _selectedSpecies = BirdSpecies.chicken;
   DateTime? _hatchDate;
   DateTime? _acquiredDate;
   String? _photoPath;
@@ -113,18 +116,68 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Breed field with autocomplete
-            _BreedAutocomplete(
-              controller: _breedController,
-              onBreedSelected: (breed) {
-                setState(() {
-                  _selectedBreedId = breed?.id;
-                  if (breed != null) {
-                    _eggColorController.text = breed.eggColorDisplay;
-                  }
-                });
+            // Species dropdown
+            DropdownButtonFormField<BirdSpecies>(
+              value: _selectedSpecies,
+              decoration: const InputDecoration(
+                labelText: 'Species',
+              ),
+              items: BirdSpecies.values.map((species) {
+                return DropdownMenuItem(
+                  value: species,
+                  child: Text(species.displayName),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedSpecies = value);
+                }
               },
             ),
+            const SizedBox(height: 16),
+
+            // Sex dropdown
+            DropdownButtonFormField<BirdSex>(
+              value: _selectedSex,
+              decoration: const InputDecoration(
+                labelText: 'Sex',
+              ),
+              items: BirdSex.values.map((sex) {
+                return DropdownMenuItem(
+                  value: sex,
+                  child: Text(sex.displayName),
+                );
+              }).toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedSex = value);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Breed field with autocomplete (for chickens) or free text
+            if (_selectedSpecies == BirdSpecies.chicken)
+              _BreedAutocomplete(
+                controller: _breedController,
+                onBreedSelected: (breed) {
+                  setState(() {
+                    _selectedBreedId = breed?.id;
+                    if (breed != null) {
+                      _eggColorController.text = breed.eggColorDisplay;
+                    }
+                  });
+                },
+              )
+            else
+              TextFormField(
+                controller: _breedController,
+                decoration: InputDecoration(
+                  labelText: 'Breed',
+                  hintText: 'e.g., ${_selectedSpecies == BirdSpecies.duck ? 'Pekin, Khaki Campbell' : _selectedSpecies == BirdSpecies.turkey ? 'Bourbon Red, Bronze' : 'Enter breed'}',
+                ),
+                textCapitalization: TextCapitalization.words,
+              ),
             const SizedBox(height: 24),
 
             // Dates section
@@ -248,6 +301,8 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
           _notesController.text = bird.notes ?? '';
           _selectedFlockId = bird.flockId;
           _selectedBreedId = bird.breedId;
+          _selectedSex = bird.sex;
+          _selectedSpecies = bird.species;
           _hatchDate = bird.hatchDate;
           _acquiredDate = bird.acquiredDate;
           _photoPath = bird.photoPrimary;
@@ -358,7 +413,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
             breed: _breedController.text.trim().isEmpty
                 ? null
                 : _breedController.text.trim(),
-            breedId: _selectedBreedId,
+            breedId: _selectedSpecies == BirdSpecies.chicken ? _selectedBreedId : null,
             hatchDate: _hatchDate,
             acquiredDate: _acquiredDate,
             source: _sourceController.text.trim().isEmpty
@@ -367,6 +422,8 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
             eggColor: _eggColorController.text.trim().isEmpty
                 ? null
                 : _eggColorController.text.trim(),
+            sex: _selectedSex,
+            species: _selectedSpecies,
             notes: _notesController.text.trim().isEmpty
                 ? null
                 : _notesController.text.trim(),
@@ -382,7 +439,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
           breed: _breedController.text.trim().isEmpty
               ? null
               : _breedController.text.trim(),
-          breedId: _selectedBreedId,
+          breedId: _selectedSpecies == BirdSpecies.chicken ? _selectedBreedId : null,
           hatchDate: _hatchDate,
           acquiredDate: _acquiredDate,
           source: _sourceController.text.trim().isEmpty
@@ -391,10 +448,11 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
           eggColor: _eggColorController.text.trim().isEmpty
               ? null
               : _eggColorController.text.trim(),
+          sex: _selectedSex,
+          species: _selectedSpecies,
           notes: _notesController.text.trim().isEmpty
               ? null
               : _notesController.text.trim(),
-          photoPrimary: _photoPath,
         );
         await notifier.addBird(newBird);
       }

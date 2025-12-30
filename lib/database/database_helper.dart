@@ -14,7 +14,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String _databaseName = 'flock_manager.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2;
 
   /// Get the database instance, initializing if needed.
   Future<Database> get database async {
@@ -51,14 +51,11 @@ class DatabaseHelper {
 
   /// Handle database migrations.
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Future migrations will be handled here.
-    // Example pattern:
-    // if (oldVersion < 2) {
-    //   await db.execute('ALTER TABLE flocks ADD COLUMN new_field TEXT');
-    // }
-    // if (oldVersion < 3) {
-    //   await db.execute('CREATE TABLE new_table (...)');
-    // }
+    // Migration to version 2: Add sex and species columns to birds table
+    if (oldVersion < 2) {
+      await db.execute("ALTER TABLE birds ADD COLUMN sex TEXT DEFAULT 'female'");
+      await db.execute("ALTER TABLE birds ADD COLUMN species TEXT DEFAULT 'chicken'");
+    }
   }
 
   /// Close the database connection.

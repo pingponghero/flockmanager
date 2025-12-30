@@ -27,6 +27,8 @@ class Tables {
       acquired_date TEXT,
       source TEXT,
       egg_color TEXT,
+      sex TEXT DEFAULT 'female',
+      species TEXT DEFAULT 'chicken',
       status TEXT DEFAULT 'active',
       status_date TEXT,
       status_notes TEXT,

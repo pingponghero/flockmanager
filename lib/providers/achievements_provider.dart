@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/breeds.dart';
+import '../models/enums.dart';
 import 'bird_provider.dart';
 import 'egg_provider.dart';
 import 'expense_provider.dart';
@@ -59,6 +60,8 @@ class AchievementContext {
   // Breed-related
   final bool hasOrnamentalBreed;
   final bool hasOverachiever; // Bird exceeded breed's expected annual production
+  final bool hasRooster;
+  final bool allHens; // All birds are hens (no roosters)
 
   // Financial
   final double totalExpenses;
@@ -101,6 +104,8 @@ class AchievementContext {
     required this.hasAbnormalEgg,
     required this.hasOrnamentalBreed,
     required this.hasOverachiever,
+    required this.hasRooster,
+    required this.allHens,
     required this.totalExpenses,
     required this.totalIncome,
     required this.costPerEgg,
@@ -520,6 +525,24 @@ final achievements = <Achievement>[
     check: (ctx) => ctx.hasAbnormalEgg,
   ),
   Achievement(
+    id: 'the_quiet_life',
+    name: 'The Quiet Life',
+    description: 'All hens, no roosters',
+    icon: Icons.volume_off,
+    color: Colors.teal,
+    category: 'Fun',
+    check: (ctx) => ctx.activeBirdCount > 0 && ctx.allHens,
+  ),
+  Achievement(
+    id: 'alarm_clock',
+    name: 'Alarm Clock',
+    description: 'Have a rooster in your flock',
+    icon: Icons.alarm,
+    color: Colors.orange,
+    category: 'Fun',
+    check: (ctx) => ctx.hasRooster,
+  ),
+  Achievement(
     id: 'winter_warriors',
     name: 'Winter Warriors',
     description: 'Log eggs in Dec, Jan, and Feb',
@@ -666,11 +689,21 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
   final hasDoubleYolk = await eggRepo.hasDoubleYolkEgg();
   final hasAbnormalEgg = await eggRepo.hasAbnormalEgg();
 
-  // Check for ornamental breeds and overachievers
+  // Check for ornamental breeds, overachievers, and rooster status
   bool hasOrnamentalBreed = false;
   bool hasOverachiever = false;
+  bool hasRooster = false;
+  bool allHens = true;
 
   for (final bird in birds) {
+    // Check sex
+    if (bird.isRooster) {
+      hasRooster = true;
+      allHens = false;
+    } else if (bird.sex == BirdSex.unknown) {
+      allHens = false; // Unknown sex doesn't count as hen for "The Quiet Life"
+    }
+
     if (bird.breedId != null) {
       final breed = getBreedById(bird.breedId!);
       if (breed != null) {
@@ -727,6 +760,8 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
     hasAbnormalEgg: hasAbnormalEgg,
     hasOrnamentalBreed: hasOrnamentalBreed,
     hasOverachiever: hasOverachiever,
+    hasRooster: hasRooster,
+    allHens: allHens,
     totalExpenses: totalExpenses,
     totalIncome: totalIncome,
     costPerEgg: costPerEgg,

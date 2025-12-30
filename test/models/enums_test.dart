@@ -33,11 +33,12 @@ void main() {
       expect(EggQuality.normal.displayName, 'Normal');
       expect(EggQuality.softShell.displayName, 'Soft Shell');
       expect(EggQuality.doubleYolk.displayName, 'Double Yolk');
+      expect(EggQuality.fairy.displayName, 'Fairy');
       expect(EggQuality.abnormal.displayName, 'Abnormal');
     });
 
     test('all values are defined', () {
-      expect(EggQuality.values.length, 4);
+      expect(EggQuality.values.length, 5);
     });
   });
 
