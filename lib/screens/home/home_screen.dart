@@ -4,14 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/egg_log.dart';
-import '../../models/flock.dart';
 import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../providers/medication_provider.dart';
-import '../../providers/theme_provider.dart';
-import '../../app/theme.dart';
 import '../../widgets/egg_quick_log.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -20,27 +17,14 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
-    final selectedFlockAsync = ref.watch(selectedFlockProvider);
     final recentLogsAsync = ref.watch(recentEggLogsProvider);
-    final currentPalette = ref.watch(themeProvider);
 
     // Only show FAB when there are existing egg logs (empty state has its own CTA)
     final hasEggLogs = recentLogsAsync.valueOrNull?.isNotEmpty ?? false;
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Flock Manager'),
-            const SizedBox(width: 10),
-            Image.asset(
-              currentPalette.iconAsset,
-              width: 36,
-              height: 36,
-            ),
-          ],
-        ),
+        title: const Text('Flock Manager'),
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
@@ -65,10 +49,8 @@ class HomeScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Greeting header
-            _GreetingHeader(
-              selectedFlock: selectedFlockAsync.valueOrNull,
-            ),
+            // Date header
+            const _GreetingHeader(),
             const SizedBox(height: 16),
 
             // Chicken of the Week
@@ -117,44 +99,18 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _GreetingHeader extends StatelessWidget {
-  final Flock? selectedFlock;
-
-  const _GreetingHeader({this.selectedFlock});
+  const _GreetingHeader();
 
   @override
   Widget build(BuildContext context) {
-    final hour = DateTime.now().hour;
-    String greeting;
-    if (hour < 12) {
-      greeting = 'Good morning';
-    } else if (hour < 17) {
-      greeting = 'Good afternoon';
-    } else {
-      greeting = 'Good evening';
-    }
+    final now = DateTime.now();
+    final dateStr = DateFormat('EEEE, MMM d').format(now);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          greeting,
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        if (selectedFlock != null)
-          Text(
-            selectedFlock!.name,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-          )
-        else
-          Text(
-            'All Flocks',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+    return Text(
+      dateStr,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-      ],
     );
   }
 }
@@ -233,98 +189,109 @@ class _TodayEggCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final todayAsync = ref.watch(todayEggCountByFlockProvider);
-    final yesterdayAsync = ref.watch(yesterdayEggCountByFlockProvider);
+    final avgAsync = ref.watch(weeklyAverageEggCountProvider);
+
+    final todayCount = todayAsync.valueOrNull ?? 0;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Today's Eggs",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  todayAsync.when(
-                    loading: () => const SizedBox(
-                      height: 48,
-                      child: Center(child: CircularProgressIndicator()),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          if (todayCount == 0) {
+            showEggQuickLog(context);
+          } else {
+            context.push('/eggs');
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Today's Eggs",
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    error: (error, stack) => const Text('--'),
-                    data: (today) => Text(
-                      '$today',
-                      style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Comparison with yesterday
-            yesterdayAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (error, stack) => const SizedBox.shrink(),
-              data: (yesterday) {
-                final today = todayAsync.valueOrNull ?? 0;
-                final diff = today - yesterday;
-
-                if (diff == 0 && yesterday == 0) {
-                  return const SizedBox.shrink();
-                }
-
-                final isUp = diff > 0;
-                final isDown = diff < 0;
-
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isUp
-                        ? Colors.green.shade50
-                        : isDown
-                            ? Colors.red.shade50
-                            : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isUp
-                            ? Icons.arrow_upward
-                            : isDown
-                                ? Icons.arrow_downward
-                                : Icons.remove,
-                        size: 16,
-                        color: isUp
-                            ? Colors.green.shade700
-                            : isDown
-                                ? Colors.red.shade700
-                                : Colors.grey.shade700,
+                    const SizedBox(height: 8),
+                    todayAsync.when(
+                      loading: () => const SizedBox(
+                        height: 48,
+                        child: Center(child: CircularProgressIndicator()),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${diff.abs()} vs yesterday',
-                        style: TextStyle(
-                          fontSize: 12,
+                      error: (error, stack) => const Text('--'),
+                      data: (today) => Text(
+                        '$today',
+                        style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Comparison with weekly average
+              avgAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (error, stack) => const SizedBox.shrink(),
+                data: (avg) {
+                  final diff = todayCount - avg;
+
+                  if (avg == 0) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final isUp = diff > 0.5;
+                  final isDown = diff < -0.5;
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isUp
+                          ? Colors.green.shade50
+                          : isDown
+                              ? Colors.red.shade50
+                              : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isUp
+                              ? Icons.arrow_upward
+                              : isDown
+                                  ? Icons.arrow_downward
+                                  : Icons.remove,
+                          size: 16,
                           color: isUp
                               ? Colors.green.shade700
                               : isDown
                                   ? Colors.red.shade700
                                   : Colors.grey.shade700,
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
+                        const SizedBox(width: 4),
+                        Text(
+                          'avg ${avg.toStringAsFixed(1)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isUp
+                                ? Colors.green.shade700
+                                : isDown
+                                    ? Colors.red.shade700
+                                    : Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -459,7 +426,11 @@ class _StatsRow extends ConsumerWidget {
               error: (error, stack) => '--',
               data: (count) => '$count',
             ),
-            icon: Icons.calendar_view_week,
+            icon: Icon(
+              Icons.calendar_view_week,
+              size: 20,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -471,7 +442,11 @@ class _StatsRow extends ConsumerWidget {
               error: (error, stack) => '--',
               data: (count) => '$count',
             ),
-            icon: Icons.calendar_month,
+            icon: Icon(
+              Icons.calendar_month,
+              size: 20,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -483,7 +458,12 @@ class _StatsRow extends ConsumerWidget {
               error: (error, stack) => '--',
               data: (birds) => '${birds.length}',
             ),
-            icon: Icons.flutter_dash,
+            icon: Image.asset(
+              'assets/icons/cute_hen.png',
+              width: 20,
+              height: 20,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
       ],
@@ -494,7 +474,7 @@ class _StatsRow extends ConsumerWidget {
 class _StatCard extends StatelessWidget {
   final String label;
   final String value;
-  final IconData icon;
+  final Widget icon;
 
   const _StatCard({
     required this.label,
@@ -509,11 +489,7 @@ class _StatCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            icon,
             const SizedBox(height: 8),
             Text(
               value,
@@ -551,7 +527,7 @@ class _QuickActions extends StatelessWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => context.push('/flocks'),
-                icon: const Icon(Icons.groups),
+                icon: const Icon(Icons.grid_view),
                 label: const Text('Flocks'),
               ),
             ),
@@ -559,7 +535,12 @@ class _QuickActions extends StatelessWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => context.push('/birds'),
-                icon: const Icon(Icons.flutter_dash),
+                icon: Image.asset(
+                  'assets/icons/cute_hen.png',
+                  width: 24,
+                  height: 24,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 label: const Text('Birds'),
               ),
             ),
@@ -763,17 +744,23 @@ class _ChickenOfTheWeek extends ConsumerWidget {
                               child: Image.network(
                                 bird.photoPrimary!,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Icon(
-                                  Icons.flutter_dash,
-                                  size: 32,
-                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                errorBuilder: (_, __, ___) => Center(
+                                  child: Image.asset(
+                                    'assets/icons/cute_hen.png',
+                                    width: 48,
+                                    height: 48,
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  ),
                                 ),
                               ),
                             )
-                          : Icon(
-                              Icons.flutter_dash,
-                              size: 32,
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          : Center(
+                              child: Image.asset(
+                                'assets/icons/cute_hen.png',
+                                width: 48,
+                                height: 48,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
                             ),
                     ),
                     const SizedBox(width: 16),

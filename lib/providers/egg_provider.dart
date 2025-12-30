@@ -188,7 +188,8 @@ final totalEggCountByBirdProvider =
 final eggLogsByDateProvider =
     FutureProvider.family<List<EggLog>, DateTime>((ref, date) async {
   final repository = ref.read(eggRepositoryProvider);
-  return repository.getEggLogsByDate(date);
+  final selectedFlockId = ref.watch(selectedFlockIdProvider);
+  return repository.getEggLogsByDate(date, flockId: selectedFlockId);
 });
 
 /// Provider for egg logs in a specific flock
@@ -239,7 +240,8 @@ final eggHistoryProvider =
 final dailyEggCountsProvider =
     FutureProvider.family<Map<DateTime, int>, DateRange>((ref, range) async {
   final repository = ref.read(eggRepositoryProvider);
-  return repository.getDailyEggCounts(range.start, range.end);
+  final selectedFlockId = ref.watch(selectedFlockIdProvider);
+  return repository.getDailyEggCounts(range.start, range.end, flockId: selectedFlockId);
 });
 
 /// Provider for last 7 days egg counts (for spark line)
@@ -250,6 +252,24 @@ final last7DaysEggCountsProvider =
   final today = DateTime(now.year, now.month, now.day);
   final sevenDaysAgo = today.subtract(const Duration(days: 6));
   return repository.getDailyEggCounts(sevenDaysAgo, today);
+});
+
+/// Provider for 7-day rolling average (excludes today)
+final weeklyAverageEggCountProvider = FutureProvider<double>((ref) async {
+  final repository = ref.read(eggRepositoryProvider);
+  final selectedFlockId = ref.watch(selectedFlockIdProvider);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final sevenDaysAgo = today.subtract(const Duration(days: 7));
+  final yesterday = today.subtract(const Duration(days: 1));
+
+  // Get total eggs for the 7 days before today
+  final total = selectedFlockId == null
+      ? await repository.getEggCountByDateRange(sevenDaysAgo, yesterday)
+      : await repository.getEggCountByFlockAndDateRange(
+          selectedFlockId, sevenDaysAgo, yesterday);
+
+  return total / 7;
 });
 
 /// Provider for the last logged flock ID (for defaults)

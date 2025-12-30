@@ -260,11 +260,11 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.flutter_dash,
-              size: 80,
-              color:
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+            Image.asset(
+              'assets/icons/cute_hen.png',
+              width: 80,
+              height: 80,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 24),
             Text(

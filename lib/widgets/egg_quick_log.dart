@@ -92,10 +92,7 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _FlockSelector(
               selectedFlockId: _selectedFlockId,
-              onChanged: (flockId) {
-                setState(() => _selectedFlockId = flockId);
-                _updateDefaultCount(flockId);
-              },
+              onChanged: (flockId) => setState(() => _selectedFlockId = flockId),
             ),
           ),
           const SizedBox(height: 16),
@@ -269,7 +266,6 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
     if (flocks.length == 1) {
       // Single flock - always auto-select it
       _selectedFlockId = flocks.first.id;
-      _updateDefaultCount(_selectedFlockId);
       return;
     }
 
@@ -277,27 +273,14 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
     final selectedFlockId = ref.read(selectedFlockIdProvider);
     if (selectedFlockId != null) {
       _selectedFlockId = selectedFlockId;
-      _updateDefaultCount(selectedFlockId);
     } else {
       // Try to get last logged flock
       ref.read(lastLoggedFlockIdProvider.future).then((flockId) {
         if (mounted && flockId != null && _selectedFlockId == null) {
           setState(() => _selectedFlockId = flockId);
-          _updateDefaultCount(flockId);
         }
       });
     }
-  }
-
-  void _updateDefaultCount(String? flockId) {
-    if (flockId == null) return;
-
-    // Get yesterday's count for this flock as default
-    ref.read(yesterdayCountForFlockProvider(flockId).future).then((count) {
-      if (mounted && _count == 0) {
-        setState(() => _count = count);
-      }
-    });
   }
 
   Future<void> _selectDate() async {

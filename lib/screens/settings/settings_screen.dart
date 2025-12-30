@@ -2,10 +2,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/theme.dart';
 import '../../data/test_data.dart';
 import '../../providers/theme_provider.dart';
+import '../../services/export_service.dart';
+
+const _supportEmail = 'flockmanager.app@gmail.com';
+const _appVersion = '1.0.0';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -53,7 +59,12 @@ class SettingsScreen extends ConsumerWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.flutter_dash),
+                  leading: Image.asset(
+                    'assets/icons/cute_hen.png',
+                    width: 24,
+                    height: 24,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   title: const Text('Breed Guide'),
                   subtitle: const Text('50 chicken breeds with details'),
                   trailing: const Icon(Icons.chevron_right),
@@ -91,28 +102,23 @@ class SettingsScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   const SizedBox(height: 12),
-                  SegmentedButton<ThemeMode>(
-                    segments: const [
-                      ButtonSegment(
-                        value: ThemeMode.system,
-                        label: Text('System'),
-                        icon: Icon(Icons.settings_brightness),
-                      ),
-                      ButtonSegment(
-                        value: ThemeMode.light,
-                        label: Text('Light'),
-                        icon: Icon(Icons.light_mode),
-                      ),
-                      ButtonSegment(
-                        value: ThemeMode.dark,
-                        label: Text('Dark'),
-                        icon: Icon(Icons.dark_mode),
-                      ),
-                    ],
-                    selected: {currentThemeMode},
-                    onSelectionChanged: (selected) {
-                      ref.read(themeModeProvider.notifier).setThemeMode(selected.first);
-                    },
+                  _ThemeModeOption(
+                    icon: Icons.settings_brightness,
+                    label: 'System',
+                    isSelected: currentThemeMode == ThemeMode.system,
+                    onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system),
+                  ),
+                  _ThemeModeOption(
+                    icon: Icons.light_mode,
+                    label: 'Light',
+                    isSelected: currentThemeMode == ThemeMode.light,
+                    onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light),
+                  ),
+                  _ThemeModeOption(
+                    icon: Icons.dark_mode,
+                    label: 'Dark',
+                    isSelected: currentThemeMode == ThemeMode.dark,
+                    onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark),
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -133,6 +139,25 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
+          // Data Section
+          Text(
+            'Data',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.download),
+              title: const Text('Export Data'),
+              subtitle: const Text('Download all data as CSV files'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _exportData(context),
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // About Section
           Text(
             'About',
@@ -144,16 +169,24 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: Column(
               children: [
-                ListTile(
-                  leading: const Icon(Icons.info_outline),
-                  title: const Text('Flock Manager'),
-                  subtitle: const Text('Version 1.0.0'),
+                const ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('Flock Manager'),
+                  subtitle: Text('Version $_appVersion'),
+                ),
+                const Divider(height: 1),
+                const ListTile(
+                  leading: Icon(Icons.egg),
+                  title: Text('Made for backyard chicken keepers'),
+                  subtitle: Text('Track your flock with love'),
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.egg),
-                  title: const Text('Made for backyard chicken keepers'),
-                  subtitle: const Text('Track your flock with love'),
+                  leading: const Icon(Icons.mail_outline),
+                  title: const Text('Questions or feedback?'),
+                  subtitle: const Text(_supportEmail),
+                  trailing: const Icon(Icons.open_in_new, size: 18),
+                  onTap: () => _launchEmail(context),
                 ),
               ],
             ),
@@ -186,6 +219,68 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _exportData(BuildContext context) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Exporting data...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final exportService = ExportService();
+      final zipPath = await exportService.exportToZip();
+
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+      }
+
+      // Share the zip file
+      await Share.shareXFiles(
+        [XFile(zipPath)],
+        subject: 'Flock Manager Data Export',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _launchEmail(BuildContext context) async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: _supportEmail,
+      queryParameters: {
+        'subject': 'Flock Manager v$_appVersion Feedback',
+      },
+    );
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open email app')),
+      );
+    }
   }
 
   void _showSeedConfirmation(BuildContext context, WidgetRef ref) {
@@ -273,26 +368,71 @@ class _PaletteOption extends StatelessWidget {
               ],
             ),
             const SizedBox(width: 16),
-            // Palette info
+            // Palette name
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    palette.displayName,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  Text(
-                    palette.description,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
+              child: Text(
+                palette.displayName,
+                style: Theme.of(context).textTheme.titleSmall,
               ),
             ),
             // Selection indicator
             if (isSelected)
               Icon(
                 Icons.check_circle,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeModeOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ThemeModeOption({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                      fontWeight: isSelected ? FontWeight.w600 : null,
+                    ),
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check,
+                size: 20,
                 color: Theme.of(context).colorScheme.primary,
               ),
           ],

@@ -91,7 +91,7 @@ Since data isn't transmitted over the internet, there's no risk of interception 
 ## Changes to This Policy
 
 If we update this Privacy Policy, we will:
-- Post the updated policy at [privacy policy URL]
+- Post the updated policy at https://pingponghero.github.io/flock-manager-site/privacy-policy.html
 - Update the "Last updated" date at the top
 - Note material changes in the app's "What's New" for the relevant update
 
@@ -108,9 +108,9 @@ Depending on your jurisdiction, you may have rights regarding your personal data
 
 Questions about this Privacy Policy or the app?
 
-**Email**: [support email]
+**Email**: flockmanager.app@gmail.com
 
-**Website**: [website URL]
+**Website**: https://pingponghero.github.io/flock-manager-site/
 
 ---
 

@@ -296,7 +296,12 @@ class _BirdHeader extends StatelessWidget {
               clipBehavior: Clip.antiAlias,
               child: bird.photoPrimary != null && File(bird.photoPrimary!).existsSync()
                   ? Image.file(File(bird.photoPrimary!), fit: BoxFit.cover)
-                  : const Icon(Icons.flutter_dash, size: 50, color: Colors.white70),
+                  : Image.asset(
+                      'assets/icons/cute_hen.png',
+                      width: 50,
+                      height: 50,
+                      color: Colors.white70,
+                    ),
             ),
             const SizedBox(height: 16),
             // Name

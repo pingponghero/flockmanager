@@ -142,9 +142,10 @@ class _BirdPhoto extends StatelessWidget {
               File(photoPath!),
               fit: BoxFit.cover,
             )
-          : Icon(
-              Icons.flutter_dash,
-              size: 32,
+          : Image.asset(
+              'assets/icons/cute_hen.png',
+              width: 32,
+              height: 32,
               color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
             ),
     );

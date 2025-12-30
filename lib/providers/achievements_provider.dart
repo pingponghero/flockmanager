@@ -502,7 +502,7 @@ final achievements = <Achievement>[
     id: 'plot_twist',
     name: 'Plot Twist',
     description: 'Name a bird "Duck"',
-    icon: Icons.flutter_dash,
+    icon: Icons.sentiment_very_satisfied,
     color: Colors.yellow,
     category: 'Just for Clucks',
     check: (ctx) => ctx.hasBirdNamedDuck,

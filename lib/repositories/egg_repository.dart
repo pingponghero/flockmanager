@@ -20,16 +20,27 @@ class EggRepository {
   }
 
   /// Get egg logs for a specific date.
-  Future<List<EggLog>> getEggLogsByDate(DateTime date) async {
+  Future<List<EggLog>> getEggLogsByDate(DateTime date, {String? flockId}) async {
     final db = await _db.database;
 
     // Normalize to start of day for comparison
     final dateStr = DateTime(date.year, date.month, date.day).toIso8601String();
 
+    final String where;
+    final List<Object?> whereArgs;
+
+    if (flockId != null) {
+      where = 'date(date) = date(?) AND flock_id = ?';
+      whereArgs = [dateStr, flockId];
+    } else {
+      where = 'date(date) = date(?)';
+      whereArgs = [dateStr];
+    }
+
     final maps = await db.query(
       'egg_logs',
-      where: 'date(date) = date(?)',
-      whereArgs: [dateStr],
+      where: where,
+      whereArgs: whereArgs,
       orderBy: 'created_at DESC',
     );
 
@@ -201,23 +212,38 @@ class EggRepository {
   /// Get daily egg counts for a date range (for charts).
   Future<Map<DateTime, int>> getDailyEggCounts(
     DateTime start,
-    DateTime end,
-  ) async {
+    DateTime end, {
+    String? flockId,
+  }) async {
     final db = await _db.database;
 
     final startStr = DateTime(start.year, start.month, start.day).toIso8601String();
     final endStr = DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
 
-    final result = await db.rawQuery(
-      '''
-      SELECT date(date) as day, SUM(count) as total
-      FROM egg_logs
-      WHERE date >= ? AND date <= ?
-      GROUP BY date(date)
-      ORDER BY day ASC
-      ''',
-      [startStr, endStr],
-    );
+    final String query;
+    final List<Object?> args;
+
+    if (flockId != null) {
+      query = '''
+        SELECT date(date) as day, SUM(count) as total
+        FROM egg_logs
+        WHERE date >= ? AND date <= ? AND flock_id = ?
+        GROUP BY date(date)
+        ORDER BY day ASC
+      ''';
+      args = [startStr, endStr, flockId];
+    } else {
+      query = '''
+        SELECT date(date) as day, SUM(count) as total
+        FROM egg_logs
+        WHERE date >= ? AND date <= ?
+        GROUP BY date(date)
+        ORDER BY day ASC
+      ''';
+      args = [startStr, endStr];
+    }
+
+    final result = await db.rawQuery(query, args);
 
     final counts = <DateTime, int>{};
     for (final row in result) {

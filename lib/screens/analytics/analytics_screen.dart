@@ -529,7 +529,11 @@ class _BirdBreakdown extends StatelessWidget {
                       ? FileImage(File(stats.bird.photoPrimary!))
                       : null,
                   child: stats.bird.photoPrimary == null
-                      ? const Icon(Icons.flutter_dash)
+                      ? Image.asset(
+                          'assets/icons/cute_hen.png',
+                          width: 24,
+                          height: 24,
+                        )
                       : null,
                 ),
                 if (isTopPerformer)
@@ -629,7 +633,11 @@ class _FreeloardersCard extends StatelessWidget {
                         ? FileImage(File(stats.bird.photoPrimary!))
                         : null,
                     child: stats.bird.photoPrimary == null
-                        ? const Icon(Icons.flutter_dash, size: 16)
+                        ? Image.asset(
+                            'assets/icons/cute_hen.png',
+                            width: 16,
+                            height: 16,
+                          )
                         : null,
                   ),
                   label: Text(stats.bird.name),

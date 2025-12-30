@@ -183,9 +183,17 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
 
                       return DropdownButtonFormField<String?>(
                         value: _selectedBirdId,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Bird (optional)',
-                          prefixIcon: Icon(Icons.flutter_dash),
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Image.asset(
+                              'assets/icons/cute_hen.png',
+                              width: 24,
+                              height: 24,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
                         items: [
                           const DropdownMenuItem(

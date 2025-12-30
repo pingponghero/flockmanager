@@ -104,7 +104,7 @@ Your data belongs to you. Export everything to CSV anytime. We'll never hold you
 
 ---
 
-Built by chicken keepers, for chicken keepers. Questions? We'd love to hear from you at [support email].
+Built by chicken keepers, for chicken keepers. Questions? We'd love to hear from you at flockmanager.app@gmail.com.
 
 ---
 
@@ -188,7 +188,7 @@ Track your backyard flock with ease:
 
 Try free for 14 days, then unlock everything for a one-time purchase. No subscriptions!
 
-Questions? Reach us at [support email]
+Questions? Reach us at flockmanager.app@gmail.com
 ```
 
 ### Example: Version 1.1
@@ -273,7 +273,7 @@ Love Flock Manager? A review helps other chicken keepers find us!
 
 ## Support Contact
 
-**Email**: [support email]
+**Email**: flockmanager.app@gmail.com
 
 **Response commitment**: Within 48 hours
 
@@ -330,9 +330,9 @@ Priority markets for potential translation:
 
 ## Launch Checklist
 
-- [ ] App name finalized
-- [ ] Privacy policy URL live
-- [ ] Support email active
+- [X] App name finalized
+- [X] Privacy policy URL live
+- [X] Support email active
 - [ ] Screenshots for all required sizes
 - [ ] Feature graphic (Android)
 - [ ] App icon (all sizes)
