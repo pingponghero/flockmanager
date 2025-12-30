@@ -527,7 +527,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'the_quiet_life',
     name: 'The Quiet Life',
-    description: 'All hens, no roosters',
+    description: 'All females, no males',
     icon: Icons.volume_off,
     color: Colors.teal,
     category: 'Fun',
@@ -536,7 +536,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'alarm_clock',
     name: 'Alarm Clock',
-    description: 'Have a rooster in your flock',
+    description: 'Have a male bird in your flock',
     icon: Icons.alarm,
     color: Colors.orange,
     category: 'Fun',

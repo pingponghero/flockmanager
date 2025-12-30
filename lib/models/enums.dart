@@ -73,9 +73,9 @@ enum BirdSex {
   String get displayName {
     switch (this) {
       case BirdSex.female:
-        return 'Hen';
+        return 'Female';
       case BirdSex.male:
-        return 'Rooster';
+        return 'Male';
       case BirdSex.unknown:
         return 'Unknown';
     }
