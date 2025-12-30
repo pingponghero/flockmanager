@@ -6,9 +6,11 @@ import 'package:intl/intl.dart';
 
 import '../../models/egg_log.dart';
 import '../../models/enums.dart';
+import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../widgets/achievement_celebration_dialog.dart';
 
 class EggLogScreen extends ConsumerStatefulWidget {
   /// If editing, pass the existing EggLog
@@ -360,7 +362,14 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
             content: Text(isEditing ? 'Entry updated' : 'Entry saved'),
           ),
         );
-        context.pop();
+
+        // Check for new achievements
+        final newAchievements = await checkAndCelebrateAchievements(ref, context);
+        if (mounted && newAchievements.isNotEmpty) {
+          await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+        }
+
+        if (mounted) context.pop();
       }
     } catch (e) {
       if (mounted) {

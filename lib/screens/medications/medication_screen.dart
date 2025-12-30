@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 
 import '../../models/medication_log.dart';
 import '../../data/medications.dart';
+import '../../providers/achievements_provider.dart';
 import '../../providers/medication_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../widgets/achievement_celebration_dialog.dart';
 
 class MedicationScreen extends ConsumerStatefulWidget {
   const MedicationScreen({super.key});
@@ -645,10 +647,18 @@ class _AddMedicationSheetState extends ConsumerState<_AddMedicationSheet> {
       await ref.read(medicationsProvider.notifier).addMedication(log);
 
       if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Medication logged')),
-        );
+        // Check for new achievements
+        final newAchievements = await checkAndCelebrateAchievements(ref, context);
+        if (mounted && newAchievements.isNotEmpty) {
+          await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+        }
+
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Medication logged')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

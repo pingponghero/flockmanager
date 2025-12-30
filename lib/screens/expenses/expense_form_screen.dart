@@ -7,8 +7,10 @@ import 'package:intl/intl.dart';
 import '../../models/expense.dart';
 import '../../models/income.dart';
 import '../../models/enums.dart';
+import '../../providers/achievements_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../widgets/achievement_celebration_dialog.dart';
 
 /// Form screen for adding/editing expenses
 class ExpenseFormScreen extends ConsumerStatefulWidget {
@@ -104,7 +106,13 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       }
 
       if (mounted) {
-        context.pop();
+        // Check for new achievements
+        final newAchievements = await checkAndCelebrateAchievements(ref, context);
+        if (mounted && newAchievements.isNotEmpty) {
+          await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+        }
+
+        if (mounted) context.pop();
       }
     } catch (e) {
       if (mounted) {
@@ -380,7 +388,13 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
       }
 
       if (mounted) {
-        context.pop();
+        // Check for new achievements
+        final newAchievements = await checkAndCelebrateAchievements(ref, context);
+        if (mounted && newAchievements.isNotEmpty) {
+          await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+        }
+
+        if (mounted) context.pop();
       }
     } catch (e) {
       if (mounted) {

@@ -11,8 +11,10 @@ import 'package:path_provider/path_provider.dart';
 import '../../data/breeds.dart';
 import '../../models/bird.dart';
 import '../../models/enums.dart';
+import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../widgets/achievement_celebration_dialog.dart';
 
 class BirdFormScreen extends ConsumerStatefulWidget {
   final String? birdId;
@@ -465,7 +467,14 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
             ),
           ),
         );
-        context.pop();
+
+        // Check for new achievements
+        final newAchievements = await checkAndCelebrateAchievements(ref, context);
+        if (mounted && newAchievements.isNotEmpty) {
+          await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+        }
+
+        if (mounted) context.pop();
       }
     } catch (e) {
       if (mounted) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/breeds.dart';
 import '../models/enums.dart';
@@ -775,3 +776,99 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
     yearsKeepingChickens: yearsKeeping,
   );
 });
+
+// ==================== ACHIEVEMENT TRACKING ====================
+
+const _shownAchievementsKey = 'shown_achievement_ids';
+
+/// Service for tracking which achievements have been shown to the user.
+class AchievementTracker {
+  AchievementTracker._();
+
+  static final instance = AchievementTracker._();
+
+  Set<String>? _shownIds;
+
+  /// Load the set of shown achievement IDs from storage.
+  Future<Set<String>> _loadShownIds() async {
+    if (_shownIds != null) return _shownIds!;
+    final prefs = await SharedPreferences.getInstance();
+    final ids = prefs.getStringList(_shownAchievementsKey) ?? [];
+    _shownIds = ids.toSet();
+    return _shownIds!;
+  }
+
+  /// Mark an achievement as shown.
+  Future<void> markAsShown(String achievementId) async {
+    final shown = await _loadShownIds();
+    shown.add(achievementId);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_shownAchievementsKey, shown.toList());
+  }
+
+  /// Mark multiple achievements as shown.
+  Future<void> markAllAsShown(List<String> achievementIds) async {
+    final shown = await _loadShownIds();
+    shown.addAll(achievementIds);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_shownAchievementsKey, shown.toList());
+  }
+
+  /// Get achievements that are earned but not yet shown to user.
+  Future<List<Achievement>> getNewlyUnlocked(
+    List<Achievement> earnedAchievements,
+  ) async {
+    final shown = await _loadShownIds();
+    return earnedAchievements
+        .where((a) => !shown.contains(a.id))
+        .toList();
+  }
+
+  /// Check if there are any new achievements to show.
+  Future<bool> hasNewAchievements(List<Achievement> earnedAchievements) async {
+    final newOnes = await getNewlyUnlocked(earnedAchievements);
+    return newOnes.isNotEmpty;
+  }
+
+  /// Clear all shown achievements (for testing).
+  Future<void> clearAll() async {
+    _shownIds = {};
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_shownAchievementsKey);
+  }
+}
+
+/// Provider for newly unlocked achievements (earned but not yet celebrated).
+final newlyUnlockedAchievementsProvider =
+    FutureProvider<List<Achievement>>((ref) async {
+  final earned = await ref.watch(earnedAchievementsProvider.future);
+  return AchievementTracker.instance.getNewlyUnlocked(earned);
+});
+
+/// Check for new achievements and show celebration dialogs.
+/// Call this after key trigger points (egg save, bird save, etc.)
+/// Returns the list of newly unlocked achievements that were shown.
+Future<List<Achievement>> checkAndCelebrateAchievements(
+  WidgetRef ref,
+  BuildContext context,
+) async {
+  // Force refresh of achievement context
+  ref.invalidate(_achievementContextProvider);
+  ref.invalidate(earnedAchievementsProvider);
+
+  // Wait for the new earned achievements
+  final earned = await ref.read(earnedAchievementsProvider.future);
+
+  // Get newly unlocked ones
+  final newlyUnlocked = await AchievementTracker.instance.getNewlyUnlocked(earned);
+
+  if (newlyUnlocked.isNotEmpty && context.mounted) {
+    // Import is handled by the caller
+    // Mark as shown before displaying (in case dialog is dismissed)
+    await AchievementTracker.instance.markAllAsShown(
+      newlyUnlocked.map((a) => a.id).toList(),
+    );
+  }
+
+  return newlyUnlocked;
+}
