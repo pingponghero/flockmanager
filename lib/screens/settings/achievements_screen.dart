@@ -43,15 +43,15 @@ class AchievementsScreen extends ConsumerWidget {
 
           // Define category order
           const categoryOrder = [
-            'Production',
-            'Diversity',
-            'Flock Size',
-            'Longevity',
-            'Financial',
-            'Health',
-            'Engagement',
-            'Fun',
-            'Seasonal',
+            'Layer Legends',
+            'Variety Show',
+            'The More the Merrier',
+            'Golden Years',
+            'Nest Egg',
+            'Flock Doc',
+            'Star Keeper',
+            'Just for Clucks',
+            'Four Seasons',
           ];
 
           final sortedCategories = categoryOrder
@@ -98,6 +98,13 @@ class _CategorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sort items: earned first, then locked
+    final sortedItems = [...items]..sort((a, b) {
+      if (a.earned && !b.earned) return -1;
+      if (!a.earned && b.earned) return 1;
+      return 0;
+    });
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -134,7 +141,7 @@ class _CategorySection extends StatelessWidget {
         Wrap(
           spacing: 12,
           runSpacing: 12,
-          children: items.map((item) {
+          children: sortedItems.map((item) {
             return _AchievementTile(
               achievement: item.achievement,
               earned: item.earned,
@@ -199,8 +206,8 @@ class _AchievementTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Name (only if earned)
-            if (earned)
+            // Name and description (only if earned)
+            if (earned) ...[
               Text(
                 achievement.name,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -210,8 +217,19 @@ class _AchievementTile extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-              )
-            else
+              ),
+              const SizedBox(height: 2),
+              Text(
+                achievement.description,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontSize: 9,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ] else
               Text(
                 '???',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(

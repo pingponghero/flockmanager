@@ -130,7 +130,7 @@ final achievements = <Achievement>[
     description: 'Log your first egg',
     icon: Icons.egg_outlined,
     color: Colors.amber,
-    category: 'Production',
+    category: 'Layer Legends',
     check: (ctx) => ctx.totalEggs >= 1,
   ),
   Achievement(
@@ -139,7 +139,7 @@ final achievements = <Achievement>[
     description: '12 eggs in a single day',
     icon: Icons.egg,
     color: Colors.orange,
-    category: 'Production',
+    category: 'Layer Legends',
     check: (ctx) => ctx.maxEggsInOneDay >= 12,
   ),
   Achievement(
@@ -148,7 +148,7 @@ final achievements = <Achievement>[
     description: '100 total eggs logged',
     icon: Icons.looks_one,
     color: Colors.deepOrange,
-    category: 'Production',
+    category: 'Layer Legends',
     check: (ctx) => ctx.totalEggs >= 100,
   ),
   Achievement(
@@ -157,7 +157,7 @@ final achievements = <Achievement>[
     description: '1,000 total eggs',
     icon: Icons.military_tech,
     color: Colors.amber,
-    category: 'Production',
+    category: 'Layer Legends',
     check: (ctx) => ctx.totalEggs >= 1000,
   ),
   Achievement(
@@ -166,7 +166,7 @@ final achievements = <Achievement>[
     description: '10,000 lifetime eggs',
     icon: Icons.diamond,
     color: Colors.yellow,
-    category: 'Production',
+    category: 'Layer Legends',
     check: (ctx) => ctx.totalEggs >= 10000,
   ),
   Achievement(
@@ -175,7 +175,7 @@ final achievements = <Achievement>[
     description: '7 consecutive days of logging',
     icon: Icons.calendar_view_week,
     color: Colors.blue,
-    category: 'Production',
+    category: 'Layer Legends',
     check: (ctx) => ctx.loggingStreakDays >= 7,
   ),
   Achievement(
@@ -184,7 +184,7 @@ final achievements = <Achievement>[
     description: '30-day logging streak',
     icon: Icons.local_fire_department,
     color: Colors.deepOrange,
-    category: 'Production',
+    category: 'Layer Legends',
     check: (ctx) => ctx.loggingStreakDays >= 30,
   ),
   Achievement(
@@ -193,7 +193,7 @@ final achievements = <Achievement>[
     description: '20+ eggs in a single day',
     icon: Icons.wb_sunny,
     color: Colors.orange,
-    category: 'Production',
+    category: 'Layer Legends',
     check: (ctx) => ctx.maxEggsInOneDay >= 20,
   ),
 
@@ -204,7 +204,7 @@ final achievements = <Achievement>[
     description: 'Hens laying 4+ different egg colors',
     icon: Icons.palette,
     color: Colors.purple,
-    category: 'Diversity',
+    category: 'Variety Show',
     check: (ctx) => ctx.eggColors.length >= 4,
   ),
   Achievement(
@@ -213,7 +213,7 @@ final achievements = <Achievement>[
     description: 'All 7 egg colors represented',
     icon: Icons.brush,
     color: Colors.deepPurple,
-    category: 'Diversity',
+    category: 'Variety Show',
     check: (ctx) => ctx.eggColors.length >= 7,
   ),
   Achievement(
@@ -222,7 +222,7 @@ final achievements = <Achievement>[
     description: '5 different breeds',
     icon: Icons.collections,
     color: Colors.indigo,
-    category: 'Diversity',
+    category: 'Variety Show',
     check: (ctx) => ctx.breedCount >= 5,
   ),
   Achievement(
@@ -231,7 +231,7 @@ final achievements = <Achievement>[
     description: '10 different breeds',
     icon: Icons.diversity_3,
     color: Colors.teal,
-    category: 'Diversity',
+    category: 'Variety Show',
     check: (ctx) => ctx.breedCount >= 10,
   ),
   Achievement(
@@ -240,7 +240,7 @@ final achievements = <Achievement>[
     description: '3+ Easter Eggers',
     icon: Icons.egg_alt,
     color: Colors.lightBlue,
-    category: 'Diversity',
+    category: 'Variety Show',
     check: (ctx) => ctx.easterEggerCount >= 3,
   ),
   Achievement(
@@ -249,7 +249,7 @@ final achievements = <Achievement>[
     description: 'Add an ornamental breed',
     icon: Icons.auto_awesome,
     color: Colors.deepPurple,
-    category: 'Diversity',
+    category: 'Variety Show',
     check: (ctx) => ctx.hasOrnamentalBreed,
   ),
   Achievement(
@@ -258,7 +258,7 @@ final achievements = <Achievement>[
     description: "A hen exceeds her breed's expected production",
     icon: Icons.star,
     color: Colors.amber,
-    category: 'Diversity',
+    category: 'Variety Show',
     check: (ctx) => ctx.hasOverachiever,
   ),
 
@@ -269,7 +269,7 @@ final achievements = <Achievement>[
     description: '3 birds',
     icon: Icons.egg,
     color: Colors.brown,
-    category: 'Flock Size',
+    category: 'The More the Merrier',
     check: (ctx) => ctx.activeBirdCount >= 3,
   ),
   Achievement(
@@ -278,7 +278,7 @@ final achievements = <Achievement>[
     description: '13 birds',
     icon: Icons.groups,
     color: Colors.green,
-    category: 'Flock Size',
+    category: 'The More the Merrier',
     check: (ctx) => ctx.activeBirdCount >= 13,
   ),
   Achievement(
@@ -287,7 +287,7 @@ final achievements = <Achievement>[
     description: '25 birds',
     icon: Icons.home,
     color: Colors.blue,
-    category: 'Flock Size',
+    category: 'The More the Merrier',
     check: (ctx) => ctx.activeBirdCount >= 25,
   ),
   Achievement(
@@ -296,7 +296,7 @@ final achievements = <Achievement>[
     description: '50 birds',
     icon: Icons.agriculture,
     color: Colors.amber,
-    category: 'Flock Size',
+    category: 'The More the Merrier',
     check: (ctx) => ctx.activeBirdCount >= 50,
   ),
   Achievement(
@@ -305,7 +305,7 @@ final achievements = <Achievement>[
     description: '100+ birds',
     icon: Icons.workspace_premium,
     color: Colors.red,
-    category: 'Flock Size',
+    category: 'The More the Merrier',
     check: (ctx) => ctx.activeBirdCount >= 100,
   ),
   Achievement(
@@ -314,7 +314,7 @@ final achievements = <Achievement>[
     description: '3+ separate flocks',
     icon: Icons.folder_copy,
     color: Colors.blueGrey,
-    category: 'Flock Size',
+    category: 'The More the Merrier',
     check: (ctx) => ctx.flockCount >= 3,
   ),
 
@@ -325,7 +325,7 @@ final achievements = <Achievement>[
     description: 'A bird reaches 1 year old',
     icon: Icons.cake,
     color: Colors.pink,
-    category: 'Longevity',
+    category: 'Golden Years',
     check: (ctx) => ctx.birdsOver1Year >= 1,
   ),
   Achievement(
@@ -334,7 +334,7 @@ final achievements = <Achievement>[
     description: 'A bird reaches 5 years old',
     icon: Icons.elderly,
     color: Colors.purple,
-    category: 'Longevity',
+    category: 'Golden Years',
     check: (ctx) => ctx.birdsOver5Years >= 1,
   ),
   Achievement(
@@ -343,7 +343,7 @@ final achievements = <Achievement>[
     description: 'A bird reaches 8 years old',
     icon: Icons.star,
     color: Colors.amber,
-    category: 'Longevity',
+    category: 'Golden Years',
     check: (ctx) => ctx.birdsOver8Years >= 1,
   ),
   Achievement(
@@ -352,7 +352,7 @@ final achievements = <Achievement>[
     description: '5 years of chicken keeping',
     icon: Icons.verified,
     color: Colors.green,
-    category: 'Longevity',
+    category: 'Golden Years',
     check: (ctx) => ctx.yearsKeepingChickens >= 5,
   ),
 
@@ -363,7 +363,7 @@ final achievements = <Achievement>[
     description: 'Cost per egg below \$0.25',
     icon: Icons.local_grocery_store,
     color: Colors.green,
-    category: 'Financial',
+    category: 'Nest Egg',
     check: (ctx) => ctx.costPerEgg != null && ctx.costPerEgg! < 0.25 && ctx.totalEggs >= 50,
   ),
   Achievement(
@@ -372,7 +372,7 @@ final achievements = <Achievement>[
     description: 'Cost per egg below \$0.15',
     icon: Icons.savings,
     color: Colors.lightGreen,
-    category: 'Financial',
+    category: 'Nest Egg',
     check: (ctx) => ctx.costPerEgg != null && ctx.costPerEgg! < 0.15 && ctx.totalEggs >= 100,
   ),
   Achievement(
@@ -381,7 +381,7 @@ final achievements = <Achievement>[
     description: 'Log 10 expenses',
     icon: Icons.receipt_long,
     color: Colors.blueGrey,
-    category: 'Financial',
+    category: 'Nest Egg',
     check: (ctx) => ctx.expenseCount >= 10,
   ),
   Achievement(
@@ -390,7 +390,7 @@ final achievements = <Achievement>[
     description: 'Record your first egg sale',
     icon: Icons.attach_money,
     color: Colors.green,
-    category: 'Financial',
+    category: 'Nest Egg',
     check: (ctx) => ctx.incomeCount >= 1,
   ),
   Achievement(
@@ -399,7 +399,7 @@ final achievements = <Achievement>[
     description: 'Total income exceeds expenses',
     icon: Icons.trending_up,
     color: Colors.teal,
-    category: 'Financial',
+    category: 'Nest Egg',
     check: (ctx) => ctx.totalIncome > ctx.totalExpenses && ctx.totalIncome > 0,
   ),
 
@@ -410,7 +410,7 @@ final achievements = <Achievement>[
     description: 'Log your first medication',
     icon: Icons.medical_services,
     color: Colors.red,
-    category: 'Health',
+    category: 'Flock Doc',
     check: (ctx) => ctx.medicationLogCount >= 1,
   ),
   Achievement(
@@ -419,7 +419,7 @@ final achievements = <Achievement>[
     description: 'Complete 5 medication courses',
     icon: Icons.healing,
     color: Colors.pink,
-    category: 'Health',
+    category: 'Flock Doc',
     check: (ctx) => ctx.completedMedicationCount >= 5,
   ),
   Achievement(
@@ -428,7 +428,7 @@ final achievements = <Achievement>[
     description: 'Complete a withdrawal period',
     icon: Icons.check_circle,
     color: Colors.green,
-    category: 'Health',
+    category: 'Flock Doc',
     check: (ctx) => ctx.completedMedicationCount >= 1,
   ),
 
@@ -439,7 +439,7 @@ final achievements = <Achievement>[
     description: 'Log eggs before 8 AM',
     icon: Icons.wb_twilight,
     color: Colors.orange,
-    category: 'Engagement',
+    category: 'Star Keeper',
     check: (ctx) => ctx.loggedBeforeEight,
   ),
   Achievement(
@@ -448,7 +448,7 @@ final achievements = <Achievement>[
     description: 'Log eggs after 9 PM',
     icon: Icons.nightlight,
     color: Colors.indigo,
-    category: 'Engagement',
+    category: 'Star Keeper',
     check: (ctx) => ctx.loggedAfterNine,
   ),
   Achievement(
@@ -457,7 +457,7 @@ final achievements = <Achievement>[
     description: 'Log eggs in all 12 months',
     icon: Icons.calendar_month,
     color: Colors.blue,
-    category: 'Engagement',
+    category: 'Star Keeper',
     check: (ctx) => ctx.monthsWithEggs.length >= 12,
   ),
   Achievement(
@@ -466,7 +466,7 @@ final achievements = <Achievement>[
     description: 'Use the app 100 days',
     icon: Icons.phone_android,
     color: Colors.deepPurple,
-    category: 'Engagement',
+    category: 'Star Keeper',
     check: (ctx) => ctx.daysUsingApp >= 100,
   ),
 
@@ -477,7 +477,7 @@ final achievements = <Achievement>[
     description: 'Add photos for all birds',
     icon: Icons.photo_camera,
     color: Colors.pink,
-    category: 'Fun',
+    category: 'Just for Clucks',
     check: (ctx) => ctx.activeBirdCount > 0 && ctx.birdsWithPhotos == ctx.activeBirdCount,
   ),
   Achievement(
@@ -486,7 +486,7 @@ final achievements = <Achievement>[
     description: 'Name 10+ birds',
     icon: Icons.badge,
     color: Colors.teal,
-    category: 'Fun',
+    category: 'Just for Clucks',
     check: (ctx) => ctx.totalBirdCount >= 10,
   ),
   Achievement(
@@ -495,7 +495,7 @@ final achievements = <Achievement>[
     description: 'Give a bird a name over 15 characters',
     icon: Icons.text_fields,
     color: Colors.purple,
-    category: 'Fun',
+    category: 'Just for Clucks',
     check: (ctx) => ctx.longestNameLength > 15,
   ),
   Achievement(
@@ -504,7 +504,7 @@ final achievements = <Achievement>[
     description: 'Name a bird "Duck"',
     icon: Icons.flutter_dash,
     color: Colors.yellow,
-    category: 'Fun',
+    category: 'Just for Clucks',
     check: (ctx) => ctx.hasBirdNamedDuck,
   ),
   Achievement(
@@ -513,7 +513,7 @@ final achievements = <Achievement>[
     description: 'Log a double-yolk egg',
     icon: Icons.looks_two,
     color: Colors.amber,
-    category: 'Fun',
+    category: 'Just for Clucks',
     check: (ctx) => ctx.hasDoubleYolk,
   ),
   Achievement(
@@ -522,7 +522,7 @@ final achievements = <Achievement>[
     description: 'Log a tiny/abnormal egg',
     icon: Icons.auto_awesome,
     color: Colors.pink,
-    category: 'Fun',
+    category: 'Just for Clucks',
     check: (ctx) => ctx.hasAbnormalEgg,
   ),
   Achievement(
@@ -531,7 +531,7 @@ final achievements = <Achievement>[
     description: 'All females, no males',
     icon: Icons.volume_off,
     color: Colors.teal,
-    category: 'Fun',
+    category: 'Just for Clucks',
     check: (ctx) => ctx.activeBirdCount > 0 && ctx.allHens,
   ),
   Achievement(
@@ -540,7 +540,7 @@ final achievements = <Achievement>[
     description: 'Have a male bird in your flock',
     icon: Icons.alarm,
     color: Colors.orange,
-    category: 'Fun',
+    category: 'Just for Clucks',
     check: (ctx) => ctx.hasRooster,
   ),
   Achievement(
@@ -549,7 +549,7 @@ final achievements = <Achievement>[
     description: 'Log eggs in Dec, Jan, and Feb',
     icon: Icons.ac_unit,
     color: Colors.lightBlue,
-    category: 'Fun',
+    category: 'Just for Clucks',
     check: (ctx) => ctx.monthsWithEggs.contains(12) &&
                      ctx.monthsWithEggs.contains(1) &&
                      ctx.monthsWithEggs.contains(2),
@@ -562,7 +562,7 @@ final achievements = <Achievement>[
     description: 'Log eggs in November',
     icon: Icons.restaurant,
     color: Colors.orange,
-    category: 'Seasonal',
+    category: 'Four Seasons',
     check: (ctx) => ctx.monthsWithEggs.contains(11),
   ),
   Achievement(
@@ -571,7 +571,7 @@ final achievements = <Achievement>[
     description: 'Log eggs on Christmas',
     icon: Icons.card_giftcard,
     color: Colors.red,
-    category: 'Seasonal',
+    category: 'Four Seasons',
     // This needs specific date check - approximating with December for now
     check: (ctx) => ctx.monthsWithEggs.contains(12),
   ),
@@ -581,7 +581,7 @@ final achievements = <Achievement>[
     description: 'Log eggs in March after a quiet February',
     icon: Icons.local_florist,
     color: Colors.pink,
-    category: 'Seasonal',
+    category: 'Four Seasons',
     check: (ctx) => ctx.monthsWithEggs.contains(3),
   ),
   Achievement(
@@ -590,7 +590,7 @@ final achievements = <Achievement>[
     description: 'Log eggs through October (molting season)',
     icon: Icons.autorenew,
     color: Colors.brown,
-    category: 'Seasonal',
+    category: 'Four Seasons',
     check: (ctx) => ctx.monthsWithEggs.contains(10),
   ),
 ];
