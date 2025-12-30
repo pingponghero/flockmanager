@@ -19,10 +19,13 @@ class FlockManagerApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(themeProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
       title: 'Flock Manager',
-      theme: AppTheme.buildTheme(palette),
+      theme: AppTheme.buildTheme(palette, brightness: Brightness.light),
+      darkTheme: AppTheme.buildTheme(palette, brightness: Brightness.dark),
+      themeMode: themeMode,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

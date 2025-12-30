@@ -67,6 +67,36 @@ extension AppPaletteExtension on AppPalette {
         );
     }
   }
+
+  ColorPaletteData get darkColors {
+    switch (this) {
+      case AppPalette.barnRed:
+        return ColorPaletteData(
+          primary: const Color(0xFFCF6B6E),
+          surface: const Color(0xFF1A1512),
+          accent: const Color(0xFFE5C078),
+          text: const Color(0xFFE8E0D8),
+          cardColor: const Color(0xFF2A2220),
+        );
+      case AppPalette.sage:
+        return ColorPaletteData(
+          primary: const Color(0xFF8FA87E),
+          surface: const Color(0xFF151A15),
+          accent: const Color(0xFFD9967D),
+          text: const Color(0xFFE0E5DF),
+          cardColor: const Color(0xFF1F261F),
+        );
+      case AppPalette.eggInspired:
+        return ColorPaletteData(
+          primary: const Color(0xFF7DB3AC),
+          surface: const Color(0xFF161614),
+          accent: const Color(0xFF9B7453),
+          secondary: const Color(0xFF9DAB8A),
+          text: const Color(0xFFE5E3DF),
+          cardColor: const Color(0xFF222220),
+        );
+    }
+  }
 }
 
 /// Color data for a palette
@@ -76,6 +106,7 @@ class ColorPaletteData {
   final Color accent;
   final Color? secondary;
   final Color text;
+  final Color? cardColor;
 
   const ColorPaletteData({
     required this.primary,
@@ -83,29 +114,33 @@ class ColorPaletteData {
     required this.accent,
     this.secondary,
     required this.text,
+    this.cardColor,
   });
 }
 
 class AppTheme {
   AppTheme._();
 
-  static ThemeData buildTheme(AppPalette palette) {
-    final colors = palette.colors;
+  static ThemeData buildTheme(AppPalette palette, {Brightness brightness = Brightness.light}) {
+    final isDark = brightness == Brightness.dark;
+    final colors = isDark ? palette.darkColors : palette.colors;
     final textSecondary = colors.text.withValues(alpha: 0.7);
     final textHint = colors.text.withValues(alpha: 0.5);
+    final cardColor = colors.cardColor ?? (isDark ? const Color(0xFF2A2A2A) : Colors.white);
+    final appBarColor = isDark ? colors.surface : Colors.white;
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.light,
+      brightness: brightness,
 
       // Color scheme
       colorScheme: ColorScheme.fromSeed(
         seedColor: colors.primary,
-        brightness: Brightness.light,
+        brightness: brightness,
         primary: colors.primary,
         secondary: colors.secondary ?? colors.accent,
         surface: colors.surface,
-        error: const Color(0xFFB00020),
+        error: isDark ? const Color(0xFFCF6679) : const Color(0xFFB00020),
       ),
 
       // Scaffold
@@ -116,7 +151,7 @@ class AppTheme {
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 1,
-        backgroundColor: Colors.white,
+        backgroundColor: appBarColor,
         foregroundColor: colors.text,
         titleTextStyle: TextStyle(
           color: colors.text,
@@ -130,15 +165,15 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: colors.text.withValues(alpha: 0.1)),
+          side: BorderSide(color: colors.text.withValues(alpha: isDark ? 0.15 : 0.1)),
         ),
-        color: Colors.white,
+        color: cardColor,
       ),
 
       // Input decoration
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: cardColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: colors.text.withValues(alpha: 0.2)),
@@ -153,7 +188,7 @@ class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFB00020)),
+          borderSide: BorderSide(color: isDark ? const Color(0xFFCF6679) : const Color(0xFFB00020)),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
@@ -162,7 +197,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: colors.primary,
-          foregroundColor: Colors.white,
+          foregroundColor: isDark ? Colors.black : Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
@@ -179,7 +214,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: colors.primary,
-          foregroundColor: Colors.white,
+          foregroundColor: isDark ? Colors.black : Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -190,14 +225,14 @@ class AppTheme {
       // Floating action button
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: colors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: isDark ? Colors.black : Colors.white,
         elevation: 2,
         shape: const CircleBorder(),
       ),
 
       // Bottom navigation
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: cardColor,
         selectedItemColor: colors.primary,
         unselectedItemColor: textHint,
         type: BottomNavigationBarType.fixed,
@@ -207,7 +242,7 @@ class AppTheme {
       // Chip theme
       chipTheme: ChipThemeData(
         backgroundColor: colors.text.withValues(alpha: 0.08),
-        selectedColor: colors.primary.withValues(alpha: 0.2),
+        selectedColor: colors.primary.withValues(alpha: isDark ? 0.3 : 0.2),
         labelStyle: const TextStyle(fontSize: 14),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(
@@ -217,9 +252,27 @@ class AppTheme {
 
       // Divider
       dividerTheme: DividerThemeData(
-        color: colors.text.withValues(alpha: 0.1),
+        color: colors.text.withValues(alpha: isDark ? 0.15 : 0.1),
         thickness: 1,
         space: 1,
+      ),
+
+      // Dialog theme
+      dialogTheme: DialogThemeData(
+        backgroundColor: cardColor,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+
+      // Bottom sheet theme
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: cardColor,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
       ),
 
       // Text theme
