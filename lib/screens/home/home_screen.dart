@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../models/egg_log.dart';
 import '../../models/flock.dart';
-import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
@@ -62,9 +61,6 @@ class HomeScreen extends ConsumerWidget {
 
             // Birthday callouts
             const _BirthdayCallouts(),
-
-            // Achievements badge row
-            const _AchievementsBadges(),
 
             // Withdrawal warning banner
             _WithdrawalWarning(),
@@ -891,108 +887,6 @@ class _BirthdayCallouts extends ConsumerWidget {
                 ),
               );
             }).toList(),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _AchievementsBadges extends ConsumerWidget {
-  const _AchievementsBadges();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final achievementsAsync = ref.watch(earnedAchievementsProvider);
-    final summaryAsync = ref.watch(achievementSummaryProvider);
-
-    return achievementsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (earned) {
-        if (earned.isEmpty) return const SizedBox.shrink();
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.emoji_events,
-                        size: 18,
-                        color: Colors.amber.shade600,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Achievements',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const Spacer(),
-                      summaryAsync.when(
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
-                        data: (summary) => Text(
-                          '${summary.earned}/${summary.total}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Show badges in a wrap
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: earned.map((achievement) {
-                      return Tooltip(
-                        message: '${achievement.name}\n${achievement.description}',
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: achievement.color.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: achievement.color.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                achievement.icon,
-                                size: 16,
-                                color: achievement.color,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                achievement.name,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: achievement.color,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
           ),
         );
       },
