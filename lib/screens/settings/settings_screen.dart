@@ -22,6 +22,25 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Achievements Section
+          Text(
+            'Achievements',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.emoji_events),
+              title: const Text('Badges'),
+              subtitle: const Text('View your achievements'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/achievements'),
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Reference Guides Section
           Text(
             'Reference Guides',

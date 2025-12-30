@@ -589,6 +589,14 @@ final achievementSummaryProvider = FutureProvider<({int earned, int total})>((re
   return (earned: earned.length, total: achievements.length);
 });
 
+/// Provider for the most recently earned achievement (for home screen widget)
+final latestAchievementProvider = FutureProvider<Achievement?>((ref) async {
+  final earned = await ref.watch(earnedAchievementsProvider.future);
+  if (earned.isEmpty) return null;
+  // Return the last one in the list (most recently added to earned list)
+  return earned.last;
+});
+
 /// Provider for achievements grouped by category
 final achievementsByCategoryProvider = FutureProvider<Map<String, List<({Achievement achievement, bool earned})>>>((ref) async {
   final earnedList = await ref.watch(earnedAchievementsProvider.future);
@@ -603,6 +611,64 @@ final achievementsByCategoryProvider = FutureProvider<Map<String, List<({Achieve
     ));
   }
   return grouped;
+});
+
+/// Progress data for incremental achievements
+class AchievementProgress {
+  final int current;
+  final int target;
+
+  const AchievementProgress(this.current, this.target);
+
+  double get percent => target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
+  bool get isComplete => current >= target;
+}
+
+/// Provider for achievement progress data
+final achievementProgressProvider = FutureProvider<Map<String, AchievementProgress>>((ref) async {
+  final context = await ref.watch(_achievementContextProvider.future);
+
+  return {
+    // Production milestones - egg counts
+    'first_egg': AchievementProgress(context.totalEggs, 1),
+    'century_mark': AchievementProgress(context.totalEggs, 100),
+    'thousand_layer': AchievementProgress(context.totalEggs, 1000),
+    'golden_flock': AchievementProgress(context.totalEggs, 10000),
+
+    // Production - daily records
+    'dozen_club': AchievementProgress(context.maxEggsInOneDay, 12),
+    'summer_surplus': AchievementProgress(context.maxEggsInOneDay, 20),
+
+    // Production - streaks
+    'perfect_week': AchievementProgress(context.loggingStreakDays, 7),
+    'on_a_roll': AchievementProgress(context.loggingStreakDays, 30),
+
+    // Diversity
+    'rainbow_basket': AchievementProgress(context.eggColors.length, 4),
+    'full_palette': AchievementProgress(context.eggColors.length, 7),
+    'breed_collector': AchievementProgress(context.breedCount, 5),
+    'flock_diversity': AchievementProgress(context.breedCount, 10),
+    'easter_every_day': AchievementProgress(context.easterEggerCount, 3),
+
+    // Flock size
+    'starter_flock': AchievementProgress(context.activeBirdCount, 3),
+    'bakers_dozen': AchievementProgress(context.activeBirdCount, 13),
+    'full_house': AchievementProgress(context.activeBirdCount, 25),
+    'mini_homestead': AchievementProgress(context.activeBirdCount, 50),
+    'flock_boss': AchievementProgress(context.activeBirdCount, 100),
+    'multi_manager': AchievementProgress(context.flockCount, 3),
+
+    // Financial
+    'budget_tracker': AchievementProgress(context.expenseCount, 10),
+
+    // Health
+    'flock_doctor': AchievementProgress(context.completedMedicationCount, 5),
+
+    // Engagement
+    'year_round_keeper': AchievementProgress(context.monthsWithEggs.length, 12),
+    'power_user': AchievementProgress(context.daysUsingApp, 100),
+    'name_game': AchievementProgress(context.totalBirdCount, 10),
+  };
 });
 
 /// Internal provider that gathers all data needed for achievement checks

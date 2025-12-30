@@ -15,6 +15,7 @@ import '../screens/medications/medication_screen.dart';
 import '../screens/breeds/breed_list_screen.dart';
 import '../screens/analytics/analytics_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/settings/achievements_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -141,6 +142,11 @@ final router = GoRouter(
       path: '/settings',
       name: 'settings',
       builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/achievements',
+      name: 'achievements',
+      builder: (context, state) => const AchievementsScreen(),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(
