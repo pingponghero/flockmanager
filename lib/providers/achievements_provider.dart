@@ -276,7 +276,7 @@ final achievements = <Achievement>[
     id: 'bakers_dozen',
     name: "Baker's Dozen",
     description: '13 birds',
-    icon: Icons.groups,
+    icon: Icons.bakery_dining,
     color: Colors.green,
     category: 'The More the Merrier',
     check: (ctx) => ctx.activeBirdCount >= 13,

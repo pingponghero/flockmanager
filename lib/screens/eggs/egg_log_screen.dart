@@ -140,7 +140,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
                   value: _selectedFlockId,
                   decoration: const InputDecoration(
                     labelText: 'Flock *',
-                    prefixIcon: Icon(Icons.groups),
+                    prefixIcon: Icon(Icons.grid_view),
                   ),
                   items: flocks.map((flock) {
                     return DropdownMenuItem(

@@ -21,34 +21,67 @@ class _FlockFormScreenState extends ConsumerState<FlockFormScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  String _selectedIcon = 'groups';
-  String _selectedColor = '8B4513';
+  String _selectedIcon = 'cute_hen';
+  String _selectedColor = '2E7D32';
   bool _isLoading = false;
   bool _isInitialized = false;
 
-  // Available icons for selection
-  static const _iconOptions = [
-    ('groups', Icons.groups),
+  // Available icons for selection (null IconData means use cute_hen asset)
+  static const _iconOptions = <(String, IconData?)>[
+    // Custom asset
+    ('cute_hen', null),
+    // Eggs & food
     ('egg', Icons.egg),
+    ('egg_alt', Icons.egg_alt),
+    // Buildings & housing
     ('home', Icons.home),
-    ('pets', Icons.pets),
+    ('warehouse', Icons.warehouse),
+    // Outdoors & nature
+    ('fence', Icons.fence),
+    ('grass', Icons.grass),
+    ('park', Icons.park),
+    ('forest', Icons.forest),
+    ('terrain', Icons.terrain),
+    // Weather & sun
+    ('wb_sunny', Icons.wb_sunny),
+    ('wb_twilight', Icons.wb_twilight),
+    // Plants & nature
+    ('eco', Icons.eco),
+    ('nature_people', Icons.nature_people),
+    ('local_florist', Icons.local_florist),
+    // Farm & animals
+    ('agriculture', Icons.agriculture),
+    // Favorites & markers
     ('favorite', Icons.favorite),
     ('star', Icons.star),
-    ('grass', Icons.grass),
-    ('nature', Icons.nature),
-    ('eco', Icons.eco),
   ];
 
   // Available colors for selection
   static const _colorOptions = [
-    ('8B4513', Color(0xFF8B4513)), // Barn red (saddle brown)
+    // Greens
     ('2E7D32', Color(0xFF2E7D32)), // Forest green
-    ('1565C0', Color(0xFF1565C0)), // Blue
-    ('6A1B9A', Color(0xFF6A1B9A)), // Purple
-    ('E65100', Color(0xFFE65100)), // Orange
-    ('C62828', Color(0xFFC62828)), // Red
+    ('689F38', Color(0xFF689F38)), // Light green
     ('00695C', Color(0xFF00695C)), // Teal
-    ('37474F', Color(0xFF37474F)), // Blue grey
+    // Blues
+    ('0277BD', Color(0xFF0277BD)), // Light blue
+    ('01579B', Color(0xFF01579B)), // Dark blue
+    ('006064', Color(0xFF006064)), // Cyan dark
+    // Warm colors
+    ('E65100', Color(0xFFE65100)), // Orange
+    ('F57C00', Color(0xFFF57C00)), // Light orange
+    ('FFB300', Color(0xFFFFB300)), // Golden
+    // Reds & pinks
+    ('C62828', Color(0xFFC62828)), // Red
+    ('880E4F', Color(0xFF880E4F)), // Dark pink
+    ('B71C1C', Color(0xFFB71C1C)), // Dark red
+    // Purples
+    ('4527A0', Color(0xFF4527A0)), // Deep purple
+    ('512DA8', Color(0xFF512DA8)), // Medium purple
+    ('7B1FA2', Color(0xFF7B1FA2)), // Light purple
+    // Neutrals
+    ('8B4513', Color(0xFF8B4513)), // Saddle brown (barn)
+    ('5D4037', Color(0xFF5D4037)), // Dark brown
+    ('616161', Color(0xFF616161)), // Grey
   ];
 
   @override
@@ -127,6 +160,7 @@ class _FlockFormScreenState extends ConsumerState<FlockFormScreen> {
               children: _iconOptions.map((option) {
                 final isSelected = _selectedIcon == option.$1;
                 return _IconChip(
+                  iconName: option.$1,
                   icon: option.$2,
                   isSelected: isSelected,
                   color: Color(int.parse('FF$_selectedColor', radix: 16)),
@@ -305,12 +339,14 @@ class _FlockFormScreenState extends ConsumerState<FlockFormScreen> {
 }
 
 class _IconChip extends StatelessWidget {
-  final IconData icon;
+  final String iconName;
+  final IconData? icon;
   final bool isSelected;
   final Color color;
   final VoidCallback onTap;
 
   const _IconChip({
+    required this.iconName,
     required this.icon,
     required this.isSelected,
     required this.color,
@@ -319,6 +355,8 @@ class _IconChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final iconColor = isSelected ? color : Colors.grey.shade600;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -332,9 +370,15 @@ class _IconChip extends StatelessWidget {
               ? Border.all(color: color, width: 2)
               : Border.all(color: Colors.grey.shade300),
         ),
-        child: Icon(
-          icon,
-          color: isSelected ? color : Colors.grey.shade600,
+        child: Center(
+          child: icon != null
+              ? Icon(icon, color: iconColor)
+              : Image.asset(
+                  'assets/icons/cute_hen.png',
+                  width: 25,
+                  height: 25,
+                  color: iconColor,
+                ),
         ),
       ),
     );
@@ -414,7 +458,16 @@ class _FlockPreviewCard extends StatelessWidget {
                 color: color.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Center(
+                child: icon != null
+                    ? Icon(icon, color: color, size: 24)
+                    : Image.asset(
+                        'assets/icons/cute_hen.png',
+                        width: 25,
+                        height: 25,
+                        color: color,
+                      ),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -443,18 +496,32 @@ class _FlockPreviewCard extends StatelessWidget {
     );
   }
 
-  IconData _getIcon(String name) {
+  IconData? _getIcon(String name) {
+    // cute_hen uses asset image, not IconData
+    if (name == 'cute_hen') return null;
+
     const iconMap = {
-      'groups': Icons.groups,
       'egg': Icons.egg,
+      'egg_alt': Icons.egg_alt,
       'home': Icons.home,
-      'pets': Icons.pets,
+      'warehouse': Icons.warehouse,
+      'fence': Icons.fence,
+      'grass': Icons.grass,
+      'park': Icons.park,
+      'forest': Icons.forest,
+      'terrain': Icons.terrain,
+      'wb_sunny': Icons.wb_sunny,
+      'wb_twilight': Icons.wb_twilight,
+      'eco': Icons.eco,
+      'nature_people': Icons.nature_people,
+      'local_florist': Icons.local_florist,
+      'agriculture': Icons.agriculture,
       'favorite': Icons.favorite,
       'star': Icons.star,
-      'grass': Icons.grass,
-      'nature': Icons.nature,
-      'eco': Icons.eco,
+      // Legacy
+      'groups': Icons.groups,
+      'pets': Icons.pets,
     };
-    return iconMap[name] ?? Icons.groups;
+    return iconMap[name] ?? Icons.egg;
   }
 }

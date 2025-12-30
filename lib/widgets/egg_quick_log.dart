@@ -403,7 +403,7 @@ class _FlockSelector extends ConsumerWidget {
             child: Row(
               children: [
                 Icon(
-                  Icons.groups,
+                  Icons.grid_view,
                   size: 20,
                   color: Theme.of(context).colorScheme.primary,
                 ),

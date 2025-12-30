@@ -121,9 +121,10 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.groups,
-              size: 80,
+            Image.asset(
+              'assets/icons/cute_hen.png',
+              width: 80,
+              height: 80,
               color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 24),
@@ -200,11 +201,7 @@ class _FlockCard extends StatelessWidget {
                     color: flockColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    _parseIcon(flock.icon),
-                    color: flockColor,
-                    size: 24,
-                  ),
+                  child: _buildFlockIcon(flock.icon, flockColor),
                 ),
                 const SizedBox(width: 16),
                 // Flock info
@@ -277,18 +274,49 @@ class _FlockCard extends StatelessWidget {
     }
   }
 
+  Widget _buildFlockIcon(String? iconName, Color color) {
+    // cute_hen uses asset image (scaled down to match icon size)
+    if (iconName == 'cute_hen') {
+      return Center(
+        child: Image.asset(
+          'assets/icons/cute_hen.png',
+          width: 25,
+          height: 25,
+          color: color,
+        ),
+      );
+    }
+
+    return Icon(
+      _parseIcon(iconName),
+      color: color,
+      size: 24,
+    );
+  }
+
   IconData _parseIcon(String? iconName) {
-    // Map common icon names to IconData
     const iconMap = {
       'egg': Icons.egg,
+      'egg_alt': Icons.egg_alt,
       'home': Icons.home,
-      'pets': Icons.pets,
+      'warehouse': Icons.warehouse,
+      'fence': Icons.fence,
+      'grass': Icons.grass,
+      'park': Icons.park,
+      'forest': Icons.forest,
+      'terrain': Icons.terrain,
+      'wb_sunny': Icons.wb_sunny,
+      'wb_twilight': Icons.wb_twilight,
+      'eco': Icons.eco,
+      'nature_people': Icons.nature_people,
+      'local_florist': Icons.local_florist,
+      'agriculture': Icons.agriculture,
       'favorite': Icons.favorite,
       'star': Icons.star,
-      'grass': Icons.grass,
-      'nature': Icons.nature,
-      'eco': Icons.eco,
+      // Legacy
+      'groups': Icons.groups,
+      'pets': Icons.pets,
     };
-    return iconMap[iconName?.toLowerCase()] ?? Icons.groups;
+    return iconMap[iconName?.toLowerCase()] ?? Icons.egg;
   }
 }
