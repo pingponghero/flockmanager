@@ -199,19 +199,25 @@ class _AchievementTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Name
-            Text(
-              achievement.name,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: earned
-                        ? Theme.of(context).colorScheme.onSurface
-                        : Theme.of(context).colorScheme.outline,
-                  ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+            // Name (only if earned)
+            if (earned)
+              Text(
+                achievement.name,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              )
+            else
+              Text(
+                '???',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+              ),
             // Progress bar (for unearned incremental achievements)
             if (showProgress) ...[
               const SizedBox(height: 6),
