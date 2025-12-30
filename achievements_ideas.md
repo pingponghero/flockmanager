@@ -10,7 +10,7 @@ A fun, engaging achievements system to reward users for milestones and encourage
 |-------|------|----------|
 | 🥚 | **First Egg!** | Log your first egg |
 | 🥚🥚 | **Dozen Club** | 12 eggs in a single day |
-| 📦 | **Century Mark** | 100 total eggs logged |
+| 📦 | **Century** | 100 total eggs logged |
 | 🏆 | **Thousand Layer** | 1,000 total eggs |
 | 💎 | **Golden Flock** | 10,000 lifetime eggs |
 | 📈 | **Perfect Week** | 7 consecutive days of logging |
@@ -182,7 +182,7 @@ Check achievements on:
 ### MVP Priority
 
 **Phase 1 (Launch):**
-- First Egg, Century Mark, Thousand Layer
+- First Egg, Century, Thousand Layer
 - Starter Flock, Baker's Dozen
 - Perfect Week, On a Roll
 - Beat the Store

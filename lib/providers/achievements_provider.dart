@@ -144,7 +144,7 @@ final achievements = <Achievement>[
   ),
   Achievement(
     id: 'century_mark',
-    name: 'Century Mark',
+    name: 'Century',
     description: '100 total eggs logged',
     icon: Icons.looks_one,
     color: Colors.deepOrange,

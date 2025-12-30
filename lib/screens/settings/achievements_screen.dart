@@ -119,21 +119,6 @@ class _CategorySection extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$earnedCount/$totalCount',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ),
             ],
           ),
         ),
@@ -231,10 +216,14 @@ class _AchievementTile extends StatelessWidget {
               ),
             ] else
               Text(
-                '???',
+                achievement.name,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.outline,
                     ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             // Progress bar (for unearned incremental achievements)
             if (showProgress) ...[
