@@ -6,9 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/bird.dart';
+import '../../models/egg_log.dart';
 import '../../models/enums.dart';
 import '../../providers/bird_provider.dart';
+import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../providers/medication_provider.dart';
 
 class BirdDetailScreen extends ConsumerWidget {
   final String birdId;
@@ -361,14 +364,46 @@ class _BirdHeader extends StatelessWidget {
   }
 }
 
-class _StatsRow extends StatelessWidget {
+class _StatsRow extends ConsumerWidget {
   final Bird bird;
 
   const _StatsRow({required this.bird});
 
   @override
-  Widget build(BuildContext context) {
-    // Placeholder stats - will be computed from egg logs in Phase 3
+  Widget build(BuildContext context, WidgetRef ref) {
+    final totalAsync = ref.watch(totalEggCountByBirdProvider(bird.id));
+    final logsAsync = ref.watch(eggLogsByBirdProvider(bird.id));
+
+    // Calculate this month's eggs and laying rate from logs
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month, 1);
+
+    int thisMonthCount = 0;
+    String layingRate = '--%';
+
+    if (logsAsync.hasValue) {
+      final logs = logsAsync.value!;
+      // Count eggs this month
+      for (final log in logs) {
+        if (log.date.isAfter(monthStart.subtract(const Duration(days: 1)))) {
+          thisMonthCount += log.count;
+        }
+      }
+
+      // Calculate laying rate (eggs per day over last 30 days)
+      if (logs.isNotEmpty) {
+        final thirtyDaysAgo = now.subtract(const Duration(days: 30));
+        int last30Days = 0;
+        for (final log in logs) {
+          if (log.date.isAfter(thirtyDaysAgo)) {
+            last30Days += log.count;
+          }
+        }
+        final rate = (last30Days / 30 * 100).round();
+        layingRate = '$rate%';
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
@@ -376,17 +411,29 @@ class _StatsRow extends StatelessWidget {
         children: [
           _StatItem(
             label: 'Total Eggs',
-            value: '--',
+            value: totalAsync.when(
+              loading: () => '--',
+              error: (_, __) => '--',
+              data: (count) => '$count',
+            ),
             icon: Icons.egg,
           ),
           _StatItem(
             label: 'This Month',
-            value: '--',
+            value: logsAsync.when(
+              loading: () => '--',
+              error: (_, __) => '--',
+              data: (_) => '$thisMonthCount',
+            ),
             icon: Icons.calendar_month,
           ),
           _StatItem(
             label: 'Laying Rate',
-            value: '--%',
+            value: logsAsync.when(
+              loading: () => '--%',
+              error: (_, __) => '--%',
+              data: (_) => layingRate,
+            ),
             icon: Icons.trending_up,
           ),
         ],
@@ -583,76 +630,238 @@ class _InfoItem {
   const _InfoItem({required this.label, required this.value});
 }
 
-class _EggsTab extends StatelessWidget {
+class _EggsTab extends ConsumerWidget {
   final Bird bird;
 
   const _EggsTab({required this.bird});
 
   @override
-  Widget build(BuildContext context) {
-    // Placeholder - will show egg logs in Phase 3
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.egg,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final logsAsync = ref.watch(eggLogsByBirdProvider(bird.id));
+
+    return logsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text('Error: $error')),
+      data: (logs) {
+        if (logs.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.egg_outlined,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No Eggs Logged',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Eggs attributed to ${bird.name} will appear here.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Egg History',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Egg logs for this bird will appear here.\nComing in Phase 3.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      ),
+          );
+        }
+
+        // Sort by date descending
+        final sortedLogs = List<EggLog>.from(logs)
+          ..sort((a, b) => b.date.compareTo(a.date));
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: sortedLogs.length,
+          itemBuilder: (context, index) {
+            final log = sortedLogs[index];
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  child: Text(
+                    '${log.count}',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                title: Text(
+                  '${log.count} egg${log.count == 1 ? '' : 's'}',
+                ),
+                subtitle: Text(
+                  DateFormat.yMMMd().format(log.date),
+                ),
+                trailing: log.size != null || log.quality != null
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (log.size != null)
+                            Text(
+                              log.size!.displayName,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          if (log.quality != null)
+                            Text(
+                              log.quality!.displayName,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                        ],
+                      )
+                    : null,
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
 
-class _HealthTab extends StatelessWidget {
+class _HealthTab extends ConsumerWidget {
   final Bird bird;
 
   const _HealthTab({required this.bird});
 
   @override
-  Widget build(BuildContext context) {
-    // Placeholder - will show health notes and medications
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.medical_services,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Health Timeline',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Health notes and medications will appear here.\nComing in a future phase.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final medsAsync = ref.watch(medicationsByBirdProvider(bird.id));
+    final notesAsync = ref.watch(healthNotesByBirdProvider(bird.id));
+
+    return medsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text('Error: $error')),
+      data: (meds) {
+        return notesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => Center(child: Text('Error: $error')),
+          data: (notes) {
+            if (meds.isEmpty && notes.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.medical_services_outlined,
+                        size: 64,
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No Health Records',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Medications and health notes for ${bird.name} will appear here.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            // Combine and sort by date descending
+            final items = <_HealthItem>[];
+            for (final med in meds) {
+              items.add(_HealthItem(
+                date: med.startDate,
+                type: 'medication',
+                title: med.medicationName,
+                subtitle: med.dosage ?? '',
+                notes: med.notes,
+              ));
+            }
+            for (final note in notes) {
+              items.add(_HealthItem(
+                date: note.date,
+                type: 'note',
+                title: note.type.displayName,
+                subtitle: '',
+                notes: note.description,
+              ));
+            }
+            items.sort((a, b) => b.date.compareTo(a.date));
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
+                final isMed = item.type == 'medication';
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: isMed
+                          ? Colors.orange.shade100
+                          : Colors.blue.shade100,
+                      child: Icon(
+                        isMed ? Icons.medication : Icons.note,
+                        color: isMed ? Colors.orange.shade700 : Colors.blue.shade700,
+                      ),
+                    ),
+                    title: Text(item.title),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(DateFormat.yMMMd().format(item.date)),
+                        if (item.subtitle.isNotEmpty)
+                          Text(
+                            item.subtitle,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        if (item.notes != null && item.notes!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              item.notes!,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                      ],
+                    ),
+                    isThreeLine: item.notes != null && item.notes!.isNotEmpty,
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
+}
+
+class _HealthItem {
+  final DateTime date;
+  final String type;
+  final String title;
+  final String subtitle;
+  final String? notes;
+
+  _HealthItem({
+    required this.date,
+    required this.type,
+    required this.title,
+    required this.subtitle,
+    this.notes,
+  });
 }

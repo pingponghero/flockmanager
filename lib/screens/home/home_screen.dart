@@ -655,7 +655,10 @@ class _ActivityTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final flockAsync = ref.watch(flockByIdProvider(log.flockId));
+    // Show bird name if attributed to a specific bird, otherwise show flock name
+    final subtitleWidget = log.birdId != null
+        ? _buildBirdSubtitle(context, ref)
+        : _buildFlockSubtitle(context, ref);
 
     return ListTile(
       leading: CircleAvatar(
@@ -671,11 +674,7 @@ class _ActivityTile extends ConsumerWidget {
       title: Text(
         '${log.count} egg${log.count == 1 ? '' : 's'} logged',
       ),
-      subtitle: flockAsync.when(
-        loading: () => const Text('...'),
-        error: (error, stack) => const Text('Unknown flock'),
-        data: (flock) => Text(flock?.name ?? 'Unknown flock'),
-      ),
+      subtitle: subtitleWidget,
       trailing: Text(
         _formatRelativeTime(log.createdAt),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -683,6 +682,26 @@ class _ActivityTile extends ConsumerWidget {
             ),
       ),
       onTap: () => context.push('/eggs'),
+    );
+  }
+
+  Widget _buildBirdSubtitle(BuildContext context, WidgetRef ref) {
+    final birdAsync = ref.watch(birdByIdProvider(log.birdId!));
+    return birdAsync.when(
+      loading: () => const Text('...'),
+      error: (_, __) => _buildFlockSubtitle(context, ref),
+      data: (bird) => bird != null
+          ? Text(bird.name)
+          : _buildFlockSubtitle(context, ref),
+    );
+  }
+
+  Widget _buildFlockSubtitle(BuildContext context, WidgetRef ref) {
+    final flockAsync = ref.watch(flockByIdProvider(log.flockId));
+    return flockAsync.when(
+      loading: () => const Text('...'),
+      error: (_, __) => const Text('Unknown flock'),
+      data: (flock) => Text(flock?.name ?? 'Unknown flock'),
     );
   }
 
