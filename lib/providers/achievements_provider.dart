@@ -558,7 +558,7 @@ final achievements = <Achievement>[
   // ==================== SEASONAL ====================
   Achievement(
     id: 'thanksgiving_prep',
-    name: 'Thanksgiving Prep',
+    name: 'Turkey Time',
     description: 'Log eggs in November',
     icon: Icons.restaurant,
     color: Colors.orange,
