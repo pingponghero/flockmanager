@@ -9,6 +9,8 @@ import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../providers/medication_provider.dart';
+import '../../providers/theme_provider.dart';
+import '../../app/theme.dart';
 import '../../widgets/egg_quick_log.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -19,6 +21,7 @@ class HomeScreen extends ConsumerWidget {
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
     final selectedFlockAsync = ref.watch(selectedFlockProvider);
     final recentLogsAsync = ref.watch(recentEggLogsProvider);
+    final currentPalette = ref.watch(themeProvider);
 
     // Only show FAB when there are existing egg logs (empty state has its own CTA)
     final hasEggLogs = recentLogsAsync.valueOrNull?.isNotEmpty ?? false;
@@ -28,14 +31,13 @@ class HomeScreen extends ConsumerWidget {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              'assets/icons/hen.png',
-              width: 28,
-              height: 28,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 10),
             const Text('Flock Manager'),
+            const SizedBox(width: 10),
+            Image.asset(
+              currentPalette.iconAsset,
+              width: 36,
+              height: 36,
+            ),
           ],
         ),
         actions: [

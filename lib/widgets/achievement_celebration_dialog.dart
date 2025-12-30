@@ -13,11 +13,15 @@ class AchievementCelebrationDialog extends StatefulWidget {
   });
 
   /// Show the celebration dialog for a newly unlocked achievement.
-  static Future<void> show(BuildContext context, Achievement achievement) {
-    // Play haptic feedback for celebration
-    HapticFeedback.mediumImpact();
+  static Future<void> show(BuildContext context, Achievement achievement) async {
+    // Play double-tap haptic feedback for celebration
+    HapticFeedback.lightImpact();
+    await Future.delayed(const Duration(milliseconds: 100));
+    HapticFeedback.lightImpact();
 
-    return showGeneralDialog(
+    if (!context.mounted) return;
+
+    await showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Achievement',
@@ -206,27 +210,6 @@ class _AchievementCelebrationDialogState
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-
-              // Category tag
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: achievement.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  achievement.category,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: achievement.color,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
               ),
               const SizedBox(height: 24),
 

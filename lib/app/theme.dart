@@ -30,6 +30,17 @@ extension AppPaletteExtension on AppPalette {
     }
   }
 
+  String get iconAsset {
+    switch (this) {
+      case AppPalette.barnRed:
+        return 'assets/icons/app_icon_barn_red_transparent.png';
+      case AppPalette.sage:
+        return 'assets/icons/app_icon_terracotta_transparent.png';
+      case AppPalette.eggInspired:
+        return 'assets/icons/app_icon_light_transparent.png';
+    }
+  }
+
   ColorPaletteData get colors {
     switch (this) {
       case AppPalette.barnRed:

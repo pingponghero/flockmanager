@@ -5,9 +5,11 @@ import 'package:intl/intl.dart';
 
 import '../models/egg_log.dart';
 import '../models/enums.dart';
+import '../providers/achievements_provider.dart';
 import '../providers/bird_provider.dart';
 import '../providers/egg_provider.dart';
 import '../providers/flock_provider.dart';
+import 'achievement_celebration_dialog.dart';
 
 /// Shows the quick egg log bottom sheet.
 /// Returns true if an egg was logged, false otherwise.
@@ -163,9 +165,18 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
                       spacing: 8,
                       runSpacing: 4,
                       children: EggSize.values.map((size) {
+                        final isSelected = _selectedSize == size;
                         return ChoiceChip(
-                          label: Text(size.displayName),
-                          selected: _selectedSize == size,
+                          label: Text(
+                            size.displayName,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.onPrimary
+                                  : Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          selected: isSelected,
+                          selectedColor: Theme.of(context).colorScheme.primary,
                           onSelected: (selected) {
                             setState(() {
                               _selectedSize = selected ? size : null;
@@ -182,9 +193,18 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
                       spacing: 8,
                       runSpacing: 4,
                       children: EggQuality.values.map((quality) {
+                        final isSelected = _selectedQuality == quality;
                         return ChoiceChip(
-                          label: Text(quality.displayName),
-                          selected: _selectedQuality == quality,
+                          label: Text(
+                            quality.displayName,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.onPrimary
+                                  : Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          selected: isSelected,
+                          selectedColor: Theme.of(context).colorScheme.primary,
                           onSelected: (selected) {
                             setState(() {
                               _selectedQuality = selected ? quality : null;
@@ -327,8 +347,16 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
           ),
         );
 
-        // Close sheet
+        // Close sheet first, then check for achievements
         Navigator.pop(context, true);
+
+        // Check for new achievements (after sheet is closed)
+        if (mounted) {
+          final newAchievements = await checkAndCelebrateAchievements(ref, context);
+          if (mounted && newAchievements.isNotEmpty) {
+            await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -438,7 +466,7 @@ class _NumberPicker extends StatelessWidget {
   });
 
   static const int _min = 0;
-  static const int _max = 30;
+  static const int _max = 99;
 
   @override
   Widget build(BuildContext context) {
