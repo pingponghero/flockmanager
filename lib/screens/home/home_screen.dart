@@ -25,7 +25,19 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Flock Manager'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/icons/hen.png',
+              width: 28,
+              height: 28,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 10),
+            const Text('Flock Manager'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.history),
