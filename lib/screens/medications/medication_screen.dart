@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../models/medication_log.dart';
 import '../../data/medications.dart';
 import '../../providers/achievements_provider.dart';
+import '../../providers/bird_provider.dart';
 import '../../providers/medication_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
@@ -189,8 +190,8 @@ class _MedicationCard extends ConsumerWidget {
                     child: Text(
                       medication.medicationName,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   if (hasWithdrawal)
@@ -391,8 +392,35 @@ class _ReferenceTabState extends State<_ReferenceTab> {
 
     return Column(
       children: [
+        // Disclaimer
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blue.shade200),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, size: 20, color: Colors.blue.shade700),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Reference only. Always consult a veterinarian and follow product label instructions. '
+                      'Withdrawal times can vary by dosage and regulations.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: TextField(
             decoration: const InputDecoration(
               hintText: 'Search medications...',
@@ -401,35 +429,41 @@ class _ReferenceTabState extends State<_ReferenceTab> {
             onChanged: (value) => setState(() => _searchQuery = value),
           ),
         ),
+        const SizedBox(height: 12),
 
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
+        Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              FilterChip(
-                label: const Text('All'),
-                selected: _selectedCategory == null,
-                onSelected: (_) => setState(() => _selectedCategory = null),
-              ),
-              const SizedBox(width: 8),
-              ...MedicationCategory.values.map((cat) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(_categoryLabel(cat)),
-                      selected: _selectedCategory == cat,
-                      onSelected: (_) => setState(
-                        () => _selectedCategory = _selectedCategory == cat ? null : cat,
-                      ),
+              Expanded(
+                child: DropdownButtonFormField<MedicationCategory?>(
+                  value: _selectedCategory,
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: [
+                    const DropdownMenuItem<MedicationCategory?>(
+                      value: null,
+                      child: Text('All Categories'),
                     ),
-                  )),
+                    ..._getSortedCategories().map((cat) => DropdownMenuItem(
+                      value: cat,
+                      child: Text(_categoryLabel(cat)),
+                    )),
+                  ],
+                  onChanged: (value) => setState(() => _selectedCategory = value),
+                ),
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
 
         Expanded(
           child: ListView.builder(
+            // Key changes when category changes, resetting expansion states
+            key: ValueKey(_selectedCategory),
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: filtered.length,
             itemBuilder: (context, index) {
@@ -443,11 +477,21 @@ class _ReferenceTabState extends State<_ReferenceTab> {
   }
 
   List<Medication> _getFilteredMedications() {
-    var result = searchMedications(_searchQuery);
+    var result = searchMedications(_searchQuery).toList();
     if (_selectedCategory != null) {
       result = result.where((m) => m.category == _selectedCategory).toList();
     }
+    result.sort((a, b) => a.name.compareTo(b.name));
     return result;
+  }
+
+  List<MedicationCategory> _getSortedCategories() {
+    final categories = MedicationCategory.values
+        .where((c) => c != MedicationCategory.other)
+        .toList();
+    categories.sort((a, b) => _categoryLabel(a).compareTo(_categoryLabel(b)));
+    categories.add(MedicationCategory.other); // Other always last
+    return categories;
   }
 
   String _categoryLabel(MedicationCategory cat) {
@@ -479,43 +523,77 @@ class _MedicationReferenceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isBanned = medication.isBannedOrRestricted;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: isBanned ? Colors.red.shade50 : null,
       child: ExpansionTile(
+        leading: isBanned
+            ? Icon(Icons.block, color: Colors.red.shade700, size: 20)
+            : null,
         title: Text(
           medication.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isBanned ? Colors.red.shade900 : null,
+          ),
         ),
-        subtitle: Text(medication.genericName),
-        trailing: medication.hasWithdrawal
-            ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade100,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '${medication.withdrawalDaysEgg}d',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.amber.shade800,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )
-            : null,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(medication.genericName),
+            const SizedBox(height: 4),
+            _LegalStatusBadge(legalStatus: medication.legalStatus),
+          ],
+        ),
+        trailing: _buildWithdrawalBadge(context),
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Legal warning banner for banned/restricted medications
+                if (medication.showLegalWarning) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade300),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.warning, color: Colors.red.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            medication.legalWarning ??
+                                (medication.legalStatus == LegalStatus.bannedInUs
+                                    ? 'BANNED for use in poultry in the United States.'
+                                    : 'Not permitted for use in food-producing animals.'),
+                            style: TextStyle(
+                              color: Colors.red.shade900,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 Text(
                   medication.description,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 12),
-                if (medication.treatsConditions.isNotEmpty) ...[
+
+                // Treats conditions (only show if not banned)
+                if (medication.treatsConditions.isNotEmpty && !isBanned) ...[
                   Text(
                     'Treats:',
                     style: Theme.of(context).textTheme.titleSmall,
@@ -524,38 +602,101 @@ class _MedicationReferenceCard extends StatelessWidget {
                   Wrap(
                     spacing: 4,
                     runSpacing: 4,
-                    children: medication.treatsConditions.map((c) => Chip(
-                          label: Text(c, style: const TextStyle(fontSize: 12)),
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        )).toList(),
+                    children: medication.treatsConditions.map((c) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        c,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )).toList(),
                   ),
                   const SizedBox(height: 12),
                 ],
+
+                // Dosage (only show if not banned)
+                if (!isBanned) ...[
+                  Text(
+                    'Dosage:',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(medication.dosageNotes),
+                  const SizedBox(height: 12),
+                ],
+
+                // Withdrawal info
                 Text(
-                  'Dosage:',
+                  'Withdrawal Periods:',
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 4),
-                Text(medication.dosageNotes),
+                Row(
+                  children: [
+                    _withdrawalInfoChip(
+                      context,
+                      'Egg: ${medication.withdrawalEggDisplay}',
+                      _getWithdrawalColor(medication.withdrawalDaysEgg, medication),
+                    ),
+                    const SizedBox(width: 8),
+                    _withdrawalInfoChip(
+                      context,
+                      'Meat: ${medication.withdrawalMeatDisplay}',
+                      _getWithdrawalColor(medication.withdrawalDaysMeat, medication),
+                    ),
+                  ],
+                ),
+
+                // Withdrawal note if present
+                if (medication.withdrawalNote != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline, size: 16, color: Colors.amber.shade800),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            medication.withdrawalNote!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.amber.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 12),
+
+                // Legal status row
                 Row(
                   children: [
                     _infoChip(
                       context,
-                      'Egg: ${medication.withdrawalDaysEgg}d',
-                      medication.withdrawalDaysEgg > 0 ? Colors.amber : Colors.green,
+                      medication.legalStatusDisplay,
+                      _getLegalStatusColor(medication.legalStatus),
                     ),
                     const SizedBox(width: 8),
                     _infoChip(
                       context,
-                      'Meat: ${medication.withdrawalDaysMeat}d',
-                      medication.withdrawalDaysMeat > 0 ? Colors.amber : Colors.green,
+                      medication.categoryDisplay,
+                      Colors.grey,
                     ),
-                    if (medication.prescriptionRequired) ...[
-                      const SizedBox(width: 8),
-                      _infoChip(context, 'Rx', Colors.blue),
-                    ],
                   ],
                 ),
               ],
@@ -566,27 +707,190 @@ class _MedicationReferenceCard extends StatelessWidget {
     );
   }
 
+  Widget? _buildWithdrawalBadge(BuildContext context) {
+    if (medication.isBannedOrRestricted) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.red.shade100,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          'BANNED',
+          style: TextStyle(
+            fontSize: 10,
+            color: Colors.red.shade800,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    if (medication.withdrawalDaysEgg == null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade100,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          '?',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.orange.shade800,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    if (medication.withdrawalDaysEgg! > 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.amber.shade100,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          '${medication.withdrawalDaysEgg}d',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.amber.shade800,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    return null;
+  }
+
+  Color _getWithdrawalColor(int? days, Medication med) {
+    if (med.isBannedOrRestricted) return Colors.red;
+    if (days == null) return Colors.orange;
+    if (days > 0) return Colors.amber;
+    return Colors.green;
+  }
+
+  Color _getLegalStatusColor(LegalStatus status) {
+    switch (status) {
+      case LegalStatus.fdaApproved:
+        return Colors.green;
+      case LegalStatus.offLabel:
+        return Colors.blue;
+      case LegalStatus.prescriptionRequired:
+        return Colors.purple;
+      case LegalStatus.bannedInUs:
+      case LegalStatus.notForFoodAnimals:
+        return Colors.red;
+    }
+  }
+
+  Widget _withdrawalInfoChip(BuildContext context, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          color: color.shade700,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
   Widget _infoChip(BuildContext context, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 12, color: color.shade700),
+        style: TextStyle(
+          fontSize: 12,
+          color: color.shade700,
+        ),
       ),
     );
   }
 }
 
-extension on Color {
-  Color get shade700 {
-    final hsl = HSLColor.fromColor(this);
-    return hsl.withLightness((hsl.lightness - 0.2).clamp(0.0, 1.0)).toColor();
+/// Badge showing the legal status of a medication
+class _LegalStatusBadge extends StatelessWidget {
+  final LegalStatus legalStatus;
+
+  const _LegalStatusBadge({required this.legalStatus});
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, icon) = _getStatusStyle();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            _getStatusText(),
+            style: TextStyle(
+              fontSize: 10,
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getStatusText() {
+    switch (legalStatus) {
+      case LegalStatus.fdaApproved:
+        return 'FDA Approved';
+      case LegalStatus.offLabel:
+        return 'Off-Label';
+      case LegalStatus.prescriptionRequired:
+        return 'Rx Required';
+      case LegalStatus.bannedInUs:
+        return 'BANNED';
+      case LegalStatus.notForFoodAnimals:
+        return 'NOT FOR FOOD';
+    }
+  }
+
+  (Color, IconData) _getStatusStyle() {
+    switch (legalStatus) {
+      case LegalStatus.fdaApproved:
+        return (Colors.green.shade700, Icons.check_circle_outline);
+      case LegalStatus.offLabel:
+        return (Colors.blue.shade700, Icons.info_outline);
+      case LegalStatus.prescriptionRequired:
+        return (Colors.purple.shade700, Icons.medical_services_outlined);
+      case LegalStatus.bannedInUs:
+        return (Colors.red.shade700, Icons.block);
+      case LegalStatus.notForFoodAnimals:
+        return (Colors.red.shade700, Icons.dangerous_outlined);
+    }
   }
 }
+
+// === ADD MEDICATION SHEET ===
 
 class _AddMedicationSheet extends ConsumerStatefulWidget {
   const _AddMedicationSheet();
@@ -601,11 +905,12 @@ class _AddMedicationSheetState extends ConsumerState<_AddMedicationSheet> {
   final _dosageController = TextEditingController();
   final _notesController = TextEditingController();
 
+  Medication? _selectedMedication;
+  String? _selectedFlockId;
+  String? _selectedBirdId;
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
-  String? _selectedFlockId;
   int _withdrawalDays = 0;
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -613,64 +918,6 @@ class _AddMedicationSheetState extends ConsumerState<_AddMedicationSheet> {
     _dosageController.dispose();
     _notesController.dispose();
     super.dispose();
-  }
-
-  void _selectMedication(Medication med) {
-    setState(() {
-      _nameController.text = med.name;
-      _withdrawalDays = med.withdrawalDaysEgg;
-    });
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedFlockId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a flock')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final log = MedicationLog.create(
-        flockId: _selectedFlockId!,
-        medicationName: _nameController.text,
-        dosage: _dosageController.text.isEmpty ? null : _dosageController.text,
-        startDate: _startDate,
-        endDate: _endDate,
-        withdrawalDays: _withdrawalDays > 0 ? _withdrawalDays : null,
-        notes: _notesController.text.isEmpty ? null : _notesController.text,
-      );
-
-      await ref.read(medicationsProvider.notifier).addMedication(log);
-
-      if (mounted) {
-        // Check for new achievements
-        final newAchievements = await checkAndCelebrateAchievements(ref, context);
-        if (mounted && newAchievements.isNotEmpty) {
-          await AchievementCelebrationDialog.showMultiple(context, newAchievements);
-        }
-
-        if (mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Medication logged')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
   }
 
   @override
@@ -683,15 +930,13 @@ class _AddMedicationSheetState extends ConsumerState<_AddMedicationSheet> {
       maxChildSize: 0.95,
       expand: false,
       builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          ),
+        return Form(
+          key: _formKey,
           child: Column(
             children: [
+              // Handle
               Container(
-                margin: const EdgeInsets.only(top: 8),
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
@@ -699,170 +944,321 @@ class _AddMedicationSheetState extends ConsumerState<_AddMedicationSheet> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
+
+              // Header
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     Text(
-                      'Log Medication',
+                      'Add Medication',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const Spacer(),
                     TextButton(
-                      onPressed: _isLoading ? null : _save,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Save'),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: _saveMedication,
+                      child: const Text('Save'),
                     ),
                   ],
                 ),
               ),
+
+              const Divider(),
+
               Expanded(
-                child: Form(
-                  key: _formKey,
-                  child: ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      // Quick select from reference
-                      Text(
-                        'Quick Select',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: medications.take(8).map((med) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: ActionChip(
-                                  label: Text(med.name),
-                                  onPressed: () => _selectMedication(med),
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // Medication selector with autocomplete
+                    Autocomplete<Medication>(
+                      displayStringForOption: (med) => med.name,
+                      optionsBuilder: (textEditingValue) {
+                        if (textEditingValue.text.isEmpty) {
+                          // Filter out banned medications from suggestions
+                          return medications.where((m) => !m.isBannedOrRestricted);
+                        }
+                        return searchMedications(textEditingValue.text)
+                            .where((m) => !m.isBannedOrRestricted);
+                      },
+                      onSelected: (med) {
+                        setState(() {
+                          _selectedMedication = med;
+                          _nameController.text = med.name;
+                          _withdrawalDays = med.withdrawalDaysEgg ?? 14; // Default to 14 if unknown
+                          _dosageController.text = med.dosageNotes;
+                        });
+                      },
+                      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+                        // Sync controllers
+                        if (_nameController.text.isNotEmpty && controller.text.isEmpty) {
+                          controller.text = _nameController.text;
+                        }
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: const InputDecoration(
+                            labelText: 'Medication *',
+                            hintText: 'Search or enter medication name',
+                          ),
+                          onChanged: (value) {
+                            _nameController.text = value;
+                            // Check if medication is banned
+                            final selectedMed = medications.where(
+                                    (m) => m.name.toLowerCase() == value.toLowerCase()
+                            ).firstOrNull;
+                            if (selectedMed?.isBannedOrRestricted == true) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '⚠️ ${selectedMed!.name} is ${selectedMed.legalStatusDisplay}. '
+                                        'Do not use in food-producing poultry.',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                  duration: const Duration(seconds: 5),
                                 ),
-                              )).toList(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Medication Name',
-                        ),
-                        validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
-                      ),
-                      const SizedBox(height: 16),
-
-                      flocksAsync.when(
-                        loading: () => const LinearProgressIndicator(),
-                        error: (_, __) => const SizedBox.shrink(),
-                        data: (flocks) {
-                          if (flocks.isEmpty) {
-                            return const Text('Create a flock first');
-                          }
-                          if (_selectedFlockId == null && flocks.length == 1) {
-                            _selectedFlockId = flocks.first.id;
-                          }
-                          return DropdownButtonFormField<String>(
-                            value: _selectedFlockId,
-                            decoration: const InputDecoration(
-                              labelText: 'Flock',
+                              );
+                            }
+                          },
+                          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+                        );
+                      },
+                      optionsViewBuilder: (context, onSelected, options) {
+                        return Align(
+                          alignment: Alignment.topLeft,
+                          child: Material(
+                            elevation: 4,
+                            borderRadius: BorderRadius.circular(8),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxHeight: 200,
+                                maxWidth: MediaQuery.of(context).size.width - 64,
+                              ),
+                              child: ListView.builder(
+                                padding: EdgeInsets.zero,
+                                shrinkWrap: true,
+                                itemCount: options.length,
+                                itemBuilder: (context, index) {
+                                  final med = options.elementAt(index);
+                                  return ListTile(
+                                    dense: true,
+                                    title: Text(med.name),
+                                    subtitle: Row(
+                                      children: [
+                                        Text(med.genericName),
+                                        const SizedBox(width: 8),
+                                        _LegalStatusBadge(legalStatus: med.legalStatus),
+                                      ],
+                                    ),
+                                    trailing: _buildWithdrawalBadge(med),
+                                    onTap: () => onSelected(med),
+                                  );
+                                },
+                              ),
                             ),
-                            items: flocks.map((f) => DropdownMenuItem(
-                                  value: f.id,
-                                  child: Text(f.name),
-                                )).toList(),
-                            onChanged: (v) => setState(() => _selectedFlockId = v),
-                            validator: (v) => v == null ? 'Required' : null,
+                          ),
+                        );
+                      },
+                    ),
+
+                    // Warning if selected medication has issues
+                    if (_selectedMedication != null && _selectedMedication!.legalWarning != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.warning_amber, color: Colors.amber.shade700, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _selectedMedication!.legalWarning!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.amber.shade900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 16),
+
+                    flocksAsync.when(
+                      loading: () => const LinearProgressIndicator(),
+                      error: (_, __) => const SizedBox.shrink(),
+                      data: (flocks) {
+                        if (flocks.isEmpty) {
+                          return const Text('Create a flock first');
+                        }
+                        if (_selectedFlockId == null && flocks.length == 1) {
+                          _selectedFlockId = flocks.first.id;
+                        }
+                        return DropdownButtonFormField<String>(
+                          value: _selectedFlockId,
+                          decoration: const InputDecoration(
+                            labelText: 'Flock',
+                          ),
+                          items: flocks.map((f) => DropdownMenuItem(
+                            value: f.id,
+                            child: Text(f.name),
+                          )).toList(),
+                          onChanged: (v) => setState(() {
+                            _selectedFlockId = v;
+                            _selectedBirdId = null; // Reset bird when flock changes
+                          }),
+                          validator: (v) => v == null ? 'Required' : null,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Bird selector (optional - for individual bird treatment)
+                    if (_selectedFlockId != null)
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final birdsAsync = ref.watch(
+                            activeBirdsByFlockProvider(_selectedFlockId!),
+                          );
+                          return birdsAsync.when(
+                            loading: () => const LinearProgressIndicator(),
+                            error: (_, __) => const SizedBox.shrink(),
+                            data: (birds) {
+                              if (birds.isEmpty) return const SizedBox.shrink();
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  DropdownButtonFormField<String?>(
+                                    value: _selectedBirdId,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Bird (optional)',
+                                      hintText: 'Entire flock if not selected',
+                                    ),
+                                    items: [
+                                      const DropdownMenuItem<String?>(
+                                        value: null,
+                                        child: Text('Entire flock'),
+                                      ),
+                                      ...birds.map((b) => DropdownMenuItem(
+                                        value: b.id,
+                                        child: Text(b.name),
+                                      )),
+                                    ],
+                                    onChanged: (v) => setState(() => _selectedBirdId = v),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                              );
+                            },
                           );
                         },
                       ),
-                      const SizedBox(height: 16),
 
-                      TextFormField(
-                        controller: _dosageController,
-                        decoration: const InputDecoration(
-                          labelText: 'Dosage (optional)',
-                          hintText: 'e.g., 2 tsp per gallon',
+                    TextFormField(
+                      controller: _dosageController,
+                      decoration: const InputDecoration(
+                        labelText: 'Dosage (optional)',
+                        hintText: 'e.g., 2 tsp per gallon',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Start Date'),
+                            subtitle: Text(DateFormat.yMMMd().format(_startDate)),
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _startDate,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now().add(const Duration(days: 30)),
+                              );
+                              if (picked != null) {
+                                setState(() => _startDate = picked);
+                              }
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text('Start Date'),
-                              subtitle: Text(DateFormat.yMMMd().format(_startDate)),
-                              onTap: () async {
-                                final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: _startDate,
-                                  firstDate: DateTime(2020),
-                                  lastDate: DateTime.now().add(const Duration(days: 30)),
-                                );
-                                if (picked != null) {
-                                  setState(() => _startDate = picked);
-                                }
-                              },
-                            ),
+                        Expanded(
+                          child: ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('End Date'),
+                            subtitle: Text(_endDate != null
+                                ? DateFormat.yMMMd().format(_endDate!)
+                                : 'Ongoing'),
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: _endDate ?? DateTime.now(),
+                                firstDate: _startDate,
+                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                              );
+                              setState(() => _endDate = picked);
+                            },
                           ),
-                          Expanded(
-                            child: ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text('End Date'),
-                              subtitle: Text(_endDate != null
-                                  ? DateFormat.yMMMd().format(_endDate!)
-                                  : 'Ongoing'),
-                              onTap: () async {
-                                final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: _endDate ?? DateTime.now(),
-                                  firstDate: _startDate,
-                                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                                );
-                                setState(() => _endDate = picked);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Egg Withdrawal: $_withdrawalDays days',
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Slider(
-                        value: _withdrawalDays.toDouble(),
-                        min: 0,
-                        max: 30,
-                        divisions: 30,
-                        label: '$_withdrawalDays days',
-                        onChanged: (v) => setState(() => _withdrawalDays = v.round()),
-                      ),
-                      const SizedBox(height: 16),
-
-                      TextFormField(
-                        controller: _notesController,
-                        decoration: const InputDecoration(
-                          labelText: 'Notes (optional)',
                         ),
-                        maxLines: 2,
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Egg Withdrawal: $_withdrawalDays days',
+                                style: Theme.of(context).textTheme.titleSmall,
+                              ),
+                              if (_selectedMedication?.withdrawalDaysEgg == null)
+                                Text(
+                                  'No established withdrawal - using conservative estimate',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange.shade700,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: _withdrawalDays.toDouble(),
+                      min: 0,
+                      max: 30,
+                      divisions: 30,
+                      label: '$_withdrawalDays days',
+                      onChanged: (v) => setState(() => _withdrawalDays = v.round()),
+                    ),
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller: _notesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Notes (optional)',
                       ),
-                    ],
-                  ),
+                      maxLines: 2,
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -870,5 +1266,87 @@ class _AddMedicationSheetState extends ConsumerState<_AddMedicationSheet> {
         );
       },
     );
+  }
+
+  Widget? _buildWithdrawalBadge(Medication med) {
+    if (med.withdrawalDaysEgg == null) {
+      return Text(
+        '?',
+        style: TextStyle(
+          color: Colors.orange.shade700,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
+    if (med.withdrawalDaysEgg! > 0) {
+      return Text(
+        '${med.withdrawalDaysEgg}d',
+        style: TextStyle(
+          color: Colors.amber.shade700,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+    }
+    return null;
+  }
+
+  Future<void> _saveMedication() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedFlockId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a flock')),
+      );
+      return;
+    }
+
+    final medication = MedicationLog(
+      id: '', // Will be generated by repository
+      flockId: _selectedFlockId!,
+      birdId: _selectedBirdId,
+      medicationName: _nameController.text,
+      dosage: _dosageController.text.isEmpty ? null : _dosageController.text,
+      startDate: _startDate,
+      endDate: _endDate,
+      withdrawalDays: _withdrawalDays,
+      notes: _notesController.text.isEmpty ? null : _notesController.text,
+      createdAt: DateTime.now(),
+    );
+
+    try {
+      await ref.read(medicationsProvider.notifier).addMedication(medication);
+
+      if (mounted) {
+        // Check for new achievements
+        final newAchievements = await checkAndCelebrateAchievements(ref, context);
+
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${medication.medicationName} logged'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+
+          if (newAchievements.isNotEmpty) {
+            await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+}
+
+extension on Color {
+  Color get shade700 {
+    final hsl = HSLColor.fromColor(this);
+    return hsl.withLightness((hsl.lightness - 0.2).clamp(0.0, 1.0)).toColor();
   }
 }

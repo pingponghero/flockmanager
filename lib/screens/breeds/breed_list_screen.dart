@@ -61,14 +61,37 @@ class _BreedListScreenState extends State<BreedListScreen> {
                           ),
                           const SizedBox(width: 6),
                         ],
-                        Text(_selectedEggColor?.name.toUpperCase() ?? 'Egg Color'),
+                        Text(_selectedEggColor != null
+                            ? _getEggColorLabel(_selectedEggColor!)
+                            : 'Egg Color'),
                         const Icon(Icons.arrow_drop_down, size: 18),
                       ],
                     ),
+                    deleteIcon: _selectedEggColor != null
+                        ? const Icon(Icons.close, size: 16)
+                        : null,
+                    onDeleted: _selectedEggColor != null
+                        ? () => setState(() => _selectedEggColor = null)
+                        : null,
                   ),
                   onSelected: (color) => setState(() => _selectedEggColor = color),
                   itemBuilder: (context) => [
-                    const PopupMenuItem<EggColor?>(value: null, child: Text('All Colors')),
+                    PopupMenuItem<EggColor?>(
+                      value: null,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.check,
+                            size: 16,
+                            color: _selectedEggColor == null
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.transparent,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('All Colors'),
+                        ],
+                      ),
+                    ),
                     ...EggColor.values
                         .where((c) => c != EggColor.green && c != EggColor.pink)
                         .map((color) => PopupMenuItem<EggColor?>(
@@ -343,18 +366,22 @@ class _BreedCard extends StatelessWidget {
   }
 
   Widget _trait(BuildContext context, String label, Color color) {
+    // Darken the color for text to ensure contrast
+    final hsl = HSLColor.fromColor(color);
+    final darkText = hsl.withLightness((hsl.lightness * 0.4).clamp(0.0, 0.4)).toColor();
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         label,
         style: TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: color.withValues(alpha: 0.9),
+          fontWeight: FontWeight.w600,
+          color: darkText,
         ),
       ),
     );
@@ -383,5 +410,12 @@ class _BreedCard extends StatelessWidget {
       case EggColor.tinted:
         return const Color(0xFFFAF0E6);
     }
+  }
+}
+
+extension on Color {
+  Color get shade700 {
+    final hsl = HSLColor.fromColor(this);
+    return hsl.withLightness((hsl.lightness - 0.2).clamp(0.0, 1.0)).toColor();
   }
 }

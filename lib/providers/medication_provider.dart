@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/medication_log.dart';
 import '../models/health_note.dart';
 import '../repositories/medication_repository.dart';
+import 'bird_provider.dart';
 
 /// Repository provider
 final medicationRepositoryProvider = Provider<MedicationRepository>((ref) {
@@ -74,10 +75,26 @@ final hasActiveWithdrawalProvider = FutureProvider<bool>((ref) async {
   return repository.hasActiveWithdrawal();
 });
 
-/// Provider for medications by bird
+/// Provider for medications by bird (includes flock-wide medications)
 final medicationsByBirdProvider = FutureProvider.family<List<MedicationLog>, String>((ref, birdId) async {
   final repository = ref.read(medicationRepositoryProvider);
-  return repository.getMedicationsByBird(birdId);
+
+  // Get medications directly assigned to this bird
+  final birdMeds = await repository.getMedicationsByBird(birdId);
+
+  // Get the bird's flock ID to find flock-wide medications
+  final bird = await ref.read(birdByIdProvider(birdId).future);
+  if (bird == null) return birdMeds;
+
+  // Get flock-wide medications (where birdId is null)
+  final flockMeds = await repository.getMedicationsByFlock(bird.flockId);
+  final flockWideMeds = flockMeds.where((m) => m.birdId == null).toList();
+
+  // Combine and sort by start date
+  final allMeds = [...birdMeds, ...flockWideMeds];
+  allMeds.sort((a, b) => b.startDate.compareTo(a.startDate));
+
+  return allMeds;
 });
 
 /// Provider for medications by flock

@@ -1,9 +1,13 @@
-/// Static medication data for common poultry treatments.
-/// This is reference data bundled with the app, not persisted to the database.
-///
-/// DISCLAIMER: This information is for reference only. Always consult a
-/// veterinarian and follow product label instructions. Withdrawal times
-/// can vary based on dosage, administration method, and local regulations.
+// Static medication data for common poultry treatments.
+// This is reference data bundled with the app, not persisted to the database.
+//
+// DISCLAIMER: This information is for reference only. Always consult a
+// veterinarian and follow product label instructions. Withdrawal times
+// can vary based on dosage, administration method, and local regulations.
+//
+// LEGAL NOTE: Some medications listed here are NOT approved for use in
+// poultry or food-producing animals in the United States. These are included
+// for educational reference only. Always verify legality in your jurisdiction.
 
 enum MedicationCategory {
   antibiotic,
@@ -24,20 +28,50 @@ enum AdministrationRoute {
   feed,
 }
 
+/// Legal status for use in poultry in the United States
+enum LegalStatus {
+  /// FDA approved for use in poultry
+  fdaApproved,
+
+  /// Not FDA approved but commonly used off-label under veterinary guidance
+  offLabel,
+
+  /// Requires veterinary prescription (VFD or Rx)
+  prescriptionRequired,
+
+  /// BANNED for use in poultry in the United States
+  bannedInUs,
+
+  /// Not permitted in food-producing animals
+  notForFoodAnimals,
+}
+
 class Medication {
   final String id;
   final String name;
   final String genericName;
   final List<String> brandNames;
   final MedicationCategory category;
-  final int withdrawalDaysEgg;
-  final int withdrawalDaysMeat;
+
+  /// Egg withdrawal in days. Null means no established withdrawal period.
+  final int? withdrawalDaysEgg;
+
+  /// Meat withdrawal in days. Null means no established withdrawal period.
+  final int? withdrawalDaysMeat;
+
+  /// Additional context about withdrawal (e.g., "varies by source", "do not use in layers")
+  final String? withdrawalNote;
+
   final List<AdministrationRoute> routes;
   final List<String> treatsConditions;
   final String dosageNotes;
   final String description;
-  final bool prescriptionRequired;
-  final bool bannedInSomeRegions;
+
+  /// Legal status in the United States
+  final LegalStatus legalStatus;
+
+  /// Additional warning text for serious legal/safety concerns
+  final String? legalWarning;
 
   const Medication({
     required this.id,
@@ -45,14 +79,15 @@ class Medication {
     required this.genericName,
     this.brandNames = const [],
     required this.category,
-    required this.withdrawalDaysEgg,
-    required this.withdrawalDaysMeat,
+    this.withdrawalDaysEgg,
+    this.withdrawalDaysMeat,
+    this.withdrawalNote,
     required this.routes,
     this.treatsConditions = const [],
     required this.dosageNotes,
     required this.description,
-    this.prescriptionRequired = false,
-    this.bannedInSomeRegions = false,
+    required this.legalStatus,
+    this.legalWarning,
   });
 
   /// Display-friendly category name
@@ -77,14 +112,70 @@ class Medication {
     }
   }
 
-  /// Whether this medication has any withdrawal period
-  bool get hasWithdrawal => withdrawalDaysEgg > 0 || withdrawalDaysMeat > 0;
+  /// Display-friendly legal status
+  String get legalStatusDisplay {
+    switch (legalStatus) {
+      case LegalStatus.fdaApproved:
+        return 'FDA Approved';
+      case LegalStatus.offLabel:
+        return 'Off-Label Use';
+      case LegalStatus.prescriptionRequired:
+        return 'Prescription Required';
+      case LegalStatus.bannedInUs:
+        return 'BANNED IN U.S.';
+      case LegalStatus.notForFoodAnimals:
+        return 'NOT FOR FOOD ANIMALS';
+    }
+  }
 
-  /// The longer of the two withdrawal periods
-  int get maxWithdrawalDays =>
-      withdrawalDaysEgg > withdrawalDaysMeat 
-          ? withdrawalDaysEgg 
-          : withdrawalDaysMeat;
+  /// Whether this medication has a known withdrawal period
+  bool get hasWithdrawal =>
+      (withdrawalDaysEgg != null && withdrawalDaysEgg! > 0) ||
+          (withdrawalDaysMeat != null && withdrawalDaysMeat! > 0);
+
+  /// Whether withdrawal period is unknown/not established
+  bool get hasUnknownWithdrawal =>
+      withdrawalDaysEgg == null || withdrawalDaysMeat == null;
+
+  /// The longer of the two withdrawal periods (0 if both null)
+  int get maxWithdrawalDays {
+    final egg = withdrawalDaysEgg ?? 0;
+    final meat = withdrawalDaysMeat ?? 0;
+    return egg > meat ? egg : meat;
+  }
+
+  /// Whether this medication is banned or not for food animals
+  bool get isBannedOrRestricted =>
+      legalStatus == LegalStatus.bannedInUs ||
+          legalStatus == LegalStatus.notForFoodAnimals;
+
+  /// Whether to show a prominent warning in the UI
+  bool get showLegalWarning =>
+      isBannedOrRestricted || legalWarning != null;
+
+  /// Get withdrawal display text for eggs
+  String get withdrawalEggDisplay {
+    if (legalStatus == LegalStatus.bannedInUs ||
+        legalStatus == LegalStatus.notForFoodAnimals) {
+      return 'N/A';
+    }
+    if (withdrawalDaysEgg == null) {
+      return 'Unknown';
+    }
+    return '${withdrawalDaysEgg}d';
+  }
+
+  /// Get withdrawal display text for meat
+  String get withdrawalMeatDisplay {
+    if (legalStatus == LegalStatus.bannedInUs ||
+        legalStatus == LegalStatus.notForFoodAnimals) {
+      return 'N/A';
+    }
+    if (withdrawalDaysMeat == null) {
+      return 'Unknown';
+    }
+    return '${withdrawalDaysMeat}d';
+  }
 }
 
 /// All medications bundled with the app
@@ -102,26 +193,10 @@ const List<Medication> medications = [
     routes: [AdministrationRoute.water],
     treatsConditions: ['Coccidiosis'],
     dosageNotes:
-        'Treatment: 2 tsp per gallon for 5-7 days. Prevention: 1/3 tsp per gallon for 1-2 weeks. Use 20% soluble powder or 9.6% liquid.',
+    'Treatment: 2 tsp per gallon for 5-7 days. Prevention: 1/3 tsp per gallon for 1-2 weeks. Use 20% soluble powder or 9.6% liquid.',
     description:
-        'The most common treatment for coccidiosis in backyard flocks. Amprolium is a thiamine blocker that stops coccidia reproduction. It has no withdrawal period as it\'s not absorbed systemically.',
-  ),
-
-  Medication(
-    id: 'sulfadimethoxine',
-    name: 'Albon',
-    genericName: 'Sulfadimethoxine',
-    brandNames: ['Albon', 'Di-Methox', 'Sulmet'],
-    category: MedicationCategory.coccidiostat,
-    withdrawalDaysEgg: 10,
-    withdrawalDaysMeat: 5,
-    routes: [AdministrationRoute.water],
-    treatsConditions: ['Coccidiosis', 'Enteritis'],
-    dosageNotes:
-        'Day 1: 2 tbsp per gallon. Days 2-5: 1 tbsp per gallon. Do not use in laying hens.',
-    description:
-        'A sulfa drug used for severe coccidiosis cases or when Amprolium is ineffective. Requires withdrawal period. Not approved for laying hens in the US.',
-    prescriptionRequired: true,
+    'The most common treatment for coccidiosis in backyard flocks. Amprolium is a thiamine blocker that stops coccidia reproduction. Not an antibiotic. It has no withdrawal period as it\'s not absorbed systemically. Note: Can interfere with vitamin B1 (thiamine) absorption.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   // === DEWORMERS / ANTIPARASITICS ===
@@ -134,6 +209,7 @@ const List<Medication> medications = [
     category: MedicationCategory.antiparasitic,
     withdrawalDaysEgg: 14,
     withdrawalDaysMeat: 14,
+    withdrawalNote: 'Off-label; 14 days commonly recommended but not FDA-established.',
     routes: [AdministrationRoute.oral, AdministrationRoute.feed],
     treatsConditions: [
       'Roundworms',
@@ -142,9 +218,10 @@ const List<Medication> medications = [
       'Gapeworms',
     ],
     dosageNotes:
-        'Goat formulation: 1ml per 10 lbs body weight orally for 3-5 consecutive days. Can mix with feed at 1oz per 15-20 lbs feed.',
+    'Goat formulation: 1ml per 10 lbs body weight orally for 3-5 consecutive days. Can mix with feed at 1oz per 15-20 lbs feed.',
     description:
-        'A broad-spectrum dewormer effective against most common chicken parasites except tapeworms. Generally considered safe with a wide margin of error. Not FDA-approved for poultry but commonly used off-label.',
+    'A broad-spectrum dewormer effective against most common chicken parasites except tapeworms. Generally considered safe with a wide margin of error. Not FDA-approved for poultry but commonly used off-label.',
+    legalStatus: LegalStatus.offLabel,
   ),
 
   Medication(
@@ -153,8 +230,9 @@ const List<Medication> medications = [
     genericName: 'Ivermectin',
     brandNames: ['Ivomec', 'Eprinex'],
     category: MedicationCategory.antiparasitic,
-    withdrawalDaysEgg: 14,
-    withdrawalDaysMeat: 14,
+    withdrawalDaysEgg: null,
+    withdrawalDaysMeat: null,
+    withdrawalNote: 'NO ESTABLISHED WITHDRAWAL. Recommendations range from 7-14 days to discarding eggs indefinitely. Consult a veterinarian.',
     routes: [AdministrationRoute.oral, AdministrationRoute.topical],
     treatsConditions: [
       'Roundworms',
@@ -164,32 +242,10 @@ const List<Medication> medications = [
       'Lice',
     ],
     dosageNotes:
-        'Pour-on (Eprinex): 0.5ml for large fowl, applied to skin on back of neck. Injectable (given orally): 0.25ml per large fowl. Do NOT inject chickens.',
+    'Pour-on (Eprinex): 0.5ml for large fowl, applied to skin on back of neck. Injectable (given orally): 0.25ml per large fowl. Do NOT inject chickens.',
     description:
-        'Effective against both internal parasites and external parasites like mites and lice. The pour-on cattle formulation is commonly used in poultry. Not FDA-approved for poultry.',
-    bannedInSomeRegions: true,
-  ),
-
-  Medication(
-    id: 'albendazole',
-    name: 'Valbazen',
-    genericName: 'Albendazole',
-    brandNames: ['Valbazen'],
-    category: MedicationCategory.antiparasitic,
-    withdrawalDaysEgg: 14,
-    withdrawalDaysMeat: 14,
-    routes: [AdministrationRoute.oral],
-    treatsConditions: [
-      'Roundworms',
-      'Capillary worms',
-      'Cecal worms',
-      'Tapeworms',
-      'Gapeworms',
-    ],
-    dosageNotes:
-        '0.5ml orally per large fowl. Single dose usually sufficient. Do not use in molting birds.',
-    description:
-        'The only common dewormer effective against tapeworms in chickens. Very broad spectrum. Should not be used during molt as it can damage developing feathers. Not FDA-approved for poultry.',
+    'The most common mite/lice treatment in backyard flocks. Also effective against internal parasites. Not FDA-approved for poultry—use with veterinary guidance.',
+    legalStatus: LegalStatus.offLabel,
   ),
 
   Medication(
@@ -203,9 +259,10 @@ const List<Medication> medications = [
     routes: [AdministrationRoute.water],
     treatsConditions: ['Large roundworms'],
     dosageNotes:
-        '1 oz per gallon of drinking water for one day. Repeat in 10-14 days.',
+    '1 oz per gallon of drinking water for one day. Repeat in 10-14 days.',
     description:
-        'One of the few FDA-approved dewormers for poultry, but only effective against large roundworms (Ascaridia galli). Often used as a first dewormer due to legal status, but has limited spectrum.',
+    'One of the few FDA-approved dewormers for poultry, but only effective against large roundworms (Ascaridia galli). Often used as a first dewormer due to legal status, but has limited spectrum.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   Medication(
@@ -214,8 +271,9 @@ const List<Medication> medications = [
     genericName: 'Levamisole',
     brandNames: ['Prohibit', 'Levasol', 'Tramisol'],
     category: MedicationCategory.antiparasitic,
-    withdrawalDaysEgg: 7,
-    withdrawalDaysMeat: 7,
+    withdrawalDaysEgg: null,
+    withdrawalDaysMeat: null,
+    withdrawalNote: 'No FDA-established withdrawal for poultry. Common recommendations: 7-14 days.',
     routes: [AdministrationRoute.water],
     treatsConditions: [
       'Roundworms',
@@ -224,142 +282,10 @@ const List<Medication> medications = [
       'Gapeworms',
     ],
     dosageNotes:
-        'Dissolve packet in water as directed. Provide as only water source for one day. Narrow margin of safety—do not overdose.',
+    'Dissolve packet in water as directed. Provide as only water source for one day. Narrow margin of safety—do not overdose.',
     description:
-        'A fast-acting dewormer with immune-stimulating properties. Has a narrower safety margin than fenbendazole, so accurate dosing is important. Not FDA-approved for poultry.',
-  ),
-
-  // === ANTIBIOTICS ===
-
-  Medication(
-    id: 'tylosin',
-    name: 'Tylan',
-    genericName: 'Tylosin',
-    brandNames: ['Tylan 50', 'Tylan 200', 'Tylan Soluble'],
-    category: MedicationCategory.antibiotic,
-    withdrawalDaysEgg: 1,
-    withdrawalDaysMeat: 1,
-    routes: [AdministrationRoute.water, AdministrationRoute.injection],
-    treatsConditions: [
-      'Chronic Respiratory Disease (CRD)',
-      'Mycoplasma gallisepticum',
-      'Mycoplasma synoviae',
-      'Airsacculitis',
-    ],
-    dosageNotes:
-        'Soluble: 1 tsp per gallon for 3-5 days. Injectable Tylan 50: 0.5ml per 5 lbs in breast muscle for 3 days.',
-    description:
-        'The go-to antibiotic for respiratory infections in chickens, particularly mycoplasma. Injectable provides faster results for severe cases. Now requires veterinary prescription in the US.',
-    prescriptionRequired: true,
-  ),
-
-  Medication(
-    id: 'oxytetracycline',
-    name: 'Duramycin',
-    genericName: 'Oxytetracycline',
-    brandNames: ['Duramycin-10', 'Terramycin', 'Tetroxy HCA'],
-    category: MedicationCategory.antibiotic,
-    withdrawalDaysEgg: 4,
-    withdrawalDaysMeat: 5,
-    routes: [AdministrationRoute.water],
-    treatsConditions: [
-      'Respiratory infections',
-      'E. coli',
-      'Fowl cholera',
-      'Infectious synovitis',
-    ],
-    dosageNotes:
-        '1 packet (6.4oz) per 100 gallons, or approximately 1-1.5 tsp per gallon for 7-14 days.',
-    description:
-        'A broad-spectrum antibiotic effective against various bacterial infections. One of the more commonly available poultry antibiotics. Now requires veterinary prescription in the US.',
-    prescriptionRequired: true,
-  ),
-
-  Medication(
-    id: 'enrofloxacin',
-    name: 'Baytril',
-    genericName: 'Enrofloxacin',
-    brandNames: ['Baytril'],
-    category: MedicationCategory.antibiotic,
-    withdrawalDaysEgg: 0,
-    withdrawalDaysMeat: 0,
-    routes: [AdministrationRoute.oral, AdministrationRoute.injection],
-    treatsConditions: [
-      'Severe respiratory infections',
-      'E. coli',
-      'Salmonella',
-      'Pasteurella',
-    ],
-    dosageNotes:
-        'Dosage determined by veterinarian based on weight and condition. Typically 10-20mg/kg daily.',
-    description:
-        'A powerful fluoroquinolone antibiotic. BANNED for use in poultry in the US due to concerns about antibiotic resistance. Only available in other countries. Withdrawal varies by region.',
-    prescriptionRequired: true,
-    bannedInSomeRegions: true,
-  ),
-
-  Medication(
-    id: 'tiamulin',
-    name: 'Denagard',
-    genericName: 'Tiamulin',
-    brandNames: ['Denagard'],
-    category: MedicationCategory.antibiotic,
-    withdrawalDaysEgg: 5,
-    withdrawalDaysMeat: 5,
-    routes: [AdministrationRoute.water],
-    treatsConditions: [
-      'Mycoplasma gallisepticum',
-      'Mycoplasma synoviae',
-      'Chronic Respiratory Disease',
-    ],
-    dosageNotes:
-        '12.5mg per kg body weight daily for 3-5 days. Do not combine with ionophore coccidiostats (toxic interaction).',
-    description:
-        'Highly effective against mycoplasma infections. Important: NEVER use with ionophore anticoccidials (monensin, salinomycin, etc.) as the combination is lethal to chickens.',
-    prescriptionRequired: true,
-  ),
-
-  Medication(
-    id: 'amoxicillin',
-    name: 'Amoxicillin',
-    genericName: 'Amoxicillin',
-    brandNames: ['Amoxi-Drop', 'Various'],
-    category: MedicationCategory.antibiotic,
-    withdrawalDaysEgg: 7,
-    withdrawalDaysMeat: 7,
-    routes: [AdministrationRoute.oral, AdministrationRoute.water],
-    treatsConditions: [
-      'Bacterial enteritis',
-      'Respiratory infections',
-      'Wound infections',
-    ],
-    dosageNotes:
-        'Typical dose: 10-20mg per kg body weight twice daily. Usually given for 5-7 days.',
-    description:
-        'A common broad-spectrum antibiotic sometimes used in poultry for bacterial infections. Requires veterinary prescription. Not FDA-approved for poultry.',
-    prescriptionRequired: true,
-  ),
-
-  Medication(
-    id: 'metronidazole',
-    name: 'Flagyl',
-    genericName: 'Metronidazole',
-    brandNames: ['Flagyl', 'Metrozine', 'Fish Zole'],
-    category: MedicationCategory.antibiotic,
-    withdrawalDaysEgg: 14,
-    withdrawalDaysMeat: 14,
-    routes: [AdministrationRoute.oral],
-    treatsConditions: [
-      'Blackhead (Histomoniasis)',
-      'Canker (Trichomoniasis)',
-      'Giardia',
-    ],
-    dosageNotes:
-        'Typical dose: 10-30mg per kg body weight daily for 5-7 days. Often given as 50mg per large fowl.',
-    description:
-        'Effective against protozoan parasites that cause blackhead and canker. BANNED for use in food-producing animals in the US but may be available through compounding pharmacies for pet birds.',
-    prescriptionRequired: true,
-    bannedInSomeRegions: true,
+    'A fast-acting dewormer with immune-stimulating properties. Has a narrower safety margin than fenbendazole, so accurate dosing is important. Not FDA-approved for poultry.',
+    legalStatus: LegalStatus.offLabel,
   ),
 
   // === TOPICAL/EXTERNAL ===
@@ -375,9 +301,10 @@ const List<Medication> medications = [
     routes: [AdministrationRoute.topical],
     treatsConditions: ['Mites', 'Lice', 'Fleas', 'Flies'],
     dosageNotes:
-        'Dust: Apply directly to birds and nesting areas. Spray: Dilute 10% concentrate to 0.5% and spray coop thoroughly. Repeat in 10-14 days.',
+    'Dust: Apply directly to birds and nesting areas. Spray: Dilute 10% concentrate to 0.5% and spray coop thoroughly. Repeat in 10-14 days.',
     description:
-        'A synthetic pyrethroid insecticide highly effective against external parasites. Safe when used as directed. Also used to treat coops and nesting boxes.',
+    'A synthetic pyrethroid insecticide highly effective against external parasites. Safe when used as directed. Also used to treat coops and nesting boxes.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   Medication(
@@ -391,9 +318,10 @@ const List<Medication> medications = [
     routes: [AdministrationRoute.topical],
     treatsConditions: ['Mites', 'Lice'],
     dosageNotes:
-        'Dust birds lightly under wings and around vent. Apply to bedding and coop. Repeat in 10-14 days.',
+    'Dust birds lightly under wings and around vent. Apply to bedding and coop. Repeat in 10-14 days.',
     description:
-        'A traditional garden insecticide sometimes used for poultry parasites. Being phased out in favor of permethrin in many areas. Use 5% garden dust formula only.',
+    'A traditional garden insecticide sometimes used for poultry parasites. Being phased out in favor of permethrin in many areas. Use 5% garden dust formula only.',
+    legalStatus: LegalStatus.offLabel,
   ),
 
   // === NATURAL REMEDIES ===
@@ -413,9 +341,10 @@ const List<Medication> medications = [
       'Colds',
     ],
     dosageNotes:
-        'Internal: Add to water or apply drops to beak. External: Warm and apply to legs for scaly leg mites, or under wings for respiratory issues.',
+    'Internal: Add to water or apply drops to beak. External: Warm and apply to legs for scaly leg mites, or under wings for respiratory issues.',
     description:
-        'A traditional remedy made from camphor, oil of origanum, and other natural ingredients. Helps with respiratory symptoms and scaly leg mites. Not a cure for infections but provides supportive care.',
+    'A traditional remedy made from camphor, oil of origanum, and other natural ingredients. Helps with respiratory symptoms and scaly leg mites. Not a cure for infections but provides supportive care.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   Medication(
@@ -432,9 +361,10 @@ const List<Medication> medications = [
       'Digestive support',
     ],
     dosageNotes:
-        '1-2 tablespoons per gallon of water, 2-3 times per week. Use raw, unfiltered ACV with "mother." Do not use in metal waterers.',
+    '1-2 tablespoons per gallon of water, 2-3 times per week. Use raw, unfiltered ACV with "mother." Do not use in metal waterers.',
     description:
-        'A popular natural supplement believed to support digestive health and boost immunity. Limited scientific evidence but widely used by backyard keepers. Use plastic or ceramic waterers only.',
+    'A popular natural supplement believed to support digestive health and boost immunity. Limited scientific evidence but widely used by backyard keepers. Use plastic or ceramic waterers only.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   Medication(
@@ -452,9 +382,10 @@ const List<Medication> medications = [
       'Mild parasite prevention',
     ],
     dosageNotes:
-        'Crushed: 1 clove per quart of water or mixed into feed. Some keepers add to water weekly as a preventive.',
+    'Crushed: 1 clove per quart of water or mixed into feed. Some keepers add to water weekly as a preventive.',
     description:
-        'A natural supplement with mild antimicrobial properties. Some keepers use it as part of a natural parasite prevention program. May affect egg flavor if used excessively.',
+    'A natural supplement with mild antimicrobial properties. Some keepers use it as part of a natural parasite prevention program. May affect egg flavor if used excessively.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   Medication(
@@ -472,9 +403,10 @@ const List<Medication> medications = [
       'Coccidiosis prevention',
     ],
     dosageNotes:
-        'Commercial products: follow label directions. DIY: 1-2 drops food-grade oil per gallon water, or dried oregano in feed.',
+    'Commercial products: follow label directions. DIY: 1-2 drops food-grade oil per gallon water, or dried oregano in feed.',
     description:
-        'Contains carvacrol and thymol with natural antimicrobial properties. Commercial poultry farms use oregano products as antibiotic alternatives. Some evidence for coccidia prevention.',
+    'Contains carvacrol and thymol with natural antimicrobial properties. Commercial poultry farms use oregano products as antibiotic alternatives. Some evidence for coccidia prevention.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   Medication(
@@ -491,9 +423,10 @@ const List<Medication> medications = [
       'Internal parasites (claimed)',
     ],
     dosageNotes:
-        'Dust bath: Mix into dust bath area. Coop: Sprinkle in bedding and crevices. Feed: 2% of feed ration (controversial effectiveness).',
+    'Dust bath: Mix into dust bath area. Coop: Sprinkle in bedding and crevices. Feed: 2% of feed ration (controversial effectiveness).',
     description:
-        'Fossilized algae that damages insect exoskeletons. Effective for external parasite prevention in dust baths and coop treatment. Internal use for worms is not scientifically supported. Use FOOD GRADE only.',
+    'Fossilized algae that damages insect exoskeletons. Effective for external parasite prevention in dust baths and coop treatment. Internal use for worms is not scientifically supported. Use FOOD GRADE only.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   // === VITAMINS & ELECTROLYTES ===
@@ -514,9 +447,10 @@ const List<Medication> medications = [
       'Shipping stress',
     ],
     dosageNotes:
-        'Follow package directions. Typically one packet per gallon. Use for 3-5 days during stress or illness.',
+    'Follow package directions. Typically one packet per gallon. Use for 3-5 days during stress or illness.',
     description:
-        'A supportive supplement for stressed or recovering birds. Replaces electrolytes lost during heat stress or illness. Good to keep on hand for emergencies.',
+    'A supportive supplement for stressed or recovering birds. Replaces electrolytes lost during heat stress or illness. Good to keep on hand for emergencies.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   Medication(
@@ -534,9 +468,10 @@ const List<Medication> medications = [
       'Neurological symptoms',
     ],
     dosageNotes:
-        'For wry neck: 400 IU vitamin E daily + selenium supplement, with B-complex. Continue for 1-2 weeks or until symptoms resolve.',
+    'For wry neck: 400 IU vitamin E daily + selenium supplement, with B-complex. Continue for 1-2 weeks or until symptoms resolve.',
     description:
-        'Essential for treating wry neck (torticollis) and other neurological issues related to vitamin E deficiency. Often combined with B vitamins and selenium for best results.',
+    'Essential for treating wry neck (torticollis) and other neurological issues related to vitamin E deficiency. Often combined with B vitamins and selenium for best results.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   Medication(
@@ -554,9 +489,10 @@ const List<Medication> medications = [
       'Calcium deficiency',
     ],
     dosageNotes:
-        'Prevention: Offer oyster shell free-choice in separate container. Emergency (egg binding): Liquid calcium given orally, seek vet care.',
+    'Prevention: Offer oyster shell free-choice in separate container. Emergency (egg binding): Liquid calcium given orally, seek vet care.',
     description:
-        'Essential for laying hens to produce strong eggshells. Should always be available free-choice. Liquid calcium can help in egg-binding emergencies but is not a substitute for veterinary care.',
+    'Essential for laying hens to produce strong eggshells. Should always be available free-choice. Liquid calcium can help in egg-binding emergencies but is not a substitute for veterinary care.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   Medication(
@@ -574,9 +510,10 @@ const List<Medication> medications = [
       'Chick health',
     ],
     dosageNotes:
-        'Follow package directions. Typically added to water or sprinkled on feed. Use after antibiotic treatment to restore gut flora.',
+    'Follow package directions. Typically added to water or sprinkled on feed. Use after antibiotic treatment to restore gut flora.',
     description:
-        'Beneficial bacteria that support digestive health. Particularly useful after antibiotic treatment to repopulate healthy gut bacteria. Also good for chicks and stressed birds.',
+    'Beneficial bacteria that support digestive health. Particularly useful after antibiotic treatment to repopulate healthy gut bacteria. Also good for chicks and stressed birds.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   // === WOUND CARE ===
@@ -597,9 +534,10 @@ const List<Medication> medications = [
       'Bumblefoot',
     ],
     dosageNotes:
-        'Spray or dab onto clean wounds. The blue/purple color helps hide wounds from other birds who may peck at red areas.',
+    'Spray or dab onto clean wounds. The blue/purple color helps hide wounds from other birds who may peck at red areas.',
     description:
-        'An antiseptic wound spray that colors the wound blue/purple, helping to hide it from flock mates. Chickens are attracted to red and will peck at wounds; the blue color deters this.',
+    'An antiseptic wound spray that colors the wound blue/purple, helping to hide it from flock mates. Chickens are attracted to red and will peck at wounds; the blue color deters this.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 
   Medication(
@@ -618,9 +556,10 @@ const List<Medication> medications = [
       'Vent prolapse',
     ],
     dosageNotes:
-        'Clean wound and spray liberally. Can be used around eyes and sensitive areas. Repeat 2-3 times daily until healed.',
+    'Clean wound and spray liberally. Can be used around eyes and sensitive areas. Repeat 2-3 times daily until healed.',
     description:
-        'A non-toxic wound care spray safe for use around eyes, mouth, and sensitive tissue. Does not sting. Excellent for cleaning and promoting healing of various injuries.',
+    'A non-toxic wound care spray safe for use around eyes, mouth, and sensitive tissue. Does not sting. Excellent for cleaning and promoting healing of various injuries.',
+    legalStatus: LegalStatus.fdaApproved,
   ),
 ];
 
@@ -635,7 +574,7 @@ Medication? getMedicationById(String id) {
   }
 }
 
-/// Search medications by name, generic name, or brand names
+/// Search medications by name, generic name, brand names, conditions, or description
 List<Medication> searchMedications(String query) {
   final q = query.toLowerCase().trim();
   if (q.isEmpty) return medications;
@@ -644,6 +583,8 @@ List<Medication> searchMedications(String query) {
     if (m.name.toLowerCase().contains(q)) return true;
     if (m.genericName.toLowerCase().contains(q)) return true;
     if (m.brandNames.any((b) => b.toLowerCase().contains(q))) return true;
+    if (m.treatsConditions.any((c) => c.toLowerCase().contains(q))) return true;
+    if (m.description.toLowerCase().contains(q)) return true;
     return false;
   }).toList();
 }
@@ -663,17 +604,32 @@ List<Medication> getMedicationsForCondition(String condition) {
 
 /// Get medications with no withdrawal period
 List<Medication> getNoWithdrawalMedications() {
-  return medications.where((m) => !m.hasWithdrawal).toList();
+  return medications.where((m) => !m.hasWithdrawal && !m.isBannedOrRestricted).toList();
 }
 
-/// Get medications that require prescription
+/// Get medications safe for laying hens (FDA approved, no withdrawal concerns)
+List<Medication> getLayerSafeMedications() {
+  return medications.where((m) {
+    if (m.isBannedOrRestricted) return false;
+    if (m.withdrawalNote?.toLowerCase().contains('laying hen') == true) return false;
+    if (m.legalWarning?.toLowerCase().contains('laying') == true) return false;
+    return true;
+  }).toList();
+}
+
+/// Get medications that are FDA approved
+List<Medication> getFdaApprovedMedications() {
+  return medications.where((m) => m.legalStatus == LegalStatus.fdaApproved).toList();
+}
+
+/// Get medications that require a prescription
 List<Medication> getPrescriptionMedications() {
-  return medications.where((m) => m.prescriptionRequired).toList();
+  return medications.where((m) => m.legalStatus == LegalStatus.prescriptionRequired).toList();
 }
 
-/// Get over-the-counter medications
+/// Get over-the-counter medications (FDA approved, no prescription)
 List<Medication> getOtcMedications() {
-  return medications.where((m) => !m.prescriptionRequired).toList();
+  return medications.where((m) => m.legalStatus == LegalStatus.fdaApproved).toList();
 }
 
 /// Get natural remedies only
@@ -688,6 +644,11 @@ List<Medication> getMedicationsByWithdrawal() {
   final sorted = List<Medication>.from(medications);
   sorted.sort((a, b) => b.maxWithdrawalDays.compareTo(a.maxWithdrawalDays));
   return sorted;
+}
+
+/// Get banned or restricted medications (for reference/education only)
+List<Medication> getBannedMedications() {
+  return medications.where((m) => m.isBannedOrRestricted).toList();
 }
 
 /// Calculate withdrawal end date from start date
