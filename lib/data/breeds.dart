@@ -625,7 +625,7 @@ const List<Breed> breeds = [
     eggsPerYearMin: 160,
     eggsPerYearMax: 200,
     temperament: 'Active, flighty',
-    coldHardy: true,
+    coldHardy: false,
     heatTolerant: true,
     broodiness: Broodiness.low,
     weightLbsHenMin: 4.5,
@@ -732,7 +732,7 @@ const List<Breed> breeds = [
     eggsPerYearMin: 180,
     eggsPerYearMax: 220,
     temperament: 'Active, flighty',
-    coldHardy: true,
+    coldHardy: false,
     heatTolerant: true,
     broodiness: Broodiness.low,
     weightLbsHenMin: 4.0,
@@ -773,8 +773,8 @@ const List<Breed> breeds = [
     category: BreedCategory.ornamental,
     eggColor: EggColor.cream,
     eggSize: 'Small',
-    eggsPerYearMin: 100,
-    eggsPerYearMax: 150,
+    eggsPerYearMin: 80,
+    eggsPerYearMax: 120,
     temperament: 'Docile, calm, friendly',
     coldHardy: false,
     heatTolerant: false,
@@ -1253,14 +1253,14 @@ List<Breed> getBroodyBreeds() {
   return breeds.where((b) => b.broodiness == Broodiness.high).toList();
 }
 
-/// Get breeds good for beginners (docile, hardy, good layers)
+/// Get breeds good for beginners (docile, adaptable to all climates, good layers)
 List<Breed> getBeginnerFriendlyBreeds() {
   return breeds.where((b) {
     final isDocile = b.temperament.toLowerCase().contains('docile') ||
         b.temperament.toLowerCase().contains('calm') ||
         b.temperament.toLowerCase().contains('friendly');
-    final isHardy = b.coldHardy || b.heatTolerant;
+    final isAdaptable = b.coldHardy && b.heatTolerant; // Both, not either
     final isGoodLayer = b.eggsPerYearAvg >= 200;
-    return isDocile && isHardy && isGoodLayer;
+    return isDocile && isAdaptable && isGoodLayer;
   }).toList();
 }
