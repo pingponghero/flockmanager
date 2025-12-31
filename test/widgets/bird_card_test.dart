@@ -154,7 +154,8 @@ void main() {
         ),
       );
 
-      expect(find.byIcon(Icons.flutter_dash), findsOneWidget);
+      // Placeholder is now cute_hen asset image
+      expect(find.byType(Image), findsOneWidget);
     });
 
     testWidgets('applies reduced opacity for non-active birds', (tester) async {
