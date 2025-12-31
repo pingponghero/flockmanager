@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/theme.dart';
 import '../../data/test_data.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/export_service.dart';
 
@@ -81,6 +82,17 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: 24),
+
+          // Notifications Section
+          Text(
+            'Notifications',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          const _NotificationSettingsCard(),
           const SizedBox(height: 24),
 
           // Appearance Section
@@ -458,6 +470,72 @@ class _ColorSwatch extends StatelessWidget {
         border: Border.all(
           color: Colors.black.withValues(alpha: 0.1),
         ),
+      ),
+    );
+  }
+}
+
+class _NotificationSettingsCard extends ConsumerWidget {
+  const _NotificationSettingsCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(notificationSettingsProvider);
+
+    return Card(
+      child: Column(
+        children: [
+          // Permission status
+          if (!settings.permissionGranted)
+            ListTile(
+              leading: Icon(
+                Icons.notifications_off,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: const Text('Enable Notifications'),
+              subtitle: const Text('Get reminders for medications and withdrawals'),
+              trailing: FilledButton(
+                onPressed: () async {
+                  await ref.read(notificationSettingsProvider.notifier).requestPermission();
+                },
+                child: const Text('Enable'),
+              ),
+            )
+          else ...[
+            // Medication reminders toggle
+            SwitchListTile(
+              secondary: const Icon(Icons.medication),
+              title: const Text('Medication Reminders'),
+              subtitle: const Text('When treatments end'),
+              value: settings.medicationReminders,
+              onChanged: (value) {
+                ref.read(notificationSettingsProvider.notifier).setMedicationReminders(value);
+              },
+            ),
+            const Divider(height: 1),
+            // Withdrawal alerts toggle
+            SwitchListTile(
+              secondary: const Icon(Icons.egg),
+              title: const Text('Withdrawal Alerts'),
+              subtitle: const Text('When eggs are safe to eat'),
+              value: settings.withdrawalAlerts,
+              onChanged: (value) {
+                ref.read(notificationSettingsProvider.notifier).setWithdrawalAlerts(value);
+              },
+            ),
+            const Divider(height: 1),
+            // Expense reminders toggle
+            SwitchListTile(
+              secondary: const Icon(Icons.attach_money),
+              title: const Text('Expense Reminders'),
+              subtitle: const Text('For recurring expenses'),
+              value: settings.expenseReminders,
+              onChanged: (value) {
+                ref.read(notificationSettingsProvider.notifier).setExpenseReminders(value);
+              },
+            ),
+          ],
+        ],
       ),
     );
   }

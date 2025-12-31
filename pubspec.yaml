@@ -61,6 +61,10 @@ dependencies:
   # Charts
   fl_chart: ^0.69.0
 
+  # Notifications
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+
   # Models
   freezed_annotation: ^2.4.1
 
