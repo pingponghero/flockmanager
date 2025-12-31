@@ -4,13 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/router.dart';
 import 'app/theme.dart';
 import 'providers/theme_provider.dart';
+import 'services/iap_service.dart';
 import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize notification service
+  // Initialize services
   await NotificationService().initialize();
+  await IAPService().initialize();
 
   runApp(
     const ProviderScope(

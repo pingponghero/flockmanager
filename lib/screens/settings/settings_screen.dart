@@ -9,7 +9,9 @@ import '../../app/theme.dart';
 import '../../data/test_data.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/trial_provider.dart';
 import '../../services/export_service.dart';
+import '../../services/iap_service.dart';
 
 const _supportEmail = 'flockmanager.app@gmail.com';
 const _appVersion = '1.0.0';
@@ -29,6 +31,10 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Account Section
+          const _AccountSection(),
+          const SizedBox(height: 24),
+
           // Achievements Section
           Text(
             'Achievements',
@@ -538,5 +544,149 @@ class _NotificationSettingsCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class _AccountSection extends ConsumerWidget {
+  const _AccountSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final trial = ref.watch(trialProvider);
+    final iapService = IAPService();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Account',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Column(
+            children: [
+              // Status display
+              ListTile(
+                leading: Icon(
+                  trial.status == LicenseStatus.premium
+                      ? Icons.verified
+                      : trial.status == LicenseStatus.trialExpired
+                          ? Icons.lock
+                          : Icons.timer,
+                  color: trial.status == LicenseStatus.premium
+                      ? Colors.green
+                      : trial.status == LicenseStatus.trialExpired
+                          ? Theme.of(context).colorScheme.error
+                          : Theme.of(context).colorScheme.primary,
+                ),
+                title: Text(_getStatusTitle(trial)),
+                subtitle: Text(_getStatusSubtitle(trial)),
+              ),
+              // Actions
+              if (trial.status != LicenseStatus.premium) ...[
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.lock_open),
+                  title: const Text('Unlock Full Access'),
+                  subtitle: Text('One-time purchase - ${iapService.priceString}'),
+                  trailing: FilledButton(
+                    onPressed: () => _purchasePremium(context, ref),
+                    child: const Text('Buy'),
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.restore),
+                  title: const Text('Restore Purchase'),
+                  subtitle: const Text('Already purchased on another device?'),
+                  onTap: () => _restorePurchases(context, ref),
+                ),
+              ],
+              // Debug options
+              if (kDebugMode) ...[
+                const Divider(height: 1),
+                ExpansionTile(
+                  leading: const Icon(Icons.bug_report),
+                  title: const Text('Debug: Trial Controls'),
+                  children: [
+                    ListTile(
+                      title: const Text('Reset Trial'),
+                      onTap: () {
+                        ref.read(trialProvider.notifier).debugResetTrial();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Trial reset')),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      title: const Text('Expire Trial'),
+                      onTap: () {
+                        ref.read(trialProvider.notifier).debugExpireTrial();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Trial expired')),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      title: const Text('Grant Premium'),
+                      onTap: () {
+                        ref.read(trialProvider.notifier).debugGrantPremium();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Premium granted')),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getStatusTitle(TrialState trial) {
+    switch (trial.status) {
+      case LicenseStatus.premium:
+        return 'Premium';
+      case LicenseStatus.trialExpired:
+        return 'Trial Expired';
+      case LicenseStatus.trialActive:
+        return 'Free Trial';
+    }
+  }
+
+  String _getStatusSubtitle(TrialState trial) {
+    switch (trial.status) {
+      case LicenseStatus.premium:
+        return 'Thank you for your support!';
+      case LicenseStatus.trialExpired:
+        return 'Upgrade to continue adding data';
+      case LicenseStatus.trialActive:
+        final days = trial.daysRemaining;
+        return days == 1 ? '1 day remaining' : '$days days remaining';
+    }
+  }
+
+  Future<void> _purchasePremium(BuildContext context, WidgetRef ref) async {
+    final success = await ref.read(trialProvider.notifier).purchasePremium();
+    if (!success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Purchase not available. Try again later.')),
+      );
+    }
+  }
+
+  Future<void> _restorePurchases(BuildContext context, WidgetRef ref) async {
+    await ref.read(trialProvider.notifier).restorePurchases();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Checking for previous purchases...')),
+      );
+    }
   }
 }
