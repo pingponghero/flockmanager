@@ -357,6 +357,18 @@ class EggRepository {
     return result.map((r) => r['month'] as int).toSet();
   }
 
+  /// Get total egg count for a specific month (across all years)
+  Future<int> getTotalEggsForMonth(int month) async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COALESCE(SUM(quantity), 0) as total FROM egg_logs
+      WHERE CAST(strftime('%m', date) AS INTEGER) = ?
+    ''', [month]);
+
+    return (result.first['total'] as int?) ?? 0;
+  }
+
   /// Check if any log was created before a specific hour
   Future<bool> hasLogBeforeHour(int hour) async {
     final db = await _db.database;
@@ -409,6 +421,18 @@ class EggRepository {
 
     final result = await db.rawQuery('''
       SELECT COUNT(*) as count FROM egg_logs WHERE quality IN ('abnormal', 'fairy')
+    ''');
+
+    return ((result.first['count'] as int?) ?? 0) > 0;
+  }
+
+  /// Check if eggs were logged on Christmas Day (Dec 25) any year
+  Future<bool> hasChristmasEggs() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM egg_logs
+      WHERE strftime('%m-%d', date) = '12-25'
     ''');
 
     return ((result.first['count'] as int?) ?? 0) > 0;

@@ -49,6 +49,13 @@ class FlocksNotifier extends AsyncNotifier<List<Flock>> {
     ref.invalidateSelf();
   }
 
+  /// Unarchive a flock
+  Future<void> unarchiveFlock(String id) async {
+    final repository = ref.read(flockRepositoryProvider);
+    await repository.unarchiveFlock(id);
+    ref.invalidateSelf();
+  }
+
   /// Delete a flock permanently
   Future<void> deleteFlock(String id) async {
     final repository = ref.read(flockRepositoryProvider);

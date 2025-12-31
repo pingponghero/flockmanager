@@ -207,4 +207,15 @@ class MedicationRepository {
       whereArgs: [id],
     );
   }
+
+  /// Count distinct birds that have health notes.
+  Future<int> getBirdsWithHealthNotesCount() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COUNT(DISTINCT bird_id) as count FROM health_notes
+    ''');
+
+    return (result.first['count'] as int?) ?? 0;
+  }
 }

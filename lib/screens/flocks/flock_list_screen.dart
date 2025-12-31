@@ -94,7 +94,7 @@ class FlockListScreen extends ConsumerWidget {
                   action: SnackBarAction(
                     label: 'Undo',
                     onPressed: () {
-                      // TODO: Implement unarchive
+                      ref.read(flocksProvider.notifier).unarchiveFlock(flock.id);
                     },
                   ),
                 ),

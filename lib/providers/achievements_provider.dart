@@ -53,10 +53,13 @@ class AchievementContext {
   final int maxEggsInOneDay;
   final int loggingStreakDays;
   final Set<int> monthsWithEggs; // 1-12
+  final int februaryEggs;
+  final int marchEggs;
   final bool loggedBeforeEight;
   final bool loggedAfterNine;
   final bool hasDoubleYolk;
   final bool hasAbnormalEgg;
+  final bool hasChristmasEggs; // Logged eggs on Dec 25
 
   // Breed-related
   final bool hasOrnamentalBreed;
@@ -99,10 +102,13 @@ class AchievementContext {
     required this.maxEggsInOneDay,
     required this.loggingStreakDays,
     required this.monthsWithEggs,
+    required this.februaryEggs,
+    required this.marchEggs,
     required this.loggedBeforeEight,
     required this.loggedAfterNine,
     required this.hasDoubleYolk,
     required this.hasAbnormalEgg,
+    required this.hasChristmasEggs,
     required this.hasOrnamentalBreed,
     required this.hasOverachiever,
     required this.hasRooster,
@@ -568,21 +574,20 @@ final achievements = <Achievement>[
   Achievement(
     id: 'holiday_helper',
     name: 'Holiday Helper',
-    description: 'Log eggs on Christmas',
+    description: 'Log eggs on Christmas Day',
     icon: Icons.card_giftcard,
     color: Colors.red,
     category: 'Four Seasons',
-    // This needs specific date check - approximating with December for now
-    check: (ctx) => ctx.monthsWithEggs.contains(12),
+    check: (ctx) => ctx.hasChristmasEggs,
   ),
   Achievement(
     id: 'spring_awakening',
     name: 'Spring Awakening',
-    description: 'Log eggs in March after a quiet February',
+    description: 'More eggs in March than February',
     icon: Icons.local_florist,
     color: Colors.pink,
     category: 'Four Seasons',
-    check: (ctx) => ctx.monthsWithEggs.contains(3),
+    check: (ctx) => ctx.marchEggs > ctx.februaryEggs && ctx.marchEggs > 0,
   ),
   Achievement(
     id: 'molt_survivor',
@@ -768,11 +773,14 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
   final maxEggsInOneDay = await eggRepo.getMaxEggsInOneDay();
   final loggingStreak = await eggRepo.getCurrentLoggingStreak();
   final monthsWithEggs = await eggRepo.getMonthsWithEggs();
+  final februaryEggs = await eggRepo.getTotalEggsForMonth(2);
+  final marchEggs = await eggRepo.getTotalEggsForMonth(3);
   final hasEarlyLog = await eggRepo.hasLogBeforeHour(8);
   final hasLateLog = await eggRepo.hasLogAfterHour(21);
   final daysWithLogs = await eggRepo.getDistinctLogDays();
   final hasDoubleYolk = await eggRepo.hasDoubleYolkEgg();
   final hasAbnormalEgg = await eggRepo.hasAbnormalEgg();
+  final hasChristmasEggs = await eggRepo.hasChristmasEggs();
 
   // Check for ornamental breeds, overachievers, and rooster status
   bool hasOrnamentalBreed = false;
@@ -817,9 +825,9 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
     m.endDate != null && m.endDate!.isBefore(now)
   ).length;
 
-  // Count birds with health notes (approximate by checking if any health notes exist)
-  // This would need a proper query - approximating for now
-  final birdsWithHealthNotes = 0; // TODO: Implement proper count
+  // Count birds with health notes
+  final medRepo = ref.read(medicationRepositoryProvider);
+  final birdsWithHealthNotes = await medRepo.getBirdsWithHealthNotesCount();
 
   return AchievementContext(
     activeBirdCount: birds.length,
@@ -839,10 +847,13 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
     maxEggsInOneDay: maxEggsInOneDay,
     loggingStreakDays: loggingStreak,
     monthsWithEggs: monthsWithEggs,
+    februaryEggs: februaryEggs,
+    marchEggs: marchEggs,
     loggedBeforeEight: hasEarlyLog,
     loggedAfterNine: hasLateLog,
     hasDoubleYolk: hasDoubleYolk,
     hasAbnormalEgg: hasAbnormalEgg,
+    hasChristmasEggs: hasChristmasEggs,
     hasOrnamentalBreed: hasOrnamentalBreed,
     hasOverachiever: hasOverachiever,
     hasRooster: hasRooster,
