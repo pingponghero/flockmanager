@@ -9,6 +9,7 @@ import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../providers/medication_provider.dart';
+import '../../utils/edge_insets.dart';
 import '../../widgets/egg_quick_log.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -47,7 +48,7 @@ class HomeScreen extends ConsumerWidget {
           ref.invalidate(last7DaysEggCountsProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: pagePadding(context),
           children: [
             // Date header
             const _GreetingHeader(),

@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../../providers/analytics_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../utils/edge_insets.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
@@ -28,7 +29,7 @@ class AnalyticsScreen extends ConsumerWidget {
           ref.invalidate(analyticsProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: pagePadding(context),
           children: [
             // Flock filter
             flocksAsync.when(

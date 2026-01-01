@@ -12,6 +12,7 @@ import '../../providers/theme_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../services/export_service.dart';
 import '../../services/iap_service.dart';
+import '../../utils/edge_insets.dart';
 
 const _supportEmail = 'flockmanager.app@gmail.com';
 const _appVersion = '1.0.0';
@@ -29,7 +30,7 @@ class SettingsScreen extends ConsumerWidget {
         title: const Text('Settings'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: pagePadding(context),
         children: [
           // Account Section
           const _AccountSection(),
