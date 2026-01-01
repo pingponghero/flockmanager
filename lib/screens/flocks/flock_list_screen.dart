@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/flock.dart';
 import '../../providers/flock_provider.dart';
+import '../../utils/edge_insets.dart';
 
 class FlockListScreen extends ConsumerWidget {
   const FlockListScreen({super.key});
@@ -52,7 +53,7 @@ class FlockListScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () => ref.read(flocksProvider.notifier).refresh(),
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: pagePadding(context),
               itemCount: flocks.length,
               itemBuilder: (context, index) {
                 final flock = flocks[index];

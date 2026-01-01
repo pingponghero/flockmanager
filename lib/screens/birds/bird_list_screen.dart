@@ -6,6 +6,7 @@ import '../../models/bird.dart';
 import '../../models/enums.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../utils/edge_insets.dart';
 import '../../widgets/bird_card.dart';
 
 /// Sort options for bird list
@@ -178,7 +179,7 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
                 return RefreshIndicator(
                   onRefresh: () => ref.read(birdsProvider.notifier).refresh(),
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: pagePadding(context),
                     itemCount: birds.length,
                     itemBuilder: (context, index) {
                       final bird = birds[index];

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/achievements_provider.dart';
+import '../../utils/edge_insets.dart';
 
 class AchievementsScreen extends ConsumerWidget {
   const AchievementsScreen({super.key});
@@ -59,7 +60,7 @@ class AchievementsScreen extends ConsumerWidget {
               .toList();
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: pagePadding(context),
             itemCount: sortedCategories.length,
             itemBuilder: (context, index) {
               final category = sortedCategories[index];

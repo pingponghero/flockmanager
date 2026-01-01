@@ -10,6 +10,7 @@ import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../utils/edge_insets.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
 
 class EggLogScreen extends ConsumerStatefulWidget {
@@ -89,7 +90,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: pagePadding(context),
           children: [
             // Date picker
             ListTile(
@@ -109,7 +110,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
                 if (flocks.isEmpty) {
                   return Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: pagePadding(context),
                       child: Column(
                         children: [
                           const Icon(Icons.warning_amber, color: Colors.orange),

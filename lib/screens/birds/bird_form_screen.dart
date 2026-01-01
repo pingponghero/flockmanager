@@ -13,6 +13,7 @@ import '../../models/bird.dart';
 import '../../models/enums.dart';
 import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
+import '../../utils/edge_insets.dart';
 import '../../providers/flock_provider.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
 
@@ -81,7 +82,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: pagePadding(context),
           children: [
             // Photo section
             _PhotoSection(

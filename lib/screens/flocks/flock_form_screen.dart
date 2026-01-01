@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/flock.dart';
 import '../../providers/flock_provider.dart';
+import '../../utils/edge_insets.dart';
 
 class FlockFormScreen extends ConsumerStatefulWidget {
   final String? flockId;
@@ -117,7 +118,7 @@ class _FlockFormScreenState extends ConsumerState<FlockFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: pagePadding(context),
           children: [
             // Name field
             TextFormField(

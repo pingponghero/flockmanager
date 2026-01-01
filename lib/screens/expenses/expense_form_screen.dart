@@ -10,6 +10,7 @@ import '../../models/enums.dart';
 import '../../providers/achievements_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../utils/edge_insets.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
 
 /// Form screen for adding/editing expenses
@@ -160,7 +161,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: pagePadding(context),
           children: [
             // Amount
             TextFormField(
@@ -450,7 +451,7 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: pagePadding(context),
           children: [
             // Amount
             TextFormField(

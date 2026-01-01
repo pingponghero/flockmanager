@@ -7,6 +7,7 @@ import '../../models/expense.dart';
 import '../../models/income.dart';
 import '../../models/enums.dart';
 import '../../providers/expense_provider.dart';
+import '../../utils/edge_insets.dart';
 
 class ExpenseListScreen extends ConsumerStatefulWidget {
   const ExpenseListScreen({super.key});
@@ -247,7 +248,7 @@ class _ExpensesTab extends ConsumerWidget {
               }
 
               return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 80),
+                padding: const EdgeInsets.only(bottom: 80).withSystemNavigation(context),
                 itemCount: filtered.length,
                 itemBuilder: (context, index) {
                   final expense = filtered[index];
@@ -487,7 +488,7 @@ class _IncomeTab extends ConsumerWidget {
               }
 
               return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 80),
+                padding: const EdgeInsets.only(bottom: 80).withSystemNavigation(context),
                 itemCount: incomeList.length,
                 itemBuilder: (context, index) {
                   final income = incomeList[index];

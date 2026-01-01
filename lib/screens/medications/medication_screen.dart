@@ -8,6 +8,7 @@ import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/medication_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../utils/edge_insets.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
 
 class MedicationScreen extends ConsumerStatefulWidget {
@@ -78,7 +79,7 @@ class _ActiveMedicationsTab extends ConsumerWidget {
     final withdrawalsAsync = ref.watch(activeWithdrawalsProvider);
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: pagePadding(context),
       children: [
         // Withdrawal warning
         withdrawalsAsync.when(
@@ -333,7 +334,7 @@ class _HistoryTab extends ConsumerWidget {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: pagePadding(context),
           itemCount: medications.length,
           itemBuilder: (context, index) {
             final med = medications[index];
@@ -464,7 +465,7 @@ class _ReferenceTabState extends State<_ReferenceTab> {
           child: ListView.builder(
             // Key changes when category changes, resetting expansion states
             key: ValueKey(_selectedCategory),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16).withSystemNavigation(context),
             itemCount: filtered.length,
             itemBuilder: (context, index) {
               final med = filtered[index];

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/breeds.dart';
+import '../../utils/edge_insets.dart';
 
 class BreedListScreen extends StatefulWidget {
   const BreedListScreen({super.key});
@@ -163,7 +164,7 @@ class _BreedListScreenState extends State<BreedListScreen> {
           // Breed list
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16).withSystemNavigation(context),
               itemCount: filtered.length,
               itemBuilder: (context, index) {
                 final breed = filtered[index];
