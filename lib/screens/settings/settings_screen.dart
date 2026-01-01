@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../app/theme.dart';
 import '../../data/test_data.dart';
 import '../../providers/notification_provider.dart';
+import '../../providers/onboarding_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../services/export_service.dart';
@@ -207,6 +208,14 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _launchEmail(context),
                 ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.play_circle_outline),
+                  title: const Text('Show App Tour'),
+                  subtitle: const Text('Review tips and features'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/onboarding?tourOnly=true'),
+                ),
               ],
             ),
           ),
@@ -230,6 +239,18 @@ class SettingsScreen extends ConsumerWidget {
                     subtitle: const Text('Populate with sample flocks & eggs'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => _showSeedConfirmation(context, ref),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.restart_alt),
+                    title: const Text('Reset Onboarding'),
+                    subtitle: const Text('Show welcome flow again'),
+                    onTap: () {
+                      ref.read(onboardingProvider.notifier).resetOnboarding();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Onboarding reset. Restart app to see it.')),
+                      );
+                    },
                   ),
                 ],
               ),

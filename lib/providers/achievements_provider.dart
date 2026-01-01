@@ -51,13 +51,15 @@ class AchievementContext {
   // Eggs
   final int totalEggs;
   final int maxEggsInOneDay;
+  final int maxEggsInSummer; // Max eggs in a day during June/July/August
   final int loggingStreakDays;
   final Set<int> monthsWithEggs; // 1-12
   final int februaryEggs;
   final int marchEggs;
-  final bool loggedBeforeEight;
+  final bool loggedBeforeSix;
   final bool loggedAfterNine;
   final bool hasDoubleYolk;
+  final bool hasFairyEgg;
   final bool hasAbnormalEgg;
   final bool hasChristmasEggs; // Logged eggs on Dec 25
 
@@ -65,6 +67,7 @@ class AchievementContext {
   final bool hasOrnamentalBreed;
   final bool hasOverachiever; // Bird exceeded breed's expected annual production
   final bool hasRooster;
+  final bool hasChickenRooster; // Male chicken specifically (for "Alarm Clock")
   final bool allHens; // All birds are hens (no roosters)
 
   // Financial
@@ -100,18 +103,21 @@ class AchievementContext {
     required this.easterEggerCount,
     required this.totalEggs,
     required this.maxEggsInOneDay,
+    required this.maxEggsInSummer,
     required this.loggingStreakDays,
     required this.monthsWithEggs,
     required this.februaryEggs,
     required this.marchEggs,
-    required this.loggedBeforeEight,
+    required this.loggedBeforeSix,
     required this.loggedAfterNine,
     required this.hasDoubleYolk,
+    required this.hasFairyEgg,
     required this.hasAbnormalEgg,
     required this.hasChristmasEggs,
     required this.hasOrnamentalBreed,
     required this.hasOverachiever,
     required this.hasRooster,
+    required this.hasChickenRooster,
     required this.allHens,
     required this.totalExpenses,
     required this.totalIncome,
@@ -196,11 +202,11 @@ final achievements = <Achievement>[
   Achievement(
     id: 'summer_surplus',
     name: 'Summer Surplus',
-    description: '20+ eggs in a single day',
+    description: '20+ eggs in a summer day (Jun-Aug)',
     icon: Icons.wb_sunny,
     color: Colors.orange,
     category: 'Layer Legends',
-    check: (ctx) => ctx.maxEggsInOneDay >= 20,
+    check: (ctx) => ctx.maxEggsInSummer >= 20,
   ),
 
   // ==================== FLOCK DIVERSITY ====================
@@ -233,7 +239,7 @@ final achievements = <Achievement>[
   ),
   Achievement(
     id: 'flock_diversity',
-    name: 'Flock Diversity',
+    name: 'Breed Baron',
     description: '10 different breeds',
     icon: Icons.diversity_3,
     color: Colors.teal,
@@ -393,11 +399,11 @@ final achievements = <Achievement>[
   Achievement(
     id: 'side_hustle',
     name: 'Side Hustle',
-    description: 'Record your first egg sale',
+    description: 'Earn \$20+ from egg sales',
     icon: Icons.attach_money,
     color: Colors.green,
     category: 'Nest Egg',
-    check: (ctx) => ctx.incomeCount >= 1,
+    check: (ctx) => ctx.totalIncome >= 20,
   ),
   Achievement(
     id: 'in_the_black',
@@ -406,7 +412,7 @@ final achievements = <Achievement>[
     icon: Icons.trending_up,
     color: Colors.teal,
     category: 'Nest Egg',
-    check: (ctx) => ctx.totalIncome > ctx.totalExpenses && ctx.totalIncome > 0,
+    check: (ctx) => ctx.totalIncome > ctx.totalExpenses && ctx.totalIncome > 50 && ctx.totalExpenses > 0,
   ),
 
   // ==================== HEALTH & MEDICATION ====================
@@ -442,11 +448,11 @@ final achievements = <Achievement>[
   Achievement(
     id: 'early_bird',
     name: 'Early Bird',
-    description: 'Log eggs before 8 AM',
+    description: 'Log eggs before 6 AM',
     icon: Icons.wb_twilight,
     color: Colors.orange,
     category: 'Star Keeper',
-    check: (ctx) => ctx.loggedBeforeEight,
+    check: (ctx) => ctx.loggedBeforeSix,
   ),
   Achievement(
     id: 'night_owl',
@@ -484,7 +490,7 @@ final achievements = <Achievement>[
     icon: Icons.photo_camera,
     color: Colors.pink,
     category: 'Just for Clucks',
-    check: (ctx) => ctx.activeBirdCount > 0 && ctx.birdsWithPhotos == ctx.activeBirdCount,
+    check: (ctx) => ctx.activeBirdCount > 4 && ctx.birdsWithPhotos == ctx.activeBirdCount,
   ),
   Achievement(
     id: 'name_game',
@@ -502,7 +508,7 @@ final achievements = <Achievement>[
     icon: Icons.text_fields,
     color: Colors.purple,
     category: 'Just for Clucks',
-    check: (ctx) => ctx.longestNameLength > 15,
+    check: (ctx) => ctx.longestNameLength > 15 && ctx.totalBirdCount >= 3,
   ),
   Achievement(
     id: 'plot_twist',
@@ -525,29 +531,29 @@ final achievements = <Achievement>[
   Achievement(
     id: 'fairy_egg',
     name: 'Fairy Egg',
-    description: 'Log a tiny/abnormal egg',
+    description: 'Log a tiny fairy egg',
     icon: Icons.auto_awesome,
     color: Colors.pink,
     category: 'Just for Clucks',
-    check: (ctx) => ctx.hasAbnormalEgg,
+    check: (ctx) => ctx.hasFairyEgg,
   ),
   Achievement(
     id: 'the_quiet_life',
     name: 'The Quiet Life',
-    description: 'All females, no males',
+    description: 'All females, no males (3+ birds)',
     icon: Icons.volume_off,
     color: Colors.teal,
     category: 'Just for Clucks',
-    check: (ctx) => ctx.activeBirdCount > 0 && ctx.allHens,
+    check: (ctx) => ctx.daysUsingApp >= 14 && ctx.activeBirdCount >= 3 && ctx.allHens,
   ),
   Achievement(
     id: 'alarm_clock',
     name: 'Alarm Clock',
-    description: 'Have a male bird in your flock',
+    description: 'Have a rooster in your flock',
     icon: Icons.alarm,
     color: Colors.orange,
     category: 'Just for Clucks',
-    check: (ctx) => ctx.hasRooster,
+    check: (ctx) => ctx.hasChickenRooster && ctx.daysUsingApp >= 7,
   ),
   Achievement(
     id: 'winter_warriors',
@@ -558,7 +564,8 @@ final achievements = <Achievement>[
     category: 'Just for Clucks',
     check: (ctx) => ctx.monthsWithEggs.contains(12) &&
                      ctx.monthsWithEggs.contains(1) &&
-                     ctx.monthsWithEggs.contains(2),
+                     ctx.monthsWithEggs.contains(2) &&
+                     ctx.totalEggs >= 30,
   ),
 
   // ==================== SEASONAL ====================
@@ -569,13 +576,13 @@ final achievements = <Achievement>[
     icon: Icons.restaurant,
     color: Colors.orange,
     category: 'Four Seasons',
-    check: (ctx) => ctx.monthsWithEggs.contains(11),
+    check: (ctx) => ctx.monthsWithEggs.contains(11) && ctx.totalEggs >= 50,
   ),
   Achievement(
     id: 'holiday_helper',
-    name: 'Holiday Helper',
+    name: "Santa's Omelet",
     description: 'Log eggs on Christmas Day',
-    icon: Icons.card_giftcard,
+    icon: Icons.egg_alt,
     color: Colors.red,
     category: 'Four Seasons',
     check: (ctx) => ctx.hasChristmasEggs,
@@ -587,7 +594,7 @@ final achievements = <Achievement>[
     icon: Icons.local_florist,
     color: Colors.pink,
     category: 'Four Seasons',
-    check: (ctx) => ctx.marchEggs > ctx.februaryEggs && ctx.marchEggs > 0,
+    check: (ctx) => ctx.marchEggs > ctx.februaryEggs && ctx.februaryEggs >= 10,
   ),
   Achievement(
     id: 'molt_survivor',
@@ -596,7 +603,7 @@ final achievements = <Achievement>[
     icon: Icons.autorenew,
     color: Colors.brown,
     category: 'Four Seasons',
-    check: (ctx) => ctx.monthsWithEggs.contains(10),
+    check: (ctx) => ctx.monthsWithEggs.contains(10) && ctx.totalEggs >= 50,
   ),
 ];
 
@@ -660,7 +667,7 @@ final achievementProgressProvider = FutureProvider<Map<String, AchievementProgre
 
     // Production - daily records
     'dozen_club': AchievementProgress(context.maxEggsInOneDay, 12),
-    'summer_surplus': AchievementProgress(context.maxEggsInOneDay, 20),
+    'summer_surplus': AchievementProgress(context.maxEggsInSummer, 20),
 
     // Production - streaks
     'perfect_week': AchievementProgress(context.loggingStreakDays, 7),
@@ -771,14 +778,16 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
 
   // Get egg logging stats
   final maxEggsInOneDay = await eggRepo.getMaxEggsInOneDay();
+  final maxEggsInSummer = await eggRepo.getMaxEggsInSummer();
   final loggingStreak = await eggRepo.getCurrentLoggingStreak();
   final monthsWithEggs = await eggRepo.getMonthsWithEggs();
   final februaryEggs = await eggRepo.getTotalEggsForMonth(2);
   final marchEggs = await eggRepo.getTotalEggsForMonth(3);
-  final hasEarlyLog = await eggRepo.hasLogBeforeHour(8);
+  final hasEarlyLog = await eggRepo.hasLogBeforeHour(6);
   final hasLateLog = await eggRepo.hasLogAfterHour(21);
   final daysWithLogs = await eggRepo.getDistinctLogDays();
   final hasDoubleYolk = await eggRepo.hasDoubleYolkEgg();
+  final hasFairyEgg = await eggRepo.hasFairyEgg();
   final hasAbnormalEgg = await eggRepo.hasAbnormalEgg();
   final hasChristmasEggs = await eggRepo.hasChristmasEggs();
 
@@ -786,6 +795,7 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
   bool hasOrnamentalBreed = false;
   bool hasOverachiever = false;
   bool hasRooster = false;
+  bool hasChickenRooster = false;
   bool allHens = true;
 
   for (final bird in birds) {
@@ -793,6 +803,9 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
     if (bird.isRooster) {
       hasRooster = true;
       allHens = false;
+      if (bird.isChicken) {
+        hasChickenRooster = true;
+      }
     } else if (bird.sex == BirdSex.unknown) {
       allHens = false; // Unknown sex doesn't count as hen for "The Quiet Life"
     }
@@ -845,18 +858,21 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
     easterEggerCount: easterEggerCount,
     totalEggs: totalEggs,
     maxEggsInOneDay: maxEggsInOneDay,
+    maxEggsInSummer: maxEggsInSummer,
     loggingStreakDays: loggingStreak,
     monthsWithEggs: monthsWithEggs,
     februaryEggs: februaryEggs,
     marchEggs: marchEggs,
-    loggedBeforeEight: hasEarlyLog,
+    loggedBeforeSix: hasEarlyLog,
     loggedAfterNine: hasLateLog,
     hasDoubleYolk: hasDoubleYolk,
+    hasFairyEgg: hasFairyEgg,
     hasAbnormalEgg: hasAbnormalEgg,
     hasChristmasEggs: hasChristmasEggs,
     hasOrnamentalBreed: hasOrnamentalBreed,
     hasOverachiever: hasOverachiever,
     hasRooster: hasRooster,
+    hasChickenRooster: hasChickenRooster,
     allHens: allHens,
     totalExpenses: totalExpenses,
     totalIncome: totalIncome,

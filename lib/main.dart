@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/router.dart';
 import 'app/theme.dart';
+import 'providers/onboarding_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/iap_service.dart';
 import 'services/notification_service.dart';
@@ -31,13 +32,32 @@ void main() async {
   );
 }
 
-class FlockManagerApp extends ConsumerWidget {
+class FlockManagerApp extends ConsumerStatefulWidget {
   const FlockManagerApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FlockManagerApp> createState() => _FlockManagerAppState();
+}
+
+class _FlockManagerAppState extends ConsumerState<FlockManagerApp> {
+  bool _hasCheckedOnboarding = false;
+
+  @override
+  Widget build(BuildContext context) {
     final palette = ref.watch(themeProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final onboarding = ref.watch(onboardingProvider);
+
+    // Check if we need to redirect to onboarding on first app load
+    if (!_hasCheckedOnboarding && !onboarding.isLoading) {
+      _hasCheckedOnboarding = true;
+      if (!onboarding.isCompleted) {
+        // Schedule navigation after build
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          router.go('/onboarding');
+        });
+      }
+    }
 
     return MaterialApp.router(
       title: 'Flock Manager',
@@ -46,6 +66,17 @@ class FlockManagerApp extends ConsumerWidget {
       themeMode: themeMode,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        // Show loading while checking onboarding state on first load
+        if (onboarding.isLoading && !_hasCheckedOnboarding) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        return child ?? const SizedBox.shrink();
+      },
     );
   }
 }

@@ -4,39 +4,34 @@
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icons/app_icon.png"
+  image_path: "assets/icons/cute_hen_barn_red.png"
 
   # iOS specific
   remove_alpha_ios: true
 
   # Android adaptive icon
   adaptive_icon_background: "#F5F0E6"  # Cream background
-  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
+  adaptive_icon_foreground: "assets/icons/cute_hen_barn_red_foreground.png"
 
   # Web favicon
   web:
     generate: true
-    image_path: "assets/icons/app_icon.png"
+    image_path: "assets/icons/cute_hen_barn_red.png"
     background_color: "#F5F0E6"
-    theme_color: "#6B4423"
+    theme_color: "#8B2500"  # Barn red
 
   # Windows
   windows:
     generate: true
-    image_path: "assets/icons/app_icon.png"
+    image_path: "assets/icons/cute_hen_barn_red.png"
     icon_size: 48
 
   # macOS
   macos:
     generate: true
-    image_path: "assets/icons/app_icon.png"
+    image_path: "assets/icons/cute_hen_barn_red.png"
 
-# App Icon Variants:
-# ------------------
-# Primary: app_icon.png (brown hen on cream) - used for all platforms
-# Variants available in assets/icons/:
-#   - app_icon_barn_red.png (barn red hen on cream)
-#   - app_icon_sage.png (sage green hen on cream)
-#   - app_icon_teal.png (teal hen on cream)
-#   - app_icon_terracotta.png (terracotta hen on cream)
-#   - app_icon_light.png (brown hen on cream - same as primary)
+# App Icon:
+# ---------
+# Primary: cute_hen_barn_red.png (barn red cute hen on cream #F5F0E6)
+# Source: cute_hen_original.png -> cropped 5% and colorized with #8B2500

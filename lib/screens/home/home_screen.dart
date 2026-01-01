@@ -619,13 +619,6 @@ class _RecentActivity extends ConsumerWidget {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        'No eggs logged yet',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
                       FilledButton.icon(
                         onPressed: () => showEggQuickLog(context),
                         icon: const Icon(Icons.add),

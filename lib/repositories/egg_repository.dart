@@ -301,6 +301,22 @@ class EggRepository {
     return (result.first['max_eggs'] as int?) ?? 0;
   }
 
+  /// Get the maximum eggs logged in a single day during summer (June, July, August)
+  Future<int> getMaxEggsInSummer() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COALESCE(MAX(daily_total), 0) as max_eggs FROM (
+        SELECT date(date) as day, SUM(count) as daily_total
+        FROM egg_logs
+        WHERE CAST(strftime('%m', date) AS INTEGER) IN (6, 7, 8)
+        GROUP BY date(date)
+      )
+    ''');
+
+    return (result.first['max_eggs'] as int?) ?? 0;
+  }
+
   /// Get current consecutive logging streak (days in a row with logs ending today or yesterday)
   Future<int> getCurrentLoggingStreak() async {
     final db = await _db.database;
@@ -362,7 +378,7 @@ class EggRepository {
     final db = await _db.database;
 
     final result = await db.rawQuery('''
-      SELECT COALESCE(SUM(quantity), 0) as total FROM egg_logs
+      SELECT COALESCE(SUM(count), 0) as total FROM egg_logs
       WHERE CAST(strftime('%m', date) AS INTEGER) = ?
     ''', [month]);
 
@@ -415,12 +431,23 @@ class EggRepository {
     return ((result.first['count'] as int?) ?? 0) > 0;
   }
 
-  /// Check if any abnormal/fairy egg has been logged
+  /// Check if any abnormal egg has been logged
   Future<bool> hasAbnormalEgg() async {
     final db = await _db.database;
 
     final result = await db.rawQuery('''
-      SELECT COUNT(*) as count FROM egg_logs WHERE quality IN ('abnormal', 'fairy')
+      SELECT COUNT(*) as count FROM egg_logs WHERE quality = 'abnormal'
+    ''');
+
+    return ((result.first['count'] as int?) ?? 0) > 0;
+  }
+
+  /// Check if any fairy egg has been logged
+  Future<bool> hasFairyEgg() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM egg_logs WHERE quality = 'fairy'
     ''');
 
     return ((result.first['count'] as int?) ?? 0) > 0;

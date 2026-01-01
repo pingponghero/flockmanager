@@ -16,10 +16,19 @@ import '../screens/breeds/breed_list_screen.dart';
 import '../screens/analytics/analytics_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/achievements_screen.dart';
+import '../screens/onboarding/onboarding_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
   routes: [
+    GoRoute(
+      path: '/onboarding',
+      name: 'onboarding',
+      builder: (context, state) {
+        final tourOnly = state.uri.queryParameters['tourOnly'] == 'true';
+        return OnboardingScreen(tourOnly: tourOnly);
+      },
+    ),
     GoRoute(
       path: '/',
       name: 'home',

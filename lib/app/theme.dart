@@ -30,16 +30,8 @@ extension AppPaletteExtension on AppPalette {
     }
   }
 
-  String get iconAsset {
-    switch (this) {
-      case AppPalette.barnRed:
-        return 'assets/icons/app_icon_barn_red_transparent.png';
-      case AppPalette.sage:
-        return 'assets/icons/app_icon_terracotta_transparent.png';
-      case AppPalette.eggInspired:
-        return 'assets/icons/app_icon_light_transparent.png';
-    }
-  }
+  /// Returns the cute_hen icon asset (tint with palette primary color at runtime)
+  String get iconAsset => 'assets/icons/cute_hen.png';
 
   ColorPaletteData get colors {
     switch (this) {
