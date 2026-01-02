@@ -27,7 +27,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _featurePageController = PageController();
 
   // Form controllers
-  final _flockNameController = TextEditingController(text: 'My Flock');
+  final _flockNameController = TextEditingController(text: 'The Girls');
   final _birdNameController = TextEditingController();
 
   String _selectedFlockIcon = 'cute_hen';
@@ -310,55 +310,98 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 // WELCOME PAGE
 // ============================================================================
 
-class _WelcomePage extends StatelessWidget {
+class _WelcomePage extends StatefulWidget {
   final VoidCallback onGetStarted;
 
   const _WelcomePage({required this.onGetStarted});
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Hero illustration
-          Image.asset(
-            'assets/icons/cute_hen.png',
-            width: 120,
-            height: 120,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(height: 32),
+  State<_WelcomePage> createState() => _WelcomePageState();
+}
 
-          Text(
-            'Welcome to\nFlock Manager',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
+class _WelcomePageState extends State<_WelcomePage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _floatController;
+  late Animation<double> _floatAnimation;
 
-          Text(
-            'Track your flock the simple way',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 48),
+  @override
+  void initState() {
+    super.initState();
+    _floatController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
 
-          FilledButton.icon(
-            onPressed: onGetStarted,
-            icon: const Icon(Icons.arrow_forward),
-            label: const Text('Get Started'),
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            ),
-          ),
-        ],
+    // Gentle floating animation for the hen
+    _floatAnimation = Tween<double>(begin: 0, end: 5).animate(
+      CurvedAnimation(
+        parent: _floatController,
+        curve: Curves.easeInOut,
       ),
+    );
+
+    // Start floating animation (loops)
+    _floatController.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _floatController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _floatController,
+      builder: (context, child) {
+        return Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Hero illustration with float animation
+              Transform.translate(
+                offset: Offset(0, -_floatAnimation.value),
+                child: Image.asset(
+                  'assets/icons/cute_hen.png',
+                  width: 120,
+                  height: 120,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              Text(
+                'Welcome to\nFlock Manager',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+
+              Text(
+                'Track your flock the simple way',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+
+              FilledButton.icon(
+                onPressed: widget.onGetStarted,
+                icon: const Icon(Icons.arrow_forward),
+                label: const Text('Get Started'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

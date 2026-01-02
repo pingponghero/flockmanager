@@ -63,15 +63,19 @@ class AchievementCelebrationDialog extends StatefulWidget {
 
 class _AchievementCelebrationDialogState
     extends State<AchievementCelebrationDialog>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+    with TickerProviderStateMixin {
+  late AnimationController _entranceController;
+  late AnimationController _floatController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _rotateAnimation;
+  late Animation<double> _floatAnimation;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+
+    // Entrance animation (scale + rotate)
+    _entranceController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
@@ -80,7 +84,7 @@ class _AchievementCelebrationDialogState
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.2), weight: 50),
       TweenSequenceItem(tween: Tween(begin: 1.2, end: 1.0), weight: 50),
     ]).animate(CurvedAnimation(
-      parent: _controller,
+      parent: _entranceController,
       curve: Curves.easeOut,
     ));
 
@@ -89,16 +93,31 @@ class _AchievementCelebrationDialogState
       TweenSequenceItem(tween: Tween(begin: 0.1, end: -0.05), weight: 25),
       TweenSequenceItem(tween: Tween(begin: -0.05, end: 0.0), weight: 50),
     ]).animate(CurvedAnimation(
-      parent: _controller,
+      parent: _entranceController,
       curve: Curves.easeOut,
     ));
 
-    _controller.forward();
+    // Floating animation (loops)
+    _floatController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+
+    _floatAnimation = Tween<double>(begin: 0, end: 4).animate(
+      CurvedAnimation(
+        parent: _floatController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    _entranceController.forward();
+    _floatController.repeat(reverse: true);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _entranceController.dispose();
+    _floatController.dispose();
     super.dispose();
   }
 
@@ -156,13 +175,16 @@ class _AchievementCelebrationDialogState
 
               // Animated badge icon
               AnimatedBuilder(
-                animation: _controller,
+                animation: Listenable.merge([_entranceController, _floatController]),
                 builder: (context, child) {
-                  return Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: Transform.rotate(
-                      angle: _rotateAnimation.value,
-                      child: child,
+                  return Transform.translate(
+                    offset: Offset(0, -_floatAnimation.value),
+                    child: Transform.scale(
+                      scale: _scaleAnimation.value,
+                      child: Transform.rotate(
+                        angle: _rotateAnimation.value,
+                        child: child,
+                      ),
                     ),
                   );
                 },
