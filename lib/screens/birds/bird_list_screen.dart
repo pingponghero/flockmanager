@@ -9,6 +9,7 @@ import '../../providers/flock_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/bird_card.dart';
+import '../../widgets/flock_dropdown.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 
 /// Sort options for bird list
@@ -38,7 +39,6 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
-    final flocksAsync = ref.watch(flocksProvider);
     final birdsAsync = ref.watch(birdsProvider);
 
     return Scaffold(
@@ -73,27 +73,11 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
           // Flock filter dropdown
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: flocksAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (error, stackTrace) => const SizedBox.shrink(),
-              data: (flocks) => DropdownMenu<String?>(
-                initialSelection: selectedFlockId,
-                expandedInsets: EdgeInsets.zero,
-                label: const Text('Flock'),
-                dropdownMenuEntries: [
-                  const DropdownMenuEntry(
-                    value: null,
-                    label: 'All Flocks',
-                  ),
-                  ...flocks.map((flock) => DropdownMenuEntry(
-                        value: flock.id,
-                        label: flock.name,
-                      )),
-                ],
-                onSelected: (value) {
-                  ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
-                },
-              ),
+            child: FlockDropdown(
+              selectedFlockId: selectedFlockId,
+              onChanged: (value) {
+                ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
+              },
             ),
           ),
           // Status filter chips

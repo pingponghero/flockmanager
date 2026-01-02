@@ -18,6 +18,28 @@ class FlockListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Flocks'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'archived') {
+                _showArchivedFlocks(context, ref);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'archived',
+                child: Row(
+                  children: [
+                    Icon(Icons.archive_outlined),
+                    SizedBox(width: 8),
+                    Text('View Archived'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: flocksAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -84,7 +106,25 @@ class FlockListScreen extends ConsumerWidget {
     );
   }
 
-  void _showArchiveDialog(BuildContext context, WidgetRef ref, Flock flock) {
+  void _showArchiveDialog(BuildContext context, WidgetRef ref, Flock flock) async {
+    // Check for active birds first
+    final activeBirdCount = await ref.read(flockBirdCountProvider(flock.id).future);
+
+    if (activeBirdCount > 0) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Cannot archive: ${flock.name} has $activeBirdCount active ${activeBirdCount == 1 ? 'bird' : 'birds'}',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -114,6 +154,122 @@ class FlockListScreen extends ConsumerWidget {
             child: const Text('Archive'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showArchivedFlocks(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Consumer(
+          builder: (context, ref, child) {
+            final archivedAsync = ref.watch(archivedFlocksProvider);
+
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.archive_outlined),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Archived Flocks',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: archivedAsync.when(
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(child: Text('Error: $e')),
+                    data: (flocks) {
+                      if (flocks.isEmpty) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Text('No archived flocks'),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        controller: scrollController,
+                        itemCount: flocks.length,
+                        itemBuilder: (context, index) {
+                          final flock = flocks[index];
+                          return ListTile(
+                            leading: const Icon(Icons.archive),
+                            title: Text(flock.name),
+                            subtitle: flock.description != null
+                                ? Text(
+                                    flock.description!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  )
+                                : null,
+                            trailing: TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                _showUnarchiveDialog(context, ref, flock);
+                              },
+                              child: const Text('Restore'),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showUnarchiveDialog(BuildContext context, WidgetRef ref, Flock flock) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Consumer(
+        builder: (context, dialogRef, child) => AlertDialog(
+          title: const Text('Restore Flock'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Restore "${flock.name}" to active flocks?'),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () async {
+                  await dialogRef.read(flocksProvider.notifier).unarchiveFlock(flock.id);
+                  dialogRef.invalidate(archivedFlocksProvider);
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                    ScaffoldMessenger.of(dialogContext).showSnackBar(
+                      SnackBar(content: Text('${flock.name} restored')),
+                    );
+                  }
+                },
+                child: const Text('Restore'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -264,7 +420,7 @@ class _FlockCard extends StatelessWidget {
                   },
                 ),
                 const SizedBox(width: 8),
-                const Icon(Icons.chevron_right),
+                const Icon(Icons.edit),
               ],
             ),
           ),

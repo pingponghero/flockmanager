@@ -7,8 +7,10 @@ import '../../models/expense.dart';
 import '../../models/income.dart';
 import '../../models/enums.dart';
 import '../../providers/expense_provider.dart';
+import '../../providers/flock_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../widgets/flock_dropdown.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 
 class ExpenseListScreen extends ConsumerStatefulWidget {
@@ -120,9 +122,21 @@ class _ExpensesTab extends ConsumerWidget {
     final selectedRange = ref.watch(financeDateRangeProvider);
     final rangeTotalAsync = ref.watch(selectedRangeExpensesProvider);
     final costPerEggAsync = ref.watch(selectedRangeCostPerEggProvider);
+    final selectedFlockId = ref.watch(selectedFlockIdProvider);
 
     return Column(
       children: [
+        // Flock filter dropdown
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: FlockDropdown(
+            selectedFlockId: selectedFlockId,
+            onChanged: (value) {
+              ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
+            },
+          ),
+        ),
+
         // Date range selector
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -229,9 +243,17 @@ class _ExpensesTab extends ConsumerWidget {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => Center(child: Text('Error: $error')),
             data: (expenses) {
-              final filtered = selectedCategory == null
-                  ? expenses
-                  : expenses.where((e) => e.category == selectedCategory).toList();
+              var filtered = expenses.toList();
+
+              // Apply flock filter
+              if (selectedFlockId != null) {
+                filtered = filtered.where((e) => e.flockId == selectedFlockId).toList();
+              }
+
+              // Apply category filter
+              if (selectedCategory != null) {
+                filtered = filtered.where((e) => e.category == selectedCategory).toList();
+              }
 
               if (filtered.isEmpty) {
                 return Center(

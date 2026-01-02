@@ -143,3 +143,10 @@ final flockBirdCountProvider = FutureProvider.family<int, String>((ref, flockId)
   final repository = ref.read(flockRepositoryProvider);
   return repository.getBirdCount(flockId);
 });
+
+/// Provider for archived flocks only
+final archivedFlocksProvider = FutureProvider<List<Flock>>((ref) async {
+  final repository = ref.read(flockRepositoryProvider);
+  final allFlocks = await repository.getAllFlocks(includeArchived: true);
+  return allFlocks.where((f) => f.isArchived).toList();
+});

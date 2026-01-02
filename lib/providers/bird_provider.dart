@@ -47,16 +47,29 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
     String? notes,
   ) async {
     final repository = ref.read(birdRepositoryProvider);
+    final flockRepository = ref.read(flockRepositoryProvider);
 
     // Get the bird to find its flock
     final bird = await repository.getBirdById(id);
 
     await repository.updateBirdStatus(id, status, notes);
     ref.invalidateSelf();
+    // Also invalidate the single bird provider so detail screens refresh
+    ref.invalidate(birdByIdProvider(id));
 
     // Also invalidate the flock bird count if status changed to/from active
     if (bird != null) {
       ref.invalidate(flockBirdCountProvider(bird.flockId));
+
+      // Auto-unarchive flock if reactivating a bird in an archived flock
+      if (status == BirdStatus.active) {
+        final flock = await flockRepository.getFlockById(bird.flockId);
+        if (flock != null && flock.isArchived) {
+          await flockRepository.unarchiveFlock(bird.flockId);
+          ref.invalidate(flocksProvider);
+          ref.invalidate(archivedFlocksProvider);
+        }
+      }
     }
   }
 

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/theme.dart';
 import '../../data/test_data.dart';
+import '../../database/database_helper.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -25,6 +26,8 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentPalette = ref.watch(themeProvider);
     final currentThemeMode = ref.watch(themeModeProvider);
+    final trial = ref.watch(trialProvider);
+    final isPremium = trial.status == LicenseStatus.premium;
 
     return Scaffold(
       appBar: AppBar(
@@ -33,25 +36,44 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: pagePadding(context),
         children: [
-          // Account Section
-          const _AccountSection(),
-          const SizedBox(height: 24),
+          // Account Section (only show if not premium)
+          if (!isPremium) ...[
+            const _AccountSection(),
+            const SizedBox(height: 24),
+          ],
 
-          // Achievements Section
+          // Flock Management Section
           Text(
-            'Achievements',
+            'Flock Management',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                 ),
           ),
           const SizedBox(height: 12),
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.emoji_events),
-              title: const Text('Badges'),
-              subtitle: const Text('View your achievements'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/achievements'),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.grid_view),
+                  title: const Text('Manage Flocks'),
+                  subtitle: const Text('Add, edit, or archive flocks'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/flocks'),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Image.asset(
+                    'assets/icons/cute_hen.png',
+                    width: 24,
+                    height: 24,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  title: const Text('Manage Birds'),
+                  subtitle: const Text('Add, edit, or update bird status'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/birds'),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
@@ -88,6 +110,25 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () => context.push('/medications'),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Achievements Section
+          Text(
+            'Achievements',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.emoji_events),
+              title: const Text('Badges'),
+              subtitle: const Text('View your achievements'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/achievements'),
             ),
           ),
           const SizedBox(height: 24),
@@ -189,6 +230,18 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: Column(
               children: [
+                // Show premium status in About section for premium users
+                if (isPremium) ...[
+                  ListTile(
+                    leading: Icon(
+                      Icons.verified,
+                      color: Colors.green.shade600,
+                    ),
+                    title: const Text('Lifetime Access'),
+                    subtitle: const Text('Thank you for your support!'),
+                  ),
+                  const Divider(height: 1),
+                ],
                 const ListTile(
                   leading: Icon(Icons.info_outline),
                   title: Text('Flock Manager'),
@@ -208,14 +261,15 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _launchEmail(context),
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.play_circle_outline),
-                  title: const Text('Show App Tour'),
-                  subtitle: const Text('Review tips and features'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/onboarding?tourOnly=true'),
-                ),
+                // TODO: Re-enable when app tour is ready
+                // const Divider(height: 1),
+                // ListTile(
+                //   leading: const Icon(Icons.play_circle_outline),
+                //   title: const Text('Show App Tour'),
+                //   subtitle: const Text('Review tips and features'),
+                //   trailing: const Icon(Icons.chevron_right),
+                //   onTap: () => context.push('/onboarding?tourOnly=true'),
+                // ),
               ],
             ),
           ),
@@ -251,6 +305,13 @@ class SettingsScreen extends ConsumerWidget {
                         const SnackBar(content: Text('Onboarding reset. Restart app to see it.')),
                       );
                     },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.delete_forever, color: Colors.red),
+                    title: const Text('Clear All Data'),
+                    subtitle: const Text('Delete database and restart fresh'),
+                    onTap: () => _showClearDataConfirmation(context, ref),
                   ),
                 ],
               ),
@@ -355,6 +416,48 @@ class SettingsScreen extends ConsumerWidget {
               }
             },
             child: const Text('Load Data'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClearDataConfirmation(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear All Data?'),
+        content: const Text(
+          'This will permanently DELETE all data:\n\n'
+          '• All flocks\n'
+          '• All birds\n'
+          '• All egg logs\n'
+          '• All expenses & income\n'
+          '• All medication records\n\n'
+          'This cannot be undone!',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            onPressed: () async {
+              Navigator.pop(context);
+              await DatabaseHelper.instance.deleteDatabase();
+              ref.read(onboardingProvider.notifier).resetOnboarding();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('All data cleared. Restart app.'),
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete Everything'),
           ),
         ],
       ),

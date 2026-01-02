@@ -108,7 +108,7 @@ class _BirdDetailContent extends ConsumerWidget {
                             children: [
                               Icon(Icons.block, color: Colors.grey),
                               SizedBox(width: 8),
-                              Text('Mark as Deceased'),
+                              Text('Record Death'),
                             ],
                           ),
                         ),
@@ -129,6 +129,27 @@ class _BirdDetailContent extends ConsumerWidget {
                               Icon(Icons.volunteer_activism, color: Colors.orange),
                               SizedBox(width: 8),
                               Text('Mark as Given Away'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (bird.status != BirdStatus.active)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (value) {
+                        if (value == 'reactivate') {
+                          _showReactivateDialog(context, ref);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'reactivate',
+                          child: Row(
+                            children: [
+                              Icon(Icons.refresh, color: Colors.green),
+                              SizedBox(width: 8),
+                              Text('Reactivate'),
                             ],
                           ),
                         ),
@@ -183,7 +204,9 @@ class _BirdDetailContent extends ConsumerWidget {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('Mark as ${newStatus.displayName}'),
+          title: Text(newStatus == BirdStatus.deceased
+              ? 'Record Death'
+              : 'Mark as ${newStatus.displayName}'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,6 +252,8 @@ class _BirdDetailContent extends ConsumerWidget {
             ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop();
+                final previousStatus = bird.status;
+                final previousStatusNotes = bird.statusNotes;
                 try {
                   await ref.read(birdsProvider.notifier).updateBirdStatus(
                         bird.id,
@@ -242,6 +267,20 @@ class _BirdDetailContent extends ConsumerWidget {
                       SnackBar(
                         content: Text(
                           '${bird.name} marked as ${newStatus.displayName.toLowerCase()}',
+                        ),
+                        action: SnackBarAction(
+                          label: 'Undo',
+                          onPressed: () async {
+                            try {
+                              await ref.read(birdsProvider.notifier).updateBirdStatus(
+                                    bird.id,
+                                    previousStatus,
+                                    previousStatusNotes,
+                                  );
+                            } catch (_) {
+                              // Silently fail - user can manually fix if needed
+                            }
+                          },
                         ),
                       ),
                     );
@@ -258,6 +297,73 @@ class _BirdDetailContent extends ConsumerWidget {
                 }
               },
               child: const Text('Confirm'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReactivateDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reactivate'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Return ${bird.name} to active flock?'),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                final previousStatus = bird.status;
+                final previousStatusNotes = bird.statusNotes;
+                try {
+                  await ref.read(birdsProvider.notifier).updateBirdStatus(
+                        bird.id,
+                        BirdStatus.active,
+                        null,
+                      );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${bird.name} is now active'),
+                        action: SnackBarAction(
+                          label: 'Undo',
+                          onPressed: () async {
+                            try {
+                              await ref.read(birdsProvider.notifier).updateBirdStatus(
+                                    bird.id,
+                                    previousStatus,
+                                    previousStatusNotes,
+                                  );
+                            } catch (_) {
+                              // Silently fail
+                            }
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Reactivate'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
             ),
           ],
         ),
@@ -377,36 +483,46 @@ class _StatsRow extends ConsumerWidget {
     final logsAsync = ref.watch(eggLogsByBirdProvider(bird.id));
     final trial = ref.watch(trialProvider);
 
-    // Calculate this month's eggs and laying rate from logs
     final now = DateTime.now();
-    final monthStart = DateTime(now.year, now.month, 1);
+    final isActive = bird.status == BirdStatus.active;
 
     int thisMonthCount = 0;
     String layingRate = '--%';
 
     if (logsAsync.hasValue) {
       final logs = logsAsync.value!;
-      // Count eggs this month
-      for (final log in logs) {
-        if (log.date.isAfter(monthStart.subtract(const Duration(days: 1)))) {
-          thisMonthCount += log.count;
-        }
-      }
 
-      // Calculate laying rate (eggs per day over last N days)
-      // Use min(30, daysUsingApp) so new users don't see artificially low rates
-      if (logs.isNotEmpty) {
-        final daysUsingApp = trial.installDate != null
-            ? now.difference(trial.installDate!).inDays.clamp(1, 30)
-            : 30;
-        final periodStart = now.subtract(Duration(days: daysUsingApp));
-        int periodEggs = 0;
+      if (isActive) {
+        // Active bird: show this month's eggs
+        final monthStart = DateTime(now.year, now.month, 1);
         for (final log in logs) {
-          if (log.date.isAfter(periodStart)) {
-            periodEggs += log.count;
+          if (log.date.isAfter(monthStart.subtract(const Duration(days: 1)))) {
+            thisMonthCount += log.count;
           }
         }
-        final rate = (periodEggs / daysUsingApp * 100).round();
+
+        // Calculate laying rate (eggs per day over last N days)
+        // Use min(30, daysUsingApp) so new users don't see artificially low rates
+        if (logs.isNotEmpty) {
+          final daysUsingApp = trial.installDate != null
+              ? now.difference(trial.installDate!).inDays.clamp(1, 30)
+              : 30;
+          final periodStart = now.subtract(Duration(days: daysUsingApp));
+          int periodEggs = 0;
+          for (final log in logs) {
+            if (log.date.isAfter(periodStart)) {
+              periodEggs += log.count;
+            }
+          }
+          final rate = (periodEggs / daysUsingApp * 100).round();
+          layingRate = '$rate%';
+        }
+      } else {
+        // Inactive bird: calculate lifetime average laying rate
+        final lastDate = bird.statusDate ?? now;
+        final totalDays = lastDate.difference(bird.createdAt).inDays.clamp(1, 9999);
+        final totalEggs = logs.fold<int>(0, (sum, log) => sum + log.count);
+        final rate = (totalEggs / totalDays * 100).round();
         layingRate = '$rate%';
       }
     }
@@ -425,17 +541,18 @@ class _StatsRow extends ConsumerWidget {
             ),
             icon: Icons.egg,
           ),
-          _StatItem(
-            label: 'This Month',
-            value: logsAsync.when(
-              loading: () => '--',
-              error: (_, __) => '--',
-              data: (_) => '$thisMonthCount',
+          if (isActive)
+            _StatItem(
+              label: 'This Month',
+              value: logsAsync.when(
+                loading: () => '--',
+                error: (_, __) => '--',
+                data: (_) => '$thisMonthCount',
+              ),
+              icon: Icons.calendar_month,
             ),
-            icon: Icons.calendar_month,
-          ),
           _StatItem(
-            label: 'Laying Rate',
+            label: isActive ? 'Laying Rate' : 'Lifetime Rate',
             value: logsAsync.when(
               loading: () => '--%',
               error: (_, __) => '--%',

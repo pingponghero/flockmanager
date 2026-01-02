@@ -480,6 +480,7 @@ class _StatsRow extends ConsumerWidget {
               height: 20,
               color: Theme.of(context).colorScheme.primary,
             ),
+            onTap: () => context.push('/birds'),
           ),
         ),
       ],
@@ -491,36 +492,42 @@ class _StatCard extends StatelessWidget {
   final String label;
   final String value;
   final Widget icon;
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.label,
     required this.value,
     required this.icon,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            icon,
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              icon,
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -538,31 +545,6 @@ class _QuickActions extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => context.push('/flocks'),
-                icon: const Icon(Icons.grid_view),
-                label: const Text('Flocks'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => context.push('/birds'),
-                icon: Image.asset(
-                  'assets/icons/cute_hen.png',
-                  width: 24,
-                  height: 24,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                label: const Text('Birds'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
