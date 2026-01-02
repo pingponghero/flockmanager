@@ -591,28 +591,33 @@ class _AccountSection extends ConsumerWidget {
           child: Column(
             children: [
               // Status display
-              ListTile(
-                leading: Icon(
-                  trial.status == LicenseStatus.premium
-                      ? Icons.verified
-                      : trial.status == LicenseStatus.trialExpired
-                          ? Icons.lock
-                          : Icons.timer,
-                  color: trial.status == LicenseStatus.premium
-                      ? Colors.green
-                      : trial.status == LicenseStatus.trialExpired
-                          ? Theme.of(context).colorScheme.error
-                          : Theme.of(context).colorScheme.primary,
-                ),
-                title: Text(_getStatusTitle(trial)),
-                subtitle: Text(_getStatusSubtitle(trial)),
+              Builder(
+                builder: (context) {
+                  final subtitle = _getStatusSubtitle(trial);
+                  return ListTile(
+                    leading: Icon(
+                      trial.status == LicenseStatus.premium
+                          ? Icons.verified
+                          : trial.status == LicenseStatus.trialExpired
+                              ? Icons.lock
+                              : Icons.timer,
+                      color: trial.status == LicenseStatus.premium
+                          ? Colors.green
+                          : trial.status == LicenseStatus.trialExpired
+                              ? Theme.of(context).colorScheme.error
+                              : Theme.of(context).colorScheme.primary,
+                    ),
+                    title: Text(_getStatusTitle(trial)),
+                    subtitle: subtitle != null ? Text(subtitle) : null,
+                  );
+                },
               ),
               // Actions
               if (trial.status != LicenseStatus.premium) ...[
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.lock_open),
-                  title: const Text('Unlock Full Access'),
+                  title: const Text('Get Lifetime Access'),
                   subtitle: Text('One-time purchase - ${iapService.priceString}'),
                   trailing: FilledButton(
                     onPressed: () => _purchasePremium(context, ref),
@@ -653,11 +658,11 @@ class _AccountSection extends ConsumerWidget {
                       },
                     ),
                     ListTile(
-                      title: const Text('Grant Premium'),
+                      title: const Text('Grant Lifetime Access'),
                       onTap: () {
                         ref.read(trialProvider.notifier).debugGrantPremium();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Premium granted')),
+                          const SnackBar(content: Text('Lifetime access granted')),
                         );
                       },
                     ),
@@ -674,7 +679,7 @@ class _AccountSection extends ConsumerWidget {
   String _getStatusTitle(TrialState trial) {
     switch (trial.status) {
       case LicenseStatus.premium:
-        return 'Premium';
+        return 'Lifetime Access';
       case LicenseStatus.trialExpired:
         return 'Trial Expired';
       case LicenseStatus.trialActive:
@@ -682,12 +687,12 @@ class _AccountSection extends ConsumerWidget {
     }
   }
 
-  String _getStatusSubtitle(TrialState trial) {
+  String? _getStatusSubtitle(TrialState trial) {
     switch (trial.status) {
       case LicenseStatus.premium:
         return 'Thank you for your support!';
       case LicenseStatus.trialExpired:
-        return 'Upgrade to continue adding data';
+        return null; // Details shown in purchase tile below
       case LicenseStatus.trialActive:
         final days = trial.daysRemaining;
         return days == 1 ? '1 day remaining' : '$days days remaining';

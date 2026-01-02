@@ -30,7 +30,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _flockNameController = TextEditingController(text: 'My Flock');
   final _birdNameController = TextEditingController();
 
-  int _currentFeaturePage = 0;
   String _selectedFlockIcon = 'cute_hen';
   String _selectedFlockColor = '4CAF50';
   String? _selectedBreed;
@@ -71,16 +70,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
-  void _nextPage() {
+  Future<void> _nextPage() async {
     final currentPage = _pageController.page?.round() ?? 0;
     if (currentPage < 4) {
-      // Update provider state
-      ref.read(onboardingProvider.notifier).nextStep();
-      // Animate to next page
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      // Update provider state first (await to ensure state is saved)
+      await ref.read(onboardingProvider.notifier).nextStep();
+      // Then animate to next page
+      if (mounted) {
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
     }
   }
 
@@ -107,7 +108,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       setState(() => _isCreatingFlock = false);
 
       HapticFeedback.mediumImpact();
-      _nextPage();
+      await _nextPage();
     } catch (e) {
       setState(() => _isCreatingFlock = false);
       if (mounted) {
@@ -150,7 +151,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       setState(() => _isCreatingBird = false);
 
       HapticFeedback.mediumImpact();
-      _nextPage();
+      await _nextPage();
     } catch (e) {
       setState(() => _isCreatingBird = false);
       if (mounted) {
@@ -169,6 +170,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final newAchievements = await checkAndCelebrateAchievements(ref, context);
       if (mounted && newAchievements.isNotEmpty) {
         await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+        await markAchievementsAsShown(newAchievements);
       }
     }
 
@@ -211,6 +213,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final onboarding = ref.watch(onboardingProvider);
     final currentPage = _stepToPage(onboarding.currentStep);
 
+    // Sync PageController with provider state if they're out of sync
+    // This handles cases where the widget is recreated or state is restored
+    if (_pageController.hasClients && !onboarding.isLoading) {
+      final actualPage = _pageController.page?.round() ?? 0;
+      if (actualPage != currentPage) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _pageController.hasClients) {
+            _pageController.jumpToPage(currentPage);
+          }
+        });
+      }
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -239,8 +254,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   _WelcomePage(onGetStarted: _nextPage),
                   _FeaturesPage(
                     pageController: _featurePageController,
-                    currentPage: _currentFeaturePage,
-                    onPageChanged: (page) => setState(() => _currentFeaturePage = page),
                     onNext: _nextPage,
                   ),
                   _CreateFlockPage(
@@ -356,14 +369,10 @@ class _WelcomePage extends StatelessWidget {
 
 class _FeaturesPage extends StatelessWidget {
   final PageController pageController;
-  final int currentPage;
-  final ValueChanged<int> onPageChanged;
   final VoidCallback onNext;
 
   const _FeaturesPage({
     required this.pageController,
-    required this.currentPage,
-    required this.onPageChanged,
     required this.onNext,
   });
 
@@ -400,30 +409,9 @@ class _FeaturesPage extends StatelessWidget {
             height: 320,
             child: PageView.builder(
               controller: pageController,
-              onPageChanged: onPageChanged,
               itemCount: features.length,
               itemBuilder: (context, index) => features[index],
             ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Dots indicator
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(features.length, (index) {
-              return Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: index == currentPage
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.outlineVariant,
-                ),
-              );
-            }),
           ),
 
           const Spacer(),
@@ -433,7 +421,7 @@ class _FeaturesPage extends StatelessWidget {
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             ),
-            child: Text(currentPage == features.length - 1 ? 'Continue' : 'Next'),
+            child: const Text('Continue'),
           ),
 
           const SizedBox(height: 16),
@@ -520,14 +508,13 @@ class _CreateFlockPage extends StatelessWidget {
     required this.onCreateFlock,
   });
 
-  static const _icons = ['cute_hen', 'egg', 'home', 'grass', 'park', 'eco'];
+  static const _icons = ['cute_hen', 'egg', 'home', 'grass', 'eco'];
   static const _colors = [
     '4CAF50', // Green
     '2196F3', // Blue
     'FF9800', // Orange
     'E91E63', // Pink
     '9C27B0', // Purple
-    '795548', // Brown
   ];
 
   @override
@@ -574,9 +561,11 @@ class _CreateFlockPage extends StatelessWidget {
           Text(
             'Choose an icon',
             style: Theme.of(context).textTheme.titleSmall,
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Wrap(
+            alignment: WrapAlignment.center,
             spacing: 12,
             runSpacing: 12,
             children: _icons.map((iconName) {
@@ -609,9 +598,11 @@ class _CreateFlockPage extends StatelessWidget {
           Text(
             'Choose a color',
             style: Theme.of(context).textTheme.titleSmall,
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Wrap(
+            alignment: WrapAlignment.center,
             spacing: 12,
             runSpacing: 12,
             children: _colors.map((colorHex) {
@@ -645,7 +636,27 @@ class _CreateFlockPage extends StatelessWidget {
               );
             }).toList(),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 32),
+
+          // Preview
+          Center(
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Color(int.parse('FF$selectedColor', radix: 16)).withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Color(int.parse('FF$selectedColor', radix: 16)),
+                  width: 2,
+                ),
+              ),
+              child: Center(
+                child: _buildPreviewIcon(context, selectedIcon, selectedColor),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
 
           FilledButton(
             onPressed: isLoading ? null : onCreateFlock,
@@ -662,6 +673,32 @@ class _CreateFlockPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPreviewIcon(BuildContext context, String iconName, String colorHex) {
+    final color = Color(int.parse('FF$colorHex', radix: 16));
+    if (iconName == 'cute_hen') {
+      return Image.asset(
+        'assets/icons/cute_hen.png',
+        width: 40,
+        height: 40,
+        color: color,
+      );
+    }
+
+    final iconMap = {
+      'egg': Icons.egg,
+      'home': Icons.home,
+      'grass': Icons.grass,
+      'park': Icons.park,
+      'eco': Icons.eco,
+    };
+
+    return Icon(
+      iconMap[iconName] ?? Icons.egg,
+      color: color,
+      size: 40,
     );
   }
 
@@ -850,8 +887,8 @@ class _TourPage extends StatelessWidget {
 
           // Tips
           _TipCard(
-            icon: Icons.add_circle,
-            tip: 'Tap the + button on the home screen to quickly log eggs',
+            icon: Icons.egg,
+            tip: 'Tap the egg button on the home screen to quickly log eggs',
           ),
           const SizedBox(height: 12),
           _TipCard(
@@ -868,7 +905,7 @@ class _TourPage extends StatelessWidget {
           FilledButton.icon(
             onPressed: onComplete,
             icon: const Icon(Icons.check),
-            label: const Text('Start Using App'),
+            label: const Text('Let\'s Go!'),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             ),

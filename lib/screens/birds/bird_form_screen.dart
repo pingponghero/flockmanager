@@ -473,6 +473,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
         final newAchievements = await checkAndCelebrateAchievements(ref, context);
         if (mounted && newAchievements.isNotEmpty) {
           await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+          await markAchievementsAsShown(newAchievements);
         }
 
         if (mounted) context.pop();

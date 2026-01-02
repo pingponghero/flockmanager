@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/flock.dart';
 import '../../providers/flock_provider.dart';
+import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 
 class FlockListScreen extends ConsumerWidget {
   const FlockListScreen({super.key});
@@ -67,9 +69,17 @@ class FlockListScreen extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/flocks/new'),
-        child: const Icon(Icons.add),
+      floatingActionButton: Consumer(
+        builder: (context, ref, child) {
+          final canEdit = ref.watch(canEditProvider);
+          return FloatingActionButton(
+            onPressed: canEdit
+                ? () => context.push('/flocks/new')
+                : () => showTrialExpiredDialog(context, ref),
+            tooltip: 'Add Flock',
+            child: const Icon(Icons.add),
+          );
+        },
       ),
     );
   }

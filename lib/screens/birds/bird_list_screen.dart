@@ -6,8 +6,10 @@ import '../../models/bird.dart';
 import '../../models/enums.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/bird_card.dart';
+import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 
 /// Sort options for bird list
 enum BirdSortOption {
@@ -195,9 +197,16 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/birds/new'),
-        child: const Icon(Icons.add),
+      floatingActionButton: Builder(
+        builder: (context) {
+          final canEdit = ref.watch(canEditProvider);
+          return FloatingActionButton(
+            onPressed: canEdit
+                ? () => context.push('/birds/new')
+                : () => showTrialExpiredDialog(context, ref),
+            child: const Icon(Icons.add),
+          );
+        },
       ),
     );
   }

@@ -66,6 +66,10 @@ class EggLogsNotifier extends AsyncNotifier<List<EggLog>> {
     // Activity feed and charts
     ref.invalidate(recentEggLogsProvider);
     ref.invalidate(last7DaysEggCountsProvider);
+    // History screen providers (family providers - invalidates all instances)
+    ref.invalidate(eggLogsByDateProvider);
+    ref.invalidate(dailyEggCountsProvider);
+    ref.invalidate(eggHistoryProvider);
   }
 }
 

@@ -247,9 +247,18 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
             Wrap(
               spacing: 8,
               children: EggSize.values.map((size) {
+                final isSelected = _selectedSize == size;
                 return ChoiceChip(
-                  label: Text(size.displayName),
-                  selected: _selectedSize == size,
+                  label: Text(
+                    size.displayName,
+                    style: TextStyle(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  selected: isSelected,
+                  selectedColor: Theme.of(context).colorScheme.primary,
                   onSelected: (selected) {
                     setState(() {
                       _selectedSize = selected ? size : null;
@@ -266,9 +275,18 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
             Wrap(
               spacing: 8,
               children: EggQuality.values.map((quality) {
+                final isSelected = _selectedQuality == quality;
                 return ChoiceChip(
-                  label: Text(quality.displayName),
-                  selected: _selectedQuality == quality,
+                  label: Text(
+                    quality.displayName,
+                    style: TextStyle(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  selected: isSelected,
+                  selectedColor: Theme.of(context).colorScheme.primary,
                   onSelected: (selected) {
                     setState(() {
                       _selectedQuality = selected ? quality : null;
@@ -376,6 +394,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
         final newAchievements = await checkAndCelebrateAchievements(ref, context);
         if (mounted && newAchievements.isNotEmpty) {
           await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+          await markAchievementsAsShown(newAchievements);
         }
 
         if (mounted) context.pop();

@@ -9,8 +9,10 @@ import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../providers/medication_provider.dart';
+import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/egg_quick_log.dart';
+import '../../widgets/trial_banner.dart' show TrialBanner, showTrialExpiredDialog;
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -19,6 +21,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
     final recentLogsAsync = ref.watch(recentEggLogsProvider);
+    final canEdit = ref.watch(canEditProvider);
 
     // Only show FAB when there are existing egg logs (empty state has its own CTA)
     final hasEggLogs = recentLogsAsync.valueOrNull?.isNotEmpty ?? false;
@@ -52,6 +55,9 @@ class HomeScreen extends ConsumerWidget {
           children: [
             // Date header
             const _GreetingHeader(),
+
+            // Trial expired banner (below date)
+            const TrialBanner(),
             const SizedBox(height: 16),
 
             // Chicken of the Week
@@ -89,10 +95,14 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: hasEggLogs
-          ? FloatingActionButton(
-              onPressed: () => showEggQuickLog(context),
-              tooltip: 'Log Eggs',
-              child: const Icon(Icons.egg),
+          ? Builder(
+              builder: (context) => FloatingActionButton(
+                onPressed: canEdit
+                    ? () => showEggQuickLog(context)
+                    : () => showTrialExpiredDialog(context, ref),
+                tooltip: 'Log Eggs',
+                child: const Icon(Icons.egg),
+              ),
             )
           : null,
     );
@@ -191,6 +201,7 @@ class _TodayEggCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final todayAsync = ref.watch(todayEggCountByFlockProvider);
     final avgAsync = ref.watch(weeklyAverageEggCountProvider);
+    final canEdit = ref.watch(canEditProvider);
 
     final todayCount = todayAsync.valueOrNull ?? 0;
 
@@ -198,8 +209,10 @@ class _TodayEggCard extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          if (todayCount == 0) {
+          if (todayCount == 0 && canEdit) {
             showEggQuickLog(context);
+          } else if (todayCount == 0 && !canEdit) {
+            showTrialExpiredDialog(context, ref);
           } else {
             context.push('/eggs');
           }
@@ -576,6 +589,7 @@ class _RecentActivity extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final logsAsync = ref.watch(recentEggLogsProvider);
+    final canEdit = ref.watch(canEditProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,7 +634,9 @@ class _RecentActivity extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
                       FilledButton.icon(
-                        onPressed: () => showEggQuickLog(context),
+                        onPressed: canEdit
+                            ? () => showEggQuickLog(context)
+                            : () => showTrialExpiredDialog(context, ref),
                         icon: const Icon(Icons.add),
                         label: const Text('Log Your First Eggs'),
                       ),

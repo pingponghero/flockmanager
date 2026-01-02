@@ -958,7 +958,8 @@ final newlyUnlockedAchievementsProvider =
 
 /// Check for new achievements and show celebration dialogs.
 /// Call this after key trigger points (egg save, bird save, etc.)
-/// Returns the list of newly unlocked achievements that were shown.
+/// Returns the list of newly unlocked achievements (not yet marked as shown).
+/// IMPORTANT: Caller must call markAchievementsAsShown() after displaying dialogs.
 Future<List<Achievement>> checkAndCelebrateAchievements(
   WidgetRef ref,
   BuildContext context,
@@ -970,16 +971,17 @@ Future<List<Achievement>> checkAndCelebrateAchievements(
   // Wait for the new earned achievements
   final earned = await ref.read(earnedAchievementsProvider.future);
 
-  // Get newly unlocked ones
+  // Get newly unlocked ones (earned but not yet shown)
   final newlyUnlocked = await AchievementTracker.instance.getNewlyUnlocked(earned);
 
-  if (newlyUnlocked.isNotEmpty && context.mounted) {
-    // Import is handled by the caller
-    // Mark as shown before displaying (in case dialog is dismissed)
+  return newlyUnlocked;
+}
+
+/// Mark achievements as shown after celebration dialog is displayed.
+Future<void> markAchievementsAsShown(List<Achievement> achievements) async {
+  if (achievements.isNotEmpty) {
     await AchievementTracker.instance.markAllAsShown(
-      newlyUnlocked.map((a) => a.id).toList(),
+      achievements.map((a) => a.id).toList(),
     );
   }
-
-  return newlyUnlocked;
 }

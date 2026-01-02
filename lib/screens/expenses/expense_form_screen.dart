@@ -111,6 +111,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
         final newAchievements = await checkAndCelebrateAchievements(ref, context);
         if (mounted && newAchievements.isNotEmpty) {
           await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+          await markAchievementsAsShown(newAchievements);
         }
 
         if (mounted) context.pop();
@@ -393,6 +394,7 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
         final newAchievements = await checkAndCelebrateAchievements(ref, context);
         if (mounted && newAchievements.isNotEmpty) {
           await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+          await markAchievementsAsShown(newAchievements);
         }
 
         if (mounted) context.pop();

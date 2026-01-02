@@ -84,123 +84,139 @@ class _ExpiredBanner extends StatelessWidget {
 
   const _ExpiredBanner({required this.onPurchase});
 
+  // Barn red color used throughout the app
+  static const _barnRed = Color(0xFF9B2D30);
+
   @override
   Widget build(BuildContext context) {
     final iapService = IAPService();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      color: Theme.of(context).colorScheme.errorContainer,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.lock_outline,
-                color: Theme.of(context).colorScheme.onErrorContainer,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Trial expired - Read-only mode',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onErrorContainer,
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _barnRed.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _barnRed.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.lock_outline,
+                  color: _barnRed,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Trial expired - Unlock to continue',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: _barnRed,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onPurchase,
-              icon: const Icon(Icons.lock_open),
-              label: Text('Unlock Full Access - ${iapService.priceString}'),
+              ],
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'One-time purchase. No subscription.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onErrorContainer,
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onPurchase,
+                style: FilledButton.styleFrom(
+                  backgroundColor: _barnRed,
                 ),
-          ),
-        ],
+                icon: const Icon(Icons.arrow_forward),
+                label: Text('Get Lifetime Access - ${iapService.priceString}'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'One-time purchase. No subscription.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _barnRed.withValues(alpha: 0.8),
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Widget that blocks editing when trial has expired.
-/// Wrap around FABs, add buttons, etc.
-class TrialGuard extends ConsumerWidget {
-  final Widget child;
-  final VoidCallback? onBlocked;
+/// Shows a friendly trial expired dialog.
+/// Call this when user tries to perform an action that requires an active trial.
+void showTrialExpiredDialog(BuildContext context, WidgetRef ref) {
+  final iapService = IAPService();
 
-  const TrialGuard({
-    super.key,
-    required this.child,
-    this.onBlocked,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final canEdit = ref.watch(canEditProvider);
-
-    if (canEdit) {
-      return child;
-    }
-
-    // Return a grayed out version that shows upgrade dialog
-    return GestureDetector(
-      onTap: () => _showUpgradeDialog(context, ref),
-      child: Opacity(
-        opacity: 0.5,
-        child: AbsorbPointer(child: child),
-      ),
-    );
-  }
-
-  void _showUpgradeDialog(BuildContext context, WidgetRef ref) {
-    final iapService = IAPService();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Trial Expired'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Your 14-day trial has ended. Unlock full access to continue adding and editing data.',
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icon
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: BoxShape.circle,
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Your existing data is safe and viewable.',
-              style: Theme.of(context).textTheme.bodySmall,
+            child: Center(
+              child: Image.asset(
+                'assets/icons/cute_hen.png',
+                width: 40,
+                height: 40,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Later'),
           ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ref.read(trialProvider.notifier).purchasePremium();
-            },
-            child: Text('Unlock - ${iapService.priceString}'),
+          const SizedBox(height: 16),
+          // Title
+          Text(
+            'Unlock Flock Manager',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          // Body
+          Text(
+            'Track your flock forever for ${iapService.priceString} - that\'s less than a dozen eggs at the farmers market!',
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          // Button
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () {
+                Navigator.pop(context);
+                ref.read(trialProvider.notifier).purchasePremium();
+              },
+              child: const Text('Unlock Now'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Subtitle
+          Text(
+            'One-time purchase. No subscription. Ever.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
-    );
-
-    onBlocked?.call();
-  }
+    ),
+  );
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/medication_log.dart';
@@ -8,7 +9,9 @@ import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/medication_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 import '../../widgets/achievement_celebration_dialog.dart';
 
 class MedicationScreen extends ConsumerStatefulWidget {
@@ -56,9 +59,17 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen>
           _ReferenceTab(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddMedicationDialog(context),
-        child: const Icon(Icons.add),
+      floatingActionButton: Builder(
+        builder: (context) {
+          final canEdit = ref.watch(canEditProvider);
+          return FloatingActionButton(
+            onPressed: canEdit
+                ? () => _showAddMedicationDialog(context)
+                : () => showTrialExpiredDialog(context, ref),
+            tooltip: 'Add Medication',
+            child: const Icon(Icons.add),
+          );
+        },
       ),
     );
   }
@@ -1332,6 +1343,7 @@ class _AddMedicationSheetState extends ConsumerState<_AddMedicationSheet> {
 
           if (newAchievements.isNotEmpty) {
             await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+            await markAchievementsAsShown(newAchievements);
           }
         }
       }

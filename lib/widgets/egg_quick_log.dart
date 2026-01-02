@@ -330,16 +330,18 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
           ),
         );
 
-        // Close sheet first, then check for achievements
-        Navigator.pop(context, true);
+        // Check for new achievements BEFORE closing sheet (context becomes invalid after pop)
+        final newAchievements = await checkAndCelebrateAchievements(ref, context);
 
-        // Check for new achievements (after sheet is closed)
-        if (mounted) {
-          final newAchievements = await checkAndCelebrateAchievements(ref, context);
-          if (mounted && newAchievements.isNotEmpty) {
-            await AchievementCelebrationDialog.showMultiple(context, newAchievements);
-          }
+        // Show celebration dialog BEFORE closing sheet (context is still valid)
+        if (mounted && newAchievements.isNotEmpty) {
+          await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+          // Mark as shown AFTER dialog is displayed
+          await markAchievementsAsShown(newAchievements);
         }
+
+        // Close sheet after dialog is dismissed
+        if (mounted) Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {

@@ -7,7 +7,9 @@ import '../../models/expense.dart';
 import '../../models/income.dart';
 import '../../models/enums.dart';
 import '../../providers/expense_provider.dart';
+import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 
 class ExpenseListScreen extends ConsumerStatefulWidget {
   const ExpenseListScreen({super.key});
@@ -58,9 +60,17 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen>
           const _IncomeTab(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddDialog(context),
-        child: const Icon(Icons.add),
+      floatingActionButton: Builder(
+        builder: (context) {
+          final canEdit = ref.watch(canEditProvider);
+          return FloatingActionButton(
+            onPressed: canEdit
+                ? () => _showAddDialog(context)
+                : () => showTrialExpiredDialog(context, ref),
+            tooltip: 'Add',
+            child: const Icon(Icons.add),
+          );
+        },
       ),
     );
   }
