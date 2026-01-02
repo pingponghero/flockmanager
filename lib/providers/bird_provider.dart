@@ -36,6 +36,8 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
     final repository = ref.read(birdRepositoryProvider);
     await repository.updateBird(bird);
     ref.invalidateSelf();
+    // Also invalidate the single bird provider so detail screens refresh
+    ref.invalidate(birdByIdProvider(bird.id));
   }
 
   /// Update a bird's status

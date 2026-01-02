@@ -443,6 +443,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
               ? null
               : _breedController.text.trim(),
           breedId: _selectedSpecies == BirdSpecies.chicken ? _selectedBreedId : null,
+          photoPrimary: _photoPath,
           hatchDate: _hatchDate,
           acquiredDate: _acquiredDate,
           source: _sourceController.text.trim().isEmpty

@@ -249,8 +249,8 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
               ),
             ),
           ),
-          // Bottom padding for safe area
-          SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+          // Bottom padding for gesture navigation area
+          SizedBox(height: MediaQuery.of(context).viewPadding.bottom),
         ],
       ),
     );

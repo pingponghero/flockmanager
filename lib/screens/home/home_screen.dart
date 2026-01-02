@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -770,8 +772,10 @@ class _ChickenOfTheWeek extends ConsumerWidget {
                       child: bird.photoPrimary != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(32),
-                              child: Image.network(
-                                bird.photoPrimary!,
+                              child: Image.file(
+                                File(bird.photoPrimary!),
+                                width: 64,
+                                height: 64,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Center(
                                   child: Image.asset(
