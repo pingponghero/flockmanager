@@ -12,6 +12,7 @@ import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../providers/medication_provider.dart';
+import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 
 class BirdDetailScreen extends ConsumerWidget {
@@ -374,6 +375,7 @@ class _StatsRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final totalAsync = ref.watch(totalEggCountByBirdProvider(bird.id));
     final logsAsync = ref.watch(eggLogsByBirdProvider(bird.id));
+    final trial = ref.watch(trialProvider);
 
     // Calculate this month's eggs and laying rate from logs
     final now = DateTime.now();
@@ -391,16 +393,20 @@ class _StatsRow extends ConsumerWidget {
         }
       }
 
-      // Calculate laying rate (eggs per day over last 30 days)
+      // Calculate laying rate (eggs per day over last N days)
+      // Use min(30, daysUsingApp) so new users don't see artificially low rates
       if (logs.isNotEmpty) {
-        final thirtyDaysAgo = now.subtract(const Duration(days: 30));
-        int last30Days = 0;
+        final daysUsingApp = trial.installDate != null
+            ? now.difference(trial.installDate!).inDays.clamp(1, 30)
+            : 30;
+        final periodStart = now.subtract(Duration(days: daysUsingApp));
+        int periodEggs = 0;
         for (final log in logs) {
-          if (log.date.isAfter(thirtyDaysAgo)) {
-            last30Days += log.count;
+          if (log.date.isAfter(periodStart)) {
+            periodEggs += log.count;
           }
         }
-        final rate = (last30Days / 30 * 100).round();
+        final rate = (periodEggs / daysUsingApp * 100).round();
         layingRate = '$rate%';
       }
     }
