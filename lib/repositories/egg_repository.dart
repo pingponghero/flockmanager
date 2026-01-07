@@ -95,6 +95,27 @@ class EggRepository {
     return maps.map((map) => EggLog.fromMap(map)).toList();
   }
 
+  /// Count egg logs for a specific bird.
+  Future<int> getEggLogCountByBird(String birdId) async {
+    final db = await _db.database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM egg_logs WHERE bird_id = ?',
+      [birdId],
+    );
+    return (result.first['count'] as int?) ?? 0;
+  }
+
+  /// Reassign egg logs from a bird to anonymous (null bird_id).
+  Future<int> reassignEggLogsToAnonymous(String birdId) async {
+    final db = await _db.database;
+    return db.update(
+      'egg_logs',
+      {'bird_id': null},
+      where: 'bird_id = ?',
+      whereArgs: [birdId],
+    );
+  }
+
   /// Get a single egg log by ID.
   Future<EggLog?> getEggLogById(String id) async {
     final db = await _db.database;
@@ -418,6 +439,50 @@ class EggRepository {
     ''');
 
     return (result.first['days'] as int?) ?? 0;
+  }
+
+  /// Get the longest logging streak ever achieved
+  Future<int> getLongestStreak() async {
+    final db = await _db.database;
+
+    // Get all distinct dates with logs, ordered ascending
+    final result = await db.rawQuery('''
+      SELECT DISTINCT date(date) as log_date
+      FROM egg_logs
+      ORDER BY log_date ASC
+    ''');
+
+    if (result.isEmpty) return 0;
+
+    int longestStreak = 0;
+    int currentStreak = 1;
+    DateTime? previousDate;
+
+    for (final row in result) {
+      final dateStr = row['log_date'] as String;
+      final logDate = DateTime.parse(dateStr);
+      final normalizedDate = DateTime(logDate.year, logDate.month, logDate.day);
+
+      if (previousDate != null) {
+        final expectedNext = previousDate.add(const Duration(days: 1));
+        if (normalizedDate == expectedNext) {
+          currentStreak++;
+        } else {
+          if (currentStreak > longestStreak) {
+            longestStreak = currentStreak;
+          }
+          currentStreak = 1;
+        }
+      }
+      previousDate = normalizedDate;
+    }
+
+    // Check final streak
+    if (currentStreak > longestStreak) {
+      longestStreak = currentStreak;
+    }
+
+    return longestStreak;
   }
 
   /// Check if any double yolk egg has been logged

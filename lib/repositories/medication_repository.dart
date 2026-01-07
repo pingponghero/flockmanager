@@ -51,6 +51,28 @@ class MedicationRepository {
     return maps.map((map) => MedicationLog.fromMap(map)).toList();
   }
 
+  /// Reassign medication logs from a bird to anonymous (null bird_id).
+  Future<int> reassignMedicationLogsToAnonymous(String birdId) async {
+    final db = await _db.database;
+    return db.update(
+      'medication_logs',
+      {'bird_id': null},
+      where: 'bird_id = ?',
+      whereArgs: [birdId],
+    );
+  }
+
+  /// Reassign health notes from a bird to anonymous (null bird_id).
+  Future<int> reassignHealthNotesToAnonymous(String birdId) async {
+    final db = await _db.database;
+    return db.update(
+      'health_notes',
+      {'bird_id': null},
+      where: 'bird_id = ?',
+      whereArgs: [birdId],
+    );
+  }
+
   /// Get medications by flock.
   Future<List<MedicationLog>> getMedicationsByFlock(String flockId) async {
     final db = await _db.database;

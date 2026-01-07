@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/flock.dart';
 import '../../models/bird.dart';
 import '../../models/enums.dart';
+import '../../data/breeds.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../providers/bird_provider.dart';
@@ -29,10 +30,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   // Form controllers
   final _flockNameController = TextEditingController(text: 'The Girls');
   final _birdNameController = TextEditingController();
+  final _breedController = TextEditingController();
 
   String _selectedFlockIcon = 'cute_hen';
   String _selectedFlockColor = '4CAF50';
-  String? _selectedBreed;
+  String? _selectedBreedId;
   bool _isCreatingFlock = false;
   bool _isCreatingBird = false;
 
@@ -67,6 +69,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _featurePageController.dispose();
     _flockNameController.dispose();
     _birdNameController.dispose();
+    _breedController.dispose();
     super.dispose();
   }
 
@@ -141,7 +144,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final bird = Bird.create(
         flockId: createdFlockId,
         name: _birdNameController.text.trim(),
-        breed: _selectedBreed,
+        breed: _breedController.text.trim().isEmpty ? null : _breedController.text.trim(),
+        breedId: _selectedBreedId,
         sex: BirdSex.female,
         species: BirdSpecies.chicken,
       );
@@ -267,8 +271,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                   _AddBirdPage(
                     nameController: _birdNameController,
-                    selectedBreed: _selectedBreed,
-                    onBreedChanged: (breed) => setState(() => _selectedBreed = breed),
+                    breedController: _breedController,
+                    onBreedSelected: (breed) => setState(() => _selectedBreedId = breed?.id),
                     isLoading: _isCreatingBird,
                     onAddBird: _createBird,
                     onSkip: _nextPage,
@@ -776,33 +780,20 @@ class _CreateFlockPage extends StatelessWidget {
 
 class _AddBirdPage extends StatelessWidget {
   final TextEditingController nameController;
-  final String? selectedBreed;
-  final ValueChanged<String?> onBreedChanged;
+  final TextEditingController breedController;
+  final ValueChanged<Breed?> onBreedSelected;
   final bool isLoading;
   final VoidCallback onAddBird;
   final VoidCallback onSkip;
 
   const _AddBirdPage({
     required this.nameController,
-    required this.selectedBreed,
-    required this.onBreedChanged,
+    required this.breedController,
+    required this.onBreedSelected,
     required this.isLoading,
     required this.onAddBird,
     required this.onSkip,
   });
-
-  static const _popularBreeds = [
-    'Rhode Island Red',
-    'Leghorn',
-    'Plymouth Rock',
-    'Orpington',
-    'Australorp',
-    'Wyandotte',
-    'Sussex',
-    'Easter Egger',
-    'Silkie',
-    'Brahma',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -842,23 +833,67 @@ class _AddBirdPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Breed dropdown
-          DropdownButtonFormField<String?>(
-            initialValue: selectedBreed,
-            decoration: const InputDecoration(
-              labelText: 'Breed (optional)',
-            ),
-            items: [
-              const DropdownMenuItem<String?>(
-                value: null,
-                child: Text('Not specified'),
-              ),
-              ..._popularBreeds.map((breed) => DropdownMenuItem(
-                value: breed,
-                child: Text(breed),
-              )),
-            ],
-            onChanged: onBreedChanged,
+          // Breed autocomplete
+          Autocomplete<Breed>(
+            optionsBuilder: (textEditingValue) {
+              if (textEditingValue.text.isEmpty) {
+                return const Iterable<Breed>.empty();
+              }
+              return searchBreeds(textEditingValue.text).take(5);
+            },
+            displayStringForOption: (breed) => breed.name,
+            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+              // Sync with external controller
+              if (controller.text != breedController.text) {
+                controller.text = breedController.text;
+              }
+              controller.addListener(() {
+                if (breedController.text != controller.text) {
+                  breedController.text = controller.text;
+                }
+              });
+              return TextField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: const InputDecoration(
+                  labelText: 'Breed (optional)',
+                  hintText: 'Search or type breed name',
+                ),
+                textCapitalization: TextCapitalization.words,
+              );
+            },
+            optionsViewBuilder: (context, onSelected, options) {
+              return Align(
+                alignment: Alignment.topLeft,
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(8),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 200, maxWidth: 300),
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final breed = options.elementAt(index);
+                        return ListTile(
+                          title: Text(breed.name),
+                          subtitle: Text(
+                            '${breed.eggColorDisplay} eggs • ${breed.eggsPerYearAvg}/yr',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          onTap: () => onSelected(breed),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
+            onSelected: (breed) {
+              breedController.text = breed.name;
+              onBreedSelected(breed);
+            },
           ),
           const SizedBox(height: 48),
 

@@ -33,7 +33,7 @@ class BirdListScreen extends ConsumerStatefulWidget {
 }
 
 class _BirdListScreenState extends ConsumerState<BirdListScreen> {
-  BirdStatus? _statusFilter;
+  BirdStatus? _statusFilter = BirdStatus.active;
   BirdSortOption _sortOption = BirdSortOption.name;
 
   @override

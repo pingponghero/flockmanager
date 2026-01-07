@@ -97,13 +97,23 @@ class _BirdDetailContent extends ConsumerWidget {
                     onPressed: () => context.push('/birds/${bird.id}/edit'),
                   ),
                   if (bird.status == BirdStatus.active)
-                    PopupMenuButton<BirdStatus>(
+                    PopupMenuButton<String>(
                       icon: const Icon(Icons.more_vert),
-                      onSelected: (status) =>
-                          _showStatusChangeDialog(context, ref, status),
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'deceased':
+                            _showStatusChangeDialog(context, ref, BirdStatus.deceased);
+                          case 'sold':
+                            _showStatusChangeDialog(context, ref, BirdStatus.sold);
+                          case 'givenAway':
+                            _showStatusChangeDialog(context, ref, BirdStatus.givenAway);
+                          case 'delete':
+                            _showDeleteDialog(context, ref);
+                        }
+                      },
                       itemBuilder: (context) => [
                         const PopupMenuItem(
-                          value: BirdStatus.deceased,
+                          value: 'deceased',
                           child: Row(
                             children: [
                               Icon(Icons.block, color: Colors.grey),
@@ -113,7 +123,7 @@ class _BirdDetailContent extends ConsumerWidget {
                           ),
                         ),
                         const PopupMenuItem(
-                          value: BirdStatus.sold,
+                          value: 'sold',
                           child: Row(
                             children: [
                               Icon(Icons.sell, color: Colors.blue),
@@ -123,12 +133,23 @@ class _BirdDetailContent extends ConsumerWidget {
                           ),
                         ),
                         const PopupMenuItem(
-                          value: BirdStatus.givenAway,
+                          value: 'givenAway',
                           child: Row(
                             children: [
                               Icon(Icons.volunteer_activism, color: Colors.orange),
                               SizedBox(width: 8),
                               Text('Mark as Given Away'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_forever, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete Bird', style: TextStyle(color: Colors.red)),
                             ],
                           ),
                         ),
@@ -140,6 +161,8 @@ class _BirdDetailContent extends ConsumerWidget {
                       onSelected: (value) {
                         if (value == 'reactivate') {
                           _showReactivateDialog(context, ref);
+                        } else if (value == 'delete') {
+                          _showDeleteDialog(context, ref);
                         }
                       },
                       itemBuilder: (context) => [
@@ -150,6 +173,17 @@ class _BirdDetailContent extends ConsumerWidget {
                               Icon(Icons.refresh, color: Colors.green),
                               SizedBox(width: 8),
                               Text('Reactivate'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_forever, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete Bird', style: TextStyle(color: Colors.red)),
                             ],
                           ),
                         ),
@@ -367,6 +401,129 @@ class _BirdDetailContent extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, WidgetRef ref) async {
+    // Check for associated records
+    final eggRepo = ref.read(eggRepositoryProvider);
+    final medRepo = ref.read(medicationRepositoryProvider);
+
+    final eggLogCount = await eggRepo.getEggLogCountByBird(bird.id);
+    final medicationLogs = await medRepo.getMedicationsByBird(bird.id);
+    final healthNotes = await medRepo.getHealthNotesByBird(bird.id);
+
+    final hasRecords = eggLogCount > 0 || medicationLogs.isNotEmpty || healthNotes.isNotEmpty;
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Bird'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Permanently delete ${bird.name}?'),
+            if (hasRecords) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.amber.shade700),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Records will be kept',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.amber.shade900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${eggLogCount > 0 ? '$eggLogCount egg log${eggLogCount == 1 ? '' : 's'}' : ''}'
+                            '${eggLogCount > 0 && (medicationLogs.isNotEmpty || healthNotes.isNotEmpty) ? ', ' : ''}'
+                            '${medicationLogs.isNotEmpty ? '${medicationLogs.length} medication${medicationLogs.length == 1 ? '' : 's'}' : ''}'
+                            '${medicationLogs.isNotEmpty && healthNotes.isNotEmpty ? ', ' : ''}'
+                            '${healthNotes.isNotEmpty ? '${healthNotes.length} health note${healthNotes.length == 1 ? '' : 's'}' : ''}'
+                            ' will be preserved but unlinked from this bird.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.amber.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            const Text(
+              'This action cannot be undone.',
+              style: TextStyle(color: Colors.red),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              try {
+                // Reassign records to anonymous
+                if (eggLogCount > 0) {
+                  await eggRepo.reassignEggLogsToAnonymous(bird.id);
+                }
+                if (medicationLogs.isNotEmpty) {
+                  await medRepo.reassignMedicationLogsToAnonymous(bird.id);
+                }
+                if (healthNotes.isNotEmpty) {
+                  await medRepo.reassignHealthNotesToAnonymous(bird.id);
+                }
+
+                // Delete the bird
+                await ref.read(birdsProvider.notifier).deleteBird(bird.id);
+
+                if (context.mounted) {
+                  context.pop(); // Go back to bird list
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${bird.name} deleted')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting bird: $e'),
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                    ),
+                  );
+                }
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }

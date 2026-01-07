@@ -66,6 +66,7 @@ class EggLogsNotifier extends AsyncNotifier<List<EggLog>> {
     // Activity feed and charts
     ref.invalidate(recentEggLogsProvider);
     ref.invalidate(last7DaysEggCountsProvider);
+    ref.invalidate(checkInStreakProvider);
     // History screen providers (family providers - invalidates all instances)
     ref.invalidate(eggLogsByDateProvider);
     ref.invalidate(dailyEggCountsProvider);
@@ -298,4 +299,23 @@ final recentEggLogsProvider =
   final logs = await repository.getAllEggLogs();
   // Return the 5 most recent logs
   return logs.take(5).toList();
+});
+
+/// Provider for check-in streak (consecutive days with any egg log entry)
+/// Uses the same logic as achievements - reuses repository method
+final checkInStreakProvider = FutureProvider<int>((ref) async {
+  final repository = ref.read(eggRepositoryProvider);
+  return repository.getCurrentLoggingStreak();
+});
+
+/// Provider for longest streak ever achieved
+final longestStreakProvider = FutureProvider<int>((ref) async {
+  final repository = ref.read(eggRepositoryProvider);
+  return repository.getLongestStreak();
+});
+
+/// Provider for total days with egg logs
+final totalLoggedDaysProvider = FutureProvider<int>((ref) async {
+  final repository = ref.read(eggRepositoryProvider);
+  return repository.getDistinctLogDays();
 });

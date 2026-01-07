@@ -42,7 +42,7 @@ class FlockDropdown extends ConsumerWidget {
               const DropdownMenuEntry(
                 value: null,
                 label: 'All Flocks',
-                leadingIcon: Icon(Icons.select_all, size: 24),
+                leadingIcon: Icon(Icons.grid_view, size: 24),
               ),
             ...flocks.map((flock) => DropdownMenuEntry(
                   value: flock.id,
@@ -58,7 +58,7 @@ class FlockDropdown extends ConsumerWidget {
 
   Widget? _buildLeadingIcon(List<Flock> flocks, String? selectedId) {
     if (selectedId == null) {
-      return const Icon(Icons.select_all, size: 24);
+      return const Icon(Icons.grid_view, size: 24);
     }
     final flock = flocks.where((f) => f.id == selectedId).firstOrNull;
     if (flock == null) return null;
