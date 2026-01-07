@@ -145,7 +145,20 @@ final analyticsProvider = FutureProvider<AnalyticsSummary>((ref) async {
   final eggRepo = ref.read(_eggRepositoryProvider);
   final birdRepo = ref.read(_birdRepositoryProvider);
 
-  final dateRange = period.dateRange;
+  // For allTime, use actual first egg date instead of hardcoded 2020
+  DateRange dateRange;
+  if (period == AnalyticsPeriod.allTime) {
+    final firstEggDate = await eggRepo.getFirstEggLogDate();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    // If no eggs yet, default to today (will show empty stats)
+    final start = firstEggDate != null
+        ? DateTime(firstEggDate.year, firstEggDate.month, firstEggDate.day)
+        : today;
+    dateRange = DateRange(start, today);
+  } else {
+    dateRange = period.dateRange;
+  }
 
   // Get all egg logs for the period
   List<EggLog> logs = await eggRepo.getEggLogsByDateRange(

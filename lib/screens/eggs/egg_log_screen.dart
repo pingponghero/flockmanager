@@ -118,7 +118,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
                           const Text('No flocks available'),
                           const SizedBox(height: 8),
                           TextButton(
-                            onPressed: () => context.push('/flocks/new'),
+                            onPressed: () => context.go('/settings/flocks/new'),
                             child: const Text('Create a Flock'),
                           ),
                         ],

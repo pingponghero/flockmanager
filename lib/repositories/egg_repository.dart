@@ -529,4 +529,18 @@ class EggRepository {
 
     return ((result.first['count'] as int?) ?? 0) > 0;
   }
+
+  /// Get the date of the first egg log (for "All Time" analytics start)
+  Future<DateTime?> getFirstEggLogDate() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery('''
+      SELECT MIN(date) as first_date FROM egg_logs
+    ''');
+
+    final dateStr = result.first['first_date'] as String?;
+    if (dateStr == null) return null;
+
+    return DateTime.parse(dateStr);
+  }
 }

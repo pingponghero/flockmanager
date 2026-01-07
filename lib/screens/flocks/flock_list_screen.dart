@@ -70,7 +70,7 @@ class FlockListScreen extends ConsumerWidget {
         data: (flocks) {
           if (flocks.isEmpty) {
             return _EmptyState(
-              onAddFlock: () => context.push('/flocks/new'),
+              onAddFlock: () => context.push('/settings/flocks/new'),
             );
           }
 
@@ -83,7 +83,7 @@ class FlockListScreen extends ConsumerWidget {
                 final flock = flocks[index];
                 return _FlockCard(
                   flock: flock,
-                  onTap: () => context.push('/flocks/${flock.id}'),
+                  onTap: () => context.push('/settings/flocks/${flock.id}'),
                   onArchive: () => _showArchiveDialog(context, ref, flock),
                 );
               },
@@ -96,7 +96,7 @@ class FlockListScreen extends ConsumerWidget {
           final canEdit = ref.watch(canEditProvider);
           return FloatingActionButton(
             onPressed: canEdit
-                ? () => context.push('/flocks/new')
+                ? () => context.push('/settings/flocks/new')
                 : () => showTrialExpiredDialog(context, ref),
             tooltip: 'Add Flock',
             child: const Icon(Icons.add),

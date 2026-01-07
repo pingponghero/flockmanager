@@ -504,7 +504,15 @@ class _BirdDetailContent extends ConsumerWidget {
                 if (context.mounted) {
                   context.pop(); // Go back to bird list
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${bird.name} deleted')),
+                    SnackBar(
+                      content: Text('${bird.name} deleted'),
+                      action: SnackBarAction(
+                        label: 'Undo',
+                        onPressed: () {
+                          ref.read(birdsProvider.notifier).addBird(bird);
+                        },
+                      ),
+                    ),
                   );
                 }
               } catch (e) {

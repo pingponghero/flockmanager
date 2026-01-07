@@ -4,9 +4,13 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../models/egg_log.dart';
 import '../../providers/analytics_provider.dart';
+import '../../providers/bird_provider.dart';
+import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
 
@@ -121,6 +125,9 @@ class AnalyticsScreen extends ConsumerWidget {
                     _FreeloardersCard(freeloaders: analytics.freeloaders),
                     const SizedBox(height: 24),
                   ],
+
+                  // Recent Activity
+                  const _RecentActivity(),
                 ],
               ),
             ),
@@ -649,5 +656,152 @@ class _FreeloardersCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _RecentActivity extends ConsumerWidget {
+  const _RecentActivity();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final logsAsync = ref.watch(recentEggLogsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Recent Activity',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            TextButton(
+              onPressed: () => context.go('/eggs'),
+              child: const Text('See all'),
+            ),
+          ],
+        ),
+        logsAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (error, stack) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text('Error: $error'),
+            ),
+          ),
+          data: (logs) {
+            if (logs.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.egg_outlined,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No recent activity',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Card(
+              child: Column(
+                children: logs.map((log) => _ActivityTile(log: log)).toList(),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ActivityTile extends ConsumerWidget {
+  final EggLog log;
+
+  const _ActivityTile({required this.log});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subtitleWidget = log.birdId != null
+        ? _buildBirdSubtitle(context, ref)
+        : _buildFlockSubtitle(context, ref);
+
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        child: Text(
+          '${log.count}',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      title: Text(
+        '${log.count} egg${log.count == 1 ? '' : 's'} logged',
+      ),
+      subtitle: subtitleWidget,
+      trailing: Text(
+        _formatRelativeTime(log.createdAt),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+      ),
+      onTap: () => context.go('/eggs'),
+    );
+  }
+
+  Widget _buildBirdSubtitle(BuildContext context, WidgetRef ref) {
+    final birdAsync = ref.watch(birdByIdProvider(log.birdId!));
+    return birdAsync.when(
+      loading: () => const Text('...'),
+      error: (_, __) => _buildFlockSubtitle(context, ref),
+      data: (bird) => bird != null
+          ? Text(bird.name)
+          : _buildFlockSubtitle(context, ref),
+    );
+  }
+
+  Widget _buildFlockSubtitle(BuildContext context, WidgetRef ref) {
+    final flockAsync = ref.watch(flockByIdProvider(log.flockId));
+    return flockAsync.when(
+      loading: () => const Text('...'),
+      error: (_, __) => const Text('Unknown flock'),
+      data: (flock) => Text(flock?.name ?? 'Unknown flock'),
+    );
+  }
+
+  String _formatRelativeTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final diff = now.difference(dateTime);
+
+    if (diff.inMinutes < 1) {
+      return 'Just now';
+    } else if (diff.inMinutes < 60) {
+      return '${diff.inMinutes}m ago';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours}h ago';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays}d ago';
+    } else {
+      return DateFormat.MMMd().format(dateTime);
+    }
   }
 }

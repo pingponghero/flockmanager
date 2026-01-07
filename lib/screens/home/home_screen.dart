@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../models/egg_log.dart';
 import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
@@ -36,10 +35,6 @@ class HomeScreen extends ConsumerWidget {
             icon: const Icon(Icons.history),
             onPressed: () => context.push('/eggs'),
             tooltip: 'Egg History',
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => context.push('/settings'),
           ),
         ],
       ),
@@ -83,16 +78,8 @@ class HomeScreen extends ConsumerWidget {
             _StatsRow(selectedFlockId: selectedFlockId),
             const SizedBox(height: 24),
 
-            // Quick actions
-            _QuickActions(),
-            const SizedBox(height: 16),
-
             // Latest achievement
             const _LatestAchievement(),
-            const SizedBox(height: 24),
-
-            // Recent activity
-            _RecentActivity(),
           ],
         ),
       ),
@@ -287,7 +274,7 @@ class _WithdrawalWarning extends ConsumerWidget {
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: GestureDetector(
-            onTap: () => context.push('/medications'),
+            onTap: () => context.go('/settings/medications'),
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -616,7 +603,7 @@ class _StatsRow extends ConsumerWidget {
               height: 20,
               color: Theme.of(context).colorScheme.primary,
             ),
-            onTap: () => context.push('/birds'),
+            onTap: () => context.go('/birds'),
           ),
         ),
       ],
@@ -670,189 +657,6 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _QuickActions extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Actions',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => context.push('/expenses'),
-                icon: const Icon(Icons.attach_money),
-                label: const Text('Finances'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => context.push('/analytics'),
-                icon: const Icon(Icons.bar_chart),
-                label: const Text('Egg Stats'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _RecentActivity extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final logsAsync = ref.watch(recentEggLogsProvider);
-    final canEdit = ref.watch(canEditProvider);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Recent Activity',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            TextButton(
-              onPressed: () => context.push('/eggs'),
-              child: const Text('See all'),
-            ),
-          ],
-        ),
-        logsAsync.when(
-          loading: () => const Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: CircularProgressIndicator(),
-            ),
-          ),
-          error: (error, stack) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text('Error: $error'),
-            ),
-          ),
-          data: (logs) {
-            if (logs.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.egg_outlined,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton.icon(
-                        onPressed: canEdit
-                            ? () => showEggQuickLog(context)
-                            : () => showTrialExpiredDialog(context, ref),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Log Your First Eggs'),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Card(
-              child: Column(
-                children: logs.map((log) => _ActivityTile(log: log)).toList(),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _ActivityTile extends ConsumerWidget {
-  final EggLog log;
-
-  const _ActivityTile({required this.log});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Show bird name if attributed to a specific bird, otherwise show flock name
-    final subtitleWidget = log.birdId != null
-        ? _buildBirdSubtitle(context, ref)
-        : _buildFlockSubtitle(context, ref);
-
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        child: Text(
-          '${log.count}',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-      title: Text(
-        '${log.count} egg${log.count == 1 ? '' : 's'} logged',
-      ),
-      subtitle: subtitleWidget,
-      trailing: Text(
-        _formatRelativeTime(log.createdAt),
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-      ),
-      onTap: () => context.push('/eggs'),
-    );
-  }
-
-  Widget _buildBirdSubtitle(BuildContext context, WidgetRef ref) {
-    final birdAsync = ref.watch(birdByIdProvider(log.birdId!));
-    return birdAsync.when(
-      loading: () => const Text('...'),
-      error: (_, __) => _buildFlockSubtitle(context, ref),
-      data: (bird) => bird != null
-          ? Text(bird.name)
-          : _buildFlockSubtitle(context, ref),
-    );
-  }
-
-  Widget _buildFlockSubtitle(BuildContext context, WidgetRef ref) {
-    final flockAsync = ref.watch(flockByIdProvider(log.flockId));
-    return flockAsync.when(
-      loading: () => const Text('...'),
-      error: (_, __) => const Text('Unknown flock'),
-      data: (flock) => Text(flock?.name ?? 'Unknown flock'),
-    );
-  }
-
-  String _formatRelativeTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final diff = now.difference(dateTime);
-
-    if (diff.inMinutes < 1) {
-      return 'Just now';
-    } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes}m ago';
-    } else if (diff.inHours < 24) {
-      return '${diff.inHours}h ago';
-    } else if (diff.inDays < 7) {
-      return '${diff.inDays}d ago';
-    } else {
-      return DateFormat.MMMd().format(dateTime);
-    }
-  }
-}
-
 class _ChickenOfTheWeek extends ConsumerWidget {
   const _ChickenOfTheWeek();
 
@@ -874,7 +678,7 @@ class _ChickenOfTheWeek extends ConsumerWidget {
           child: Card(
             clipBehavior: Clip.antiAlias,
             child: InkWell(
-              onTap: () => context.push('/birds/${bird.id}'),
+              onTap: () => context.go('/birds/${bird.id}'),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -1007,7 +811,7 @@ class _BirthdayCallouts extends ConsumerWidget {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: GestureDetector(
-                  onTap: () => context.push('/birds/${b.bird.id}'),
+                  onTap: () => context.go('/birds/${b.bird.id}'),
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -1068,7 +872,7 @@ class _LatestAchievement extends ConsumerWidget {
         final summary = summaryAsync.valueOrNull;
 
         return GestureDetector(
-          onTap: () => context.push('/achievements'),
+          onTap: () => context.go('/settings/achievements'),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
