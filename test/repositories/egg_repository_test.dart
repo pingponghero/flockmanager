@@ -3,7 +3,6 @@ import 'package:mocktail/mocktail.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flock_manager/database/database_helper.dart';
 import 'package:flock_manager/models/egg_log.dart';
-import 'package:flock_manager/models/enums.dart';
 import 'package:flock_manager/repositories/egg_repository.dart';
 
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
