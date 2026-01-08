@@ -1,0 +1,129 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../providers/egg_provider.dart';
+import '../../../providers/trial_provider.dart';
+import '../../../widgets/egg_quick_log.dart';
+import '../../../widgets/trial_banner.dart' show showTrialExpiredDialog;
+
+/// Card showing today's egg count with weekly average comparison
+class TodayEggCard extends ConsumerWidget {
+  final String? selectedFlockId;
+
+  const TodayEggCard({super.key, this.selectedFlockId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final todayAsync = ref.watch(todayEggCountByFlockProvider);
+    final avgAsync = ref.watch(weeklyAverageEggCountProvider);
+    final canEdit = ref.watch(canEditProvider);
+
+    final todayCount = todayAsync.valueOrNull ?? 0;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          if (todayCount == 0 && canEdit) {
+            showEggQuickLog(context);
+          } else if (todayCount == 0 && !canEdit) {
+            showTrialExpiredDialog(context, ref);
+          } else {
+            context.push('/eggs');
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Today's Eggs",
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    todayAsync.when(
+                      loading: () => const SizedBox(
+                        height: 48,
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                      error: (error, stack) => const Text('--'),
+                      data: (today) => Text(
+                        '$today',
+                        style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Comparison with weekly average
+              avgAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (error, stack) => const SizedBox.shrink(),
+                data: (avg) {
+                  final diff = todayCount - avg;
+
+                  if (avg == 0) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final isUp = diff > 0.5;
+                  final isDown = diff < -0.5;
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isUp
+                          ? Colors.green.shade50
+                          : isDown
+                              ? Colors.red.shade50
+                              : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isUp
+                              ? Icons.arrow_upward
+                              : isDown
+                                  ? Icons.arrow_downward
+                                  : Icons.remove,
+                          size: 16,
+                          color: isUp
+                              ? Colors.green.shade700
+                              : isDown
+                                  ? Colors.red.shade700
+                                  : Colors.grey.shade700,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'avg ${avg.toStringAsFixed(1)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isUp
+                                ? Colors.green.shade700
+                                : isDown
+                                    ? Colors.red.shade700
+                                    : Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
