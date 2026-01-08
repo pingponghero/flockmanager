@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/egg_log.dart';
 import '../repositories/egg_repository.dart';
 import 'flock_provider.dart';
+import 'notification_provider.dart';
 
 /// Repository provider
 final eggRepositoryProvider = Provider<EggRepository>((ref) {
@@ -28,6 +29,8 @@ class EggLogsNotifier extends AsyncNotifier<List<EggLog>> {
     ref.invalidateSelf();
     // Invalidate related providers
     _invalidateEggCountProviders();
+    // Reschedule egg reminder for tomorrow (eggs logged today)
+    await ref.read(notificationSettingsProvider.notifier).onEggsLogged();
   }
 
   /// Update an existing egg log

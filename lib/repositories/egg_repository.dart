@@ -543,4 +543,19 @@ class EggRepository {
 
     return DateTime.parse(dateStr);
   }
+
+  /// Check if any eggs were logged today (calendar day)
+  Future<bool> hasEggsLoggedToday() async {
+    final db = await _db.database;
+
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
+
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM egg_logs WHERE date >= ?',
+      [startOfDay],
+    );
+
+    return ((result.first['count'] as int?) ?? 0) > 0;
+  }
 }

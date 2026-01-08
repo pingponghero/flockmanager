@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -21,11 +22,16 @@ class NotificationService {
   static const String _medicationChannelId = 'medication_reminders';
   static const String _withdrawalChannelId = 'withdrawal_alerts';
   static const String _expenseChannelId = 'expense_reminders';
+  static const String _eggReminderChannelId = 'egg_reminders';
 
   // Notification ID prefixes (to avoid collisions)
   static const int _medicationIdPrefix = 1000;
   static const int _withdrawalIdPrefix = 2000;
   static const int _expenseIdPrefix = 3000;
+  static const int _eggReminderId = 4000;
+
+  // Callback for notification tap navigation
+  static void Function()? onEggReminderTapped;
 
   /// Initialize the notification service.
   Future<void> initialize() async {
@@ -90,6 +96,15 @@ class NotificationService {
         _expenseChannelId,
         'Expense Reminders',
         description: 'Reminders for recurring expenses',
+        importance: Importance.defaultImportance,
+      ),
+    );
+
+    await androidPlugin.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _eggReminderChannelId,
+        'Egg Reminders',
+        description: 'Daily reminders to log eggs',
         importance: Importance.defaultImportance,
       ),
     );
@@ -241,6 +256,41 @@ class NotificationService {
     await _notifications.cancel(notificationId);
   }
 
+  /// Schedule a daily egg reminder notification.
+  /// If [tomorrow] is true, schedules for tomorrow regardless of current time.
+  Future<void> scheduleEggReminder(TimeOfDay time, {bool tomorrow = false}) async {
+    // Cancel any existing egg reminder first
+    await cancelEggReminder();
+
+    final now = DateTime.now();
+    var scheduledDate = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+
+    // If time has passed today or tomorrow is requested, schedule for tomorrow
+    if (tomorrow || scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    await _scheduleNotification(
+      id: _eggReminderId,
+      channelId: _eggReminderChannelId,
+      title: 'Time to check for eggs!',
+      body: "You haven't logged any eggs today 🥚",
+      scheduledDate: scheduledDate,
+      payload: 'egg_reminder',
+    );
+  }
+
+  /// Cancel the egg reminder notification.
+  Future<void> cancelEggReminder() async {
+    await _notifications.cancel(_eggReminderId);
+  }
+
   /// Cancel all notifications.
   Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
@@ -258,14 +308,23 @@ class NotificationService {
     required String title,
     required String body,
     required DateTime scheduledDate,
+    String? payload,
   }) async {
+    String channelName;
+    switch (channelId) {
+      case _medicationChannelId:
+        channelName = 'Medication Reminders';
+      case _withdrawalChannelId:
+        channelName = 'Withdrawal Alerts';
+      case _eggReminderChannelId:
+        channelName = 'Egg Reminders';
+      default:
+        channelName = 'Expense Reminders';
+    }
+
     final androidDetails = AndroidNotificationDetails(
       channelId,
-      channelId == _medicationChannelId
-          ? 'Medication Reminders'
-          : channelId == _withdrawalChannelId
-              ? 'Withdrawal Alerts'
-              : 'Expense Reminders',
+      channelName,
       importance: Importance.high,
       priority: Priority.high,
     );
@@ -292,12 +351,15 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
+      payload: payload,
     );
   }
 
   /// Handle notification tap.
   void _onNotificationTapped(NotificationResponse response) {
-    // Could navigate to specific screen based on notification payload
-    // For now, just opening the app is sufficient
+    // Handle egg reminder tap - open quick log sheet
+    if (response.payload == 'egg_reminder' && onEggReminderTapped != null) {
+      onEggReminderTapped!();
+    }
   }
 }

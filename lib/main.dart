@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/router.dart';
 import 'app/theme.dart';
+import 'providers/notification_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/iap_service.dart';
@@ -25,6 +26,11 @@ void main() async {
   await NotificationService().initialize();
   await IAPService().initialize();
 
+  // Set up egg reminder tap handler to navigate to quick log
+  NotificationService.onEggReminderTapped = () {
+    router.go('/eggs/log');
+  };
+
   runApp(
     const ProviderScope(
       child: FlockManagerApp(),
@@ -41,6 +47,7 @@ class FlockManagerApp extends ConsumerStatefulWidget {
 
 class _FlockManagerAppState extends ConsumerState<FlockManagerApp> {
   bool _hasCheckedOnboarding = false;
+  bool _hasEvaluatedEggReminder = false;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +64,14 @@ class _FlockManagerAppState extends ConsumerState<FlockManagerApp> {
           router.go('/onboarding');
         });
       }
+    }
+
+    // Evaluate egg reminder on app open (once per session)
+    if (!_hasEvaluatedEggReminder && _hasCheckedOnboarding) {
+      _hasEvaluatedEggReminder = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(notificationSettingsProvider.notifier).evaluateEggReminder();
+      });
     }
 
     return MaterialApp.router(

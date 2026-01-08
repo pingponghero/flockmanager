@@ -665,10 +665,54 @@ class _NotificationSettingsCard extends ConsumerWidget {
                 ref.read(notificationSettingsProvider.notifier).setExpenseReminders(value);
               },
             ),
+            const Divider(height: 1),
+            // Daily egg reminder toggle
+            SwitchListTile(
+              secondary: const Icon(Icons.access_time),
+              title: const Text('Daily Egg Reminder'),
+              subtitle: Text(settings.eggReminders && settings.eggReminderTime != null
+                  ? 'Remind at ${settings.eggReminderTime!.format(context)}'
+                  : 'Remind me to log eggs'),
+              value: settings.eggReminders,
+              onChanged: (value) {
+                ref.read(notificationSettingsProvider.notifier).setEggReminders(value);
+              },
+            ),
+            // Time picker (shown when egg reminders enabled)
+            if (settings.eggReminders) ...[
+              ListTile(
+                leading: const SizedBox(width: 24), // Align with switch
+                title: const Text('Reminder Time'),
+                trailing: TextButton(
+                  onPressed: () => _pickEggReminderTime(context, ref, settings.eggReminderTime),
+                  child: Text(
+                    settings.eggReminderTime?.format(context) ?? '6:00 PM',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ],
       ),
     );
+  }
+
+  Future<void> _pickEggReminderTime(
+    BuildContext context,
+    WidgetRef ref,
+    TimeOfDay? currentTime,
+  ) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: currentTime ?? const TimeOfDay(hour: 18, minute: 0),
+    );
+    if (picked != null) {
+      ref.read(notificationSettingsProvider.notifier).setEggReminderTime(picked);
+    }
   }
 }
 
