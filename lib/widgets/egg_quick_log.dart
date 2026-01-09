@@ -100,6 +100,7 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
           _NumberPicker(
             value: _count,
             onChanged: (value) => setState(() => _count = value),
+            compact: _showAdvanced,
           ),
           const SizedBox(height: 16),
           // Date indicator
@@ -243,7 +244,7 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(
-                        _count == 0 ? 'Save (No Eggs)' : 'Save $_count Eggs',
+                        _count == 0 ? 'Save (No Eggs)' : 'Save $_count ${_count == 1 ? 'Egg' : 'Eggs'}',
                         style: const TextStyle(fontSize: 18),
                       ),
               ),
@@ -444,10 +445,12 @@ class _FlockSelector extends ConsumerWidget {
 class _NumberPicker extends StatelessWidget {
   final int value;
   final ValueChanged<int> onChanged;
+  final bool compact;
 
   const _NumberPicker({
     required this.value,
     required this.onChanged,
+    this.compact = false,
   });
 
   static const int _min = 0;
@@ -455,59 +458,69 @@ class _NumberPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Count display
-        Text(
-          '$value',
-          style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                fontSize: 80,
-                fontWeight: FontWeight.bold,
+    final fontSize = compact ? 48.0 : 80.0;
+    final buttonSize = compact ? 48.0 : 64.0;
+    final smallButtonSize = compact ? 40.0 : 48.0;
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      child: Column(
+        children: [
+          // Count display
+          Text(
+            '$value',
+            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          if (!compact)
+            Text(
+              value == 1 ? 'egg' : 'eggs',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          SizedBox(height: compact ? 8 : 16),
+          // Increment/decrement buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Decrement by 5
+              _CountButton(
+                icon: Icons.remove,
+                label: '-5',
+                onPressed: value >= 5 ? () => onChanged(value - 5) : null,
+                size: smallButtonSize,
               ),
-        ),
-        Text(
-          value == 1 ? 'egg' : 'eggs',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              const SizedBox(width: 8),
+              // Decrement by 1
+              _CountButton(
+                icon: Icons.remove,
+                onPressed: value > _min ? () => onChanged(value - 1) : null,
+                size: buttonSize,
               ),
-        ),
-        const SizedBox(height: 16),
-        // Increment/decrement buttons
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Decrement by 5
-            _CountButton(
-              icon: Icons.remove,
-              label: '-5',
-              onPressed: value >= 5 ? () => onChanged(value - 5) : null,
-            ),
-            const SizedBox(width: 8),
-            // Decrement by 1
-            _CountButton(
-              icon: Icons.remove,
-              onPressed: value > _min ? () => onChanged(value - 1) : null,
-              size: 64,
-            ),
-            const SizedBox(width: 16),
-            // Increment by 1
-            _CountButton(
-              icon: Icons.add,
-              onPressed: value < _max ? () => onChanged(value + 1) : null,
-              size: 64,
-              isPrimary: true,
-            ),
-            const SizedBox(width: 8),
-            // Increment by 5
-            _CountButton(
-              icon: Icons.add,
-              label: '+5',
-              onPressed: value <= _max - 5 ? () => onChanged(value + 5) : null,
-              isPrimary: true,
-            ),
-          ],
-        ),
-      ],
+              const SizedBox(width: 16),
+              // Increment by 1
+              _CountButton(
+                icon: Icons.add,
+                onPressed: value < _max ? () => onChanged(value + 1) : null,
+                size: buttonSize,
+                isPrimary: true,
+              ),
+              const SizedBox(width: 8),
+              // Increment by 5
+              _CountButton(
+                icon: Icons.add,
+                label: '+5',
+                onPressed: value <= _max - 5 ? () => onChanged(value + 5) : null,
+                isPrimary: true,
+                size: smallButtonSize,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

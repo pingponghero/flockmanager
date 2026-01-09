@@ -70,22 +70,22 @@ class LatestAchievement extends ConsumerWidget {
                   ),
                 ),
                 // Summary count
-                if (summary != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${summary.earned}/${summary.total}',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ),
-                const SizedBox(width: 8),
+                // if (summary != null)
+                //   Container(
+                //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                //     decoration: BoxDecoration(
+                //       color: Theme.of(context).colorScheme.primaryContainer,
+                //       borderRadius: BorderRadius.circular(12),
+                //     ),
+                //     child: Text(
+                //       '${summary.earned}/${summary.total}',
+                //       style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                //             color: Theme.of(context).colorScheme.onPrimaryContainer,
+                //             fontWeight: FontWeight.bold,
+                //           ),
+                //     ),
+                //   ),
+                // const SizedBox(width: 8),
                 Icon(
                   Icons.chevron_right,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,

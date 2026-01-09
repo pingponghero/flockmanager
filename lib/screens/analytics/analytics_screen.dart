@@ -35,30 +35,35 @@ class AnalyticsScreen extends ConsumerWidget {
         child: ListView(
           padding: pagePadding(context),
           children: [
-            // Flock filter
+            // Flock filter (hidden if only 1 flock)
             flocksAsync.when(
               loading: () => const SizedBox.shrink(),
               error: (error, stack) => const SizedBox.shrink(),
-              data: (flocks) => DropdownMenu<String?>(
-                initialSelection: selectedFlockId,
-                expandedInsets: EdgeInsets.zero,
-                label: const Text('Flock'),
-                dropdownMenuEntries: [
-                  const DropdownMenuEntry(
-                    value: null,
-                    label: 'All Flocks',
+              data: (flocks) {
+                if (flocks.length <= 1) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: DropdownMenu<String?>(
+                    initialSelection: selectedFlockId,
+                    expandedInsets: EdgeInsets.zero,
+                    label: const Text('Flock'),
+                    dropdownMenuEntries: [
+                      const DropdownMenuEntry(
+                        value: null,
+                        label: 'All Flocks',
+                      ),
+                      ...flocks.map((flock) => DropdownMenuEntry(
+                            value: flock.id,
+                            label: flock.name,
+                          )),
+                    ],
+                    onSelected: (value) {
+                      ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
+                    },
                   ),
-                  ...flocks.map((flock) => DropdownMenuEntry(
-                        value: flock.id,
-                        label: flock.name,
-                      )),
-                ],
-                onSelected: (value) {
-                  ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
-                },
-              ),
+                );
+              },
             ),
-            const SizedBox(height: 16),
 
             // Period selector
             _PeriodSelector(
