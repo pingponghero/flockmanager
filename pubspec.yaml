@@ -33,9 +33,10 @@ dependencies:
   # URL Launcher
   url_launcher: ^6.2.5
 
-  # Export
+  # Export/Import
   archive: ^4.0.4
   share_plus: ^10.1.4
+  file_picker: ^8.0.0
 
   # Charts
   fl_chart: ^0.69.0

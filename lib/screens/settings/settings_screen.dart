@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,13 +11,20 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../app/theme.dart';
 import '../../data/test_data.dart';
 import '../../database/database_helper.dart';
+import '../../providers/bird_provider.dart' show birdsProvider;
+import '../../providers/egg_provider.dart' show eggLogsProvider;
+import '../../providers/expense_provider.dart' show expensesProvider;
+import '../../providers/flock_provider.dart' show flocksProvider, selectedFlockIdProvider;
+import '../../providers/medication_provider.dart' show medicationsProvider;
 import '../../providers/notification_provider.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../services/export_service.dart';
 import '../../services/iap_service.dart';
+import '../../services/import_service.dart';
 import '../../utils/edge_insets.dart';
+import '../../widgets/import_confirmation_dialog.dart';
 
 const _supportEmail = 'flockmanager.app@gmail.com';
 const _appVersion = '1.0.0';
@@ -209,12 +219,24 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.download),
-              title: const Text('Export Data'),
-              subtitle: const Text('Download all data as CSV files'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _exportData(context),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.download),
+                  title: const Text('Export Data'),
+                  subtitle: const Text('Save all flock data and photos as a backup file'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _exportData(context),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.upload),
+                  title: const Text('Import Data'),
+                  subtitle: const Text('Restore from a backup file (replaces all data)'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _importData(context, ref),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
@@ -362,6 +384,139 @@ class SettingsScreen extends ConsumerWidget {
         Navigator.pop(context); // Close loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _importData(BuildContext context, WidgetRef ref) async {
+    // 1. Show warning dialog
+    final shouldProceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => const ImportWarningDialog(),
+    );
+
+    if (shouldProceed != true || !context.mounted) return;
+
+    // 2. Open file picker
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['zip'],
+    );
+
+    if (result == null || result.files.isEmpty || !context.mounted) return;
+
+    final filePath = result.files.first.path;
+    if (filePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not access the selected file')),
+      );
+      return;
+    }
+
+    final zipFile = File(filePath);
+    final importService = ImportService();
+
+    // 3. Get preview and show confirmation with counts
+    try {
+      final preview = await importService.getPreview(zipFile);
+
+      // Check format version
+      if (!preview.isSupported) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'This backup is from a newer version of Flock Manager. Please update the app.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!context.mounted) return;
+
+      // Show confirmation dialog with counts
+      final confirmImport = await showDialog<bool>(
+        context: context,
+        builder: (context) => ImportConfirmationDialog(preview: preview),
+      );
+
+      if (confirmImport != true || !context.mounted) return;
+
+      // 4. Execute import with progress indicator
+      double progress = 0;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) {
+            return ImportProgressDialog(progress: progress);
+          },
+        ),
+      );
+
+      final importResult = await ImportService(
+        onProgress: (p) {
+          progress = p;
+          // Note: We can't easily update the dialog here, but the import is fast
+        },
+      ).importFromZip(zipFile);
+
+      if (!context.mounted) return;
+      Navigator.pop(context); // Close progress dialog
+
+      // 5. Handle result
+      if (importResult.success) {
+        // Invalidate all providers
+        ref.invalidate(flocksProvider);
+        ref.invalidate(birdsProvider);
+        ref.invalidate(eggLogsProvider);
+        ref.invalidate(expensesProvider);
+        ref.invalidate(medicationsProvider);
+        ref.invalidate(selectedFlockIdProvider);
+
+        // Show result dialog if there are warnings, otherwise just show toast
+        if (importResult.hasWarnings) {
+          if (context.mounted) {
+            await showDialog(
+              context: context,
+              builder: (context) => ImportResultDialog(result: importResult),
+            );
+          }
+        } else {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(importResult.summaryMessage)),
+            );
+          }
+        }
+
+        // Navigate to home
+        if (context.mounted) {
+          context.go('/');
+        }
+      } else {
+        // Show error
+        if (context.mounted) {
+          await showDialog(
+            context: context,
+            builder: (context) => ImportResultDialog(result: importResult),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e is ImportException
+                  ? e.message
+                  : "This file isn't a valid backup. Please select a .zip file exported from Flock Manager.",
+            ),
+          ),
         );
       }
     }
@@ -633,6 +788,36 @@ class _NotificationSettingsCard extends ConsumerWidget {
               ),
             )
           else ...[
+            // Daily egg reminder toggle
+            SwitchListTile(
+              secondary: const Icon(Icons.access_time),
+              title: const Text('Daily Egg Reminder'),
+              subtitle: Text(settings.eggReminders && settings.eggReminderTime != null
+                  ? 'Remind at ${settings.eggReminderTime!.format(context)}'
+                  : 'Remind me to log eggs'),
+              value: settings.eggReminders,
+              onChanged: (value) {
+                ref.read(notificationSettingsProvider.notifier).setEggReminders(value);
+              },
+            ),
+            // Time picker (shown when egg reminders enabled)
+            if (settings.eggReminders) ...[
+              ListTile(
+                leading: const SizedBox(width: 24), // Align with switch
+                title: const Text('Reminder Time'),
+                trailing: TextButton(
+                  onPressed: () => _pickEggReminderTime(context, ref, settings.eggReminderTime),
+                  child: Text(
+                    settings.eggReminderTime?.format(context) ?? '6:00 PM',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const Divider(height: 1),
             // Medication reminders toggle
             SwitchListTile(
               secondary: const Icon(Icons.medication),
@@ -665,36 +850,6 @@ class _NotificationSettingsCard extends ConsumerWidget {
                 ref.read(notificationSettingsProvider.notifier).setExpenseReminders(value);
               },
             ),
-            const Divider(height: 1),
-            // Daily egg reminder toggle
-            SwitchListTile(
-              secondary: const Icon(Icons.access_time),
-              title: const Text('Daily Egg Reminder'),
-              subtitle: Text(settings.eggReminders && settings.eggReminderTime != null
-                  ? 'Remind at ${settings.eggReminderTime!.format(context)}'
-                  : 'Remind me to log eggs'),
-              value: settings.eggReminders,
-              onChanged: (value) {
-                ref.read(notificationSettingsProvider.notifier).setEggReminders(value);
-              },
-            ),
-            // Time picker (shown when egg reminders enabled)
-            if (settings.eggReminders) ...[
-              ListTile(
-                leading: const SizedBox(width: 24), // Align with switch
-                title: const Text('Reminder Time'),
-                trailing: TextButton(
-                  onPressed: () => _pickEggReminderTime(context, ref, settings.eggReminderTime),
-                  child: Text(
-                    settings.eggReminderTime?.format(context) ?? '6:00 PM',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ],
         ],
       ),

@@ -11,15 +11,32 @@ import '../database/database_helper.dart';
 class ExportService {
   final DatabaseHelper _db;
 
-  ExportService({DatabaseHelper? db}) : _db = db ?? DatabaseHelper.instance;
+  /// Callback for progress updates during export (0.0 to 1.0)
+  final void Function(double progress)? onProgress;
+
+  ExportService({DatabaseHelper? db, this.onProgress})
+      : _db = db ?? DatabaseHelper.instance;
+
+  static const String _appVersion = '1.1.0';
+  static const int _formatVersion = 1;
+
+  /// UTF-8 BOM prefix for CSV files (helps Excel recognize UTF-8)
+  static const String _utf8Bom = '\uFEFF';
 
   /// Export all data to a zip file and return the file path.
   Future<String> exportToZip() async {
     final db = await _db.database;
     final archive = Archive();
 
-    // Export each table
-    final flocks = await _exportTable(db, 'flocks', [
+    _reportProgress(0.0);
+
+    // Gather counts for metadata
+    final counts = <String, int>{};
+
+    // Export flocks (always included)
+    final flocksData = await db.query('flocks');
+    counts['flocks'] = flocksData.length;
+    final flocksBytes = _createCsv(flocksData, [
       'id',
       'name',
       'description',
@@ -28,9 +45,35 @@ class ExportService {
       'is_archived',
       'created_at',
     ]);
-    archive.addFile(ArchiveFile('flocks.csv', flocks.length, flocks));
+    archive.addFile(ArchiveFile('flocks.csv', flocksBytes.length, flocksBytes));
 
-    final birds = await _exportTable(db, 'birds', [
+    _reportProgress(0.1);
+
+    // Export birds (always included) - handle photo_primary specially
+    final birdsData = await db.query('birds');
+    counts['birds'] = birdsData.length;
+
+    // Track birds with photos for later processing
+    final birdsWithPhotos = <Map<String, dynamic>>[];
+    final processedBirdsData = birdsData.map((bird) {
+      final photoPrimary = bird['photo_primary'] as String?;
+      final birdId = bird['id'] as String;
+
+      if (photoPrimary != null && photoPrimary.isNotEmpty) {
+        birdsWithPhotos.add({
+          'id': birdId,
+          'photo_path': photoPrimary,
+        });
+        // Replace absolute path with relative filename
+        return {
+          ...bird,
+          'photo_primary': 'bird_$birdId.jpg',
+        };
+      }
+      return bird;
+    }).toList();
+
+    final birdsBytes = _createCsv(processedBirdsData, [
       'id',
       'flock_id',
       'name',
@@ -49,91 +92,175 @@ class ExportService {
       'notes',
       'created_at',
     ]);
-    archive.addFile(ArchiveFile('birds.csv', birds.length, birds));
+    archive.addFile(ArchiveFile('birds.csv', birdsBytes.length, birdsBytes));
 
-    final eggLogs = await _exportTable(db, 'egg_logs', [
-      'id',
-      'date',
-      'flock_id',
-      'bird_id',
-      'count',
-      'size',
-      'quality',
-      'notes',
-      'created_at',
-    ]);
-    archive.addFile(ArchiveFile('egg_logs.csv', eggLogs.length, eggLogs));
+    _reportProgress(0.2);
 
-    final expenses = await _exportTable(db, 'expenses', [
-      'id',
-      'date',
-      'amount',
-      'category',
-      'description',
-      'flock_id',
-      'is_recurring',
-      'recurring_interval',
-      'created_at',
-    ]);
-    archive.addFile(ArchiveFile('expenses.csv', expenses.length, expenses));
+    // Export egg_logs (if not empty)
+    final eggLogsData = await db.query('egg_logs');
+    counts['egg_logs'] = eggLogsData.length;
+    if (eggLogsData.isNotEmpty) {
+      final eggLogsBytes = _createCsv(eggLogsData, [
+        'id',
+        'date',
+        'flock_id',
+        'bird_id',
+        'count',
+        'size',
+        'quality',
+        'notes',
+        'created_at',
+      ]);
+      archive.addFile(
+          ArchiveFile('egg_logs.csv', eggLogsBytes.length, eggLogsBytes));
+    }
 
-    final income = await _exportTable(db, 'income', [
-      'id',
-      'date',
-      'amount',
-      'description',
-      'egg_count',
-      'created_at',
-    ]);
-    archive.addFile(ArchiveFile('income.csv', income.length, income));
+    _reportProgress(0.3);
 
-    final medications = await _exportTable(db, 'medication_logs', [
-      'id',
-      'bird_id',
-      'flock_id',
-      'medication_name',
-      'dosage',
-      'start_date',
-      'end_date',
-      'withdrawal_days',
-      'notes',
-      'created_at',
-    ]);
-    archive.addFile(
-        ArchiveFile('medications.csv', medications.length, medications));
+    // Export expenses (if not empty)
+    final expensesData = await db.query('expenses');
+    counts['expenses'] = expensesData.length;
+    if (expensesData.isNotEmpty) {
+      final expensesBytes = _createCsv(expensesData, [
+        'id',
+        'date',
+        'amount',
+        'category',
+        'description',
+        'flock_id',
+        'is_recurring',
+        'recurring_interval',
+        'created_at',
+      ]);
+      archive.addFile(
+          ArchiveFile('expenses.csv', expensesBytes.length, expensesBytes));
+    }
 
-    final healthNotes = await _exportTable(db, 'health_notes', [
-      'id',
-      'bird_id',
-      'date',
-      'type',
-      'description',
-      'created_at',
-    ]);
-    archive.addFile(
-        ArchiveFile('health_notes.csv', healthNotes.length, healthNotes));
+    _reportProgress(0.4);
+
+    // Export income (if not empty)
+    final incomeData = await db.query('income');
+    counts['income'] = incomeData.length;
+    if (incomeData.isNotEmpty) {
+      final incomeBytes = _createCsv(incomeData, [
+        'id',
+        'date',
+        'amount',
+        'description',
+        'egg_count',
+        'created_at',
+      ]);
+      archive.addFile(
+          ArchiveFile('income.csv', incomeBytes.length, incomeBytes));
+    }
+
+    _reportProgress(0.5);
+
+    // Export medication_logs (if not empty) - renamed from medications.csv
+    final medicationLogsData = await db.query('medication_logs');
+    counts['medication_logs'] = medicationLogsData.length;
+    if (medicationLogsData.isNotEmpty) {
+      final medicationLogsBytes = _createCsv(medicationLogsData, [
+        'id',
+        'bird_id',
+        'flock_id',
+        'medication_name',
+        'dosage',
+        'start_date',
+        'end_date',
+        'withdrawal_days',
+        'notes',
+        'created_at',
+      ]);
+      archive.addFile(ArchiveFile(
+          'medication_logs.csv', medicationLogsBytes.length, medicationLogsBytes));
+    }
+
+    _reportProgress(0.6);
+
+    // Export health_notes (if not empty)
+    final healthNotesData = await db.query('health_notes');
+    counts['health_notes'] = healthNotesData.length;
+    if (healthNotesData.isNotEmpty) {
+      final healthNotesBytes = _createCsv(healthNotesData, [
+        'id',
+        'bird_id',
+        'date',
+        'type',
+        'description',
+        'created_at',
+      ]);
+      archive.addFile(ArchiveFile(
+          'health_notes.csv', healthNotesBytes.length, healthNotesBytes));
+    }
+
+    _reportProgress(0.7);
+
+    // Export photos
+    int photoCount = 0;
+    if (birdsWithPhotos.isNotEmpty) {
+      final totalPhotos = birdsWithPhotos.length;
+      for (var i = 0; i < birdsWithPhotos.length; i++) {
+        final birdPhoto = birdsWithPhotos[i];
+        final photoPath = birdPhoto['photo_path'] as String;
+        final birdId = birdPhoto['id'] as String;
+
+        try {
+          final photoFile = File(photoPath);
+          if (await photoFile.exists()) {
+            final photoBytes = await photoFile.readAsBytes();
+            archive.addFile(ArchiveFile(
+                'photos/bird_$birdId.jpg', photoBytes.length, photoBytes));
+            photoCount++;
+          }
+        } catch (e) {
+          // Skip photos that can't be read
+        }
+
+        // Update progress for photos (0.7 to 0.9)
+        _reportProgress(0.7 + (0.2 * (i + 1) / totalPhotos));
+      }
+    }
+    counts['photos'] = photoCount;
+
+    // Create metadata
+    final metadata = {
+      'app_version': _appVersion,
+      'export_date': DateTime.now().toUtc().toIso8601String(),
+      'format_version': _formatVersion,
+      'counts': counts,
+    };
+    final metadataJson = jsonEncode(metadata);
+    final metadataBytes = utf8.encode(metadataJson);
+    archive.addFile(ArchiveFile(
+        'export_metadata.json', metadataBytes.length, metadataBytes));
+
+    _reportProgress(0.95);
 
     // Create zip file
     final zipData = ZipEncoder().encode(archive);
 
-    // Save to temporary directory
+    // Save to temporary directory with new filename format
     final tempDir = await getTemporaryDirectory();
     final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final zipPath = '${tempDir.path}/flock_manager_export_$dateStr.zip';
+    final zipPath = '${tempDir.path}/flock_export_$dateStr.zip';
     final zipFile = File(zipPath);
     await zipFile.writeAsBytes(zipData);
+
+    _reportProgress(1.0);
 
     return zipPath;
   }
 
-  /// Export a single table to CSV bytes.
-  Future<List<int>> _exportTable(
-    dynamic db,
-    String tableName,
+  /// Create CSV bytes from data with UTF-8 BOM prefix
+  List<int> _createCsv(
+    List<Map<String, dynamic>> rows,
     List<String> columns,
-  ) async {
-    final rows = await db.query(tableName);
+  ) {
     final buffer = StringBuffer();
+
+    // Add UTF-8 BOM
+    buffer.write(_utf8Bom);
 
     // Write header
     buffer.writeln(columns.map(_escapeCsv).join(','));
@@ -142,12 +269,27 @@ class ExportService {
     for (final row in rows) {
       final values = columns.map((col) {
         final value = row[col];
-        return _escapeCsv(value?.toString() ?? '');
+        return _formatCsvValue(value);
       });
       buffer.writeln(values.join(','));
     }
 
     return utf8.encode(buffer.toString());
+  }
+
+  /// Format a value for CSV export
+  String _formatCsvValue(dynamic value) {
+    if (value == null) {
+      return ''; // Empty string for nulls, never "null" text
+    }
+
+    // Handle booleans stored as integers
+    if (value is int && (value == 0 || value == 1)) {
+      // Check if this could be a boolean field
+      return value.toString();
+    }
+
+    return _escapeCsv(value.toString());
   }
 
   /// Escape a value for CSV format.
@@ -156,5 +298,10 @@ class ExportService {
       return '"${value.replaceAll('"', '""')}"';
     }
     return value;
+  }
+
+  /// Report progress if callback is set
+  void _reportProgress(double progress) {
+    onProgress?.call(progress);
   }
 }
