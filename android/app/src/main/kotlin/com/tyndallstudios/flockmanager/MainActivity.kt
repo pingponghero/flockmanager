@@ -1,4 +1,4 @@
-package com.example.flock_manager
+package com.tyndallstudios.flockmanager
 
 import io.flutter.embedding.android.FlutterActivity
 
