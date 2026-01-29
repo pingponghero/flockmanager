@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -27,7 +30,12 @@ import '../../utils/edge_insets.dart';
 import '../../widgets/import_confirmation_dialog.dart';
 
 const _supportEmail = 'flockmanager.app@gmail.com';
-const _appVersion = '1.0.0';
+
+/// Provider for app version from package info
+final appVersionProvider = FutureProvider<String>((ref) async {
+  final packageInfo = await PackageInfo.fromPlatform();
+  return packageInfo.version;
+});
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -264,10 +272,14 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const Divider(height: 1),
                 ],
-                const ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Flock Manager'),
-                  subtitle: Text('Version $_appVersion'),
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('Flock Manager'),
+                  subtitle: ref.watch(appVersionProvider).when(
+                        data: (version) => Text('Version $version'),
+                        loading: () => const Text('Version ...'),
+                        error: (_, __) => const Text('Version unknown'),
+                      ),
                 ),
                 const Divider(height: 1),
                 const ListTile(
@@ -281,7 +293,7 @@ class SettingsScreen extends ConsumerWidget {
                   title: const Text('Questions or feedback?'),
                   subtitle: const Text(_supportEmail),
                   trailing: const Icon(Icons.open_in_new, size: 18),
-                  onTap: () => _launchEmail(context),
+                  onTap: () => _launchEmail(context, ref),
                 ),
                 // TODO: Re-enable when app tour is ready
                 // const Divider(height: 1),
@@ -345,11 +357,14 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _exportData(BuildContext context) async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    var dialogOpen = false;
+
     // Show loading indicator
-    showDialog(
+    unawaited(showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
+      builder: (dialogContext) => const Center(
         child: Card(
           child: Padding(
             padding: EdgeInsets.all(24),
@@ -364,15 +379,28 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ).then((_) => dialogOpen = false));
+    dialogOpen = true;
+
+    // Wait for dialog transition to complete
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    void closeDialog() {
+      if (dialogOpen && context.mounted) {
+        try {
+          navigator.pop();
+          dialogOpen = false;
+        } catch (_) {
+          // Dialog may have already been closed
+        }
+      }
+    }
 
     try {
       final exportService = ExportService();
       final zipPath = await exportService.exportToZip();
 
-      if (context.mounted) {
-        Navigator.pop(context); // Close loading dialog
-      }
+      closeDialog();
 
       // Share the zip file
       await Share.shareXFiles(
@@ -380,8 +408,8 @@ class SettingsScreen extends ConsumerWidget {
         subject: 'Flock Manager Data Export',
       );
     } catch (e) {
+      closeDialog();
       if (context.mounted) {
-        Navigator.pop(context); // Close loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Export failed: $e')),
         );
@@ -446,9 +474,11 @@ class SettingsScreen extends ConsumerWidget {
       if (confirmImport != true || !context.mounted) return;
 
       // 4. Execute import with progress indicator
+      final navigator = Navigator.of(context, rootNavigator: true);
+      var dialogOpen = false;
       double progress = 0;
 
-      showDialog(
+      unawaited(showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => StatefulBuilder(
@@ -456,7 +486,11 @@ class SettingsScreen extends ConsumerWidget {
             return ImportProgressDialog(progress: progress);
           },
         ),
-      );
+      ).then((_) => dialogOpen = false));
+      dialogOpen = true;
+
+      // Wait for dialog transition to complete
+      await Future.delayed(const Duration(milliseconds: 300));
 
       final importResult = await ImportService(
         onProgress: (p) {
@@ -465,8 +499,15 @@ class SettingsScreen extends ConsumerWidget {
         },
       ).importFromZip(zipFile);
 
-      if (!context.mounted) return;
-      Navigator.pop(context); // Close progress dialog
+      // Close progress dialog safely
+      if (dialogOpen && context.mounted) {
+        try {
+          navigator.pop();
+          dialogOpen = false;
+        } catch (_) {
+          // Dialog may have already been closed
+        }
+      }
 
       // 5. Handle result
       if (importResult.success) {
@@ -522,20 +563,25 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _launchEmail(BuildContext context) async {
+  Future<void> _launchEmail(BuildContext context, WidgetRef ref) async {
+    final version = await ref.read(appVersionProvider.future).catchError((_) => 'unknown');
     final uri = Uri(
       scheme: 'mailto',
       path: _supportEmail,
       queryParameters: {
-        'subject': 'Flock Manager v$_appVersion Feedback',
+        'subject': 'Flock Manager v$version Feedback',
       },
     );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open email app')),
-      );
+      // Copy email to clipboard as fallback
+      await Clipboard.setData(ClipboardData(text: _supportEmail));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email copied to clipboard')),
+        );
+      }
     }
   }
 

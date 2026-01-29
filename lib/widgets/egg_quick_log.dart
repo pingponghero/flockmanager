@@ -52,207 +52,223 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
       _initializeDefaults();
     }
 
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final isKeyboardOpen = keyboardHeight > 0;
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Log Eggs',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-          ),
-          // Flock selector
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _FlockSelector(
-              selectedFlockId: _selectedFlockId,
-              onChanged: (flockId) => setState(() => _selectedFlockId = flockId),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Number picker
-          _NumberPicker(
-            value: _count,
-            onChanged: (value) => setState(() => _count = value),
-            compact: _showAdvanced,
-          ),
-          const SizedBox(height: 16),
-          // Date indicator
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _DateIndicator(
-              date: _date,
-              onTap: _showAdvanced ? () => _selectDate() : null,
-            ),
-          ),
-          // Advanced options toggle
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: TextButton.icon(
-              onPressed: () => setState(() => _showAdvanced = !_showAdvanced),
-              icon: Icon(
-                _showAdvanced ? Icons.expand_less : Icons.expand_more,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: keyboardHeight),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
               ),
-              label: Text(_showAdvanced ? 'Less options' : 'More options'),
             ),
-          ),
-          // Advanced options (scrollable)
-          if (_showAdvanced)
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Log Eggs',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            // Scrollable content area
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Date picker
-                    InkWell(
-                      onTap: _selectDate,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
+                    // Flock selector
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: _FlockSelector(
+                        selectedFlockId: _selectedFlockId,
+                        onChanged: (flockId) => setState(() => _selectedFlockId = flockId),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Number picker (hide when keyboard is open to save space)
+                    if (!isKeyboardOpen) ...[
+                      _NumberPicker(
+                        value: _count,
+                        onChanged: (value) => setState(() => _count = value),
+                        compact: _showAdvanced,
+                      ),
+                      const SizedBox(height: 16),
+                      // Date indicator
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _DateIndicator(
+                          date: _date,
+                          onTap: _showAdvanced ? () => _selectDate() : null,
+                        ),
+                      ),
+                    ],
+                    // Advanced options toggle
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: TextButton.icon(
+                        onPressed: () => setState(() => _showAdvanced = !_showAdvanced),
+                        icon: Icon(
+                          _showAdvanced ? Icons.expand_less : Icons.expand_more,
+                        ),
+                        label: Text(_showAdvanced ? 'Less options' : 'More options'),
+                      ),
+                    ),
+                    // Advanced options
+                    if (_showAdvanced)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.calendar_today, size: 20),
-                            const SizedBox(width: 12),
-                            Text(
-                              DateFormat.yMMMd().format(_date),
-                              style: Theme.of(context).textTheme.bodyLarge,
+                            // Date picker
+                            InkWell(
+                              onTap: _selectDate,
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.calendar_today, size: 20),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      DateFormat.yMMMd().format(_date),
+                                      style: Theme.of(context).textTheme.bodyLarge,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
+                            const SizedBox(height: 12),
+                            // Bird selector (optional - attribute to specific bird)
+                            _BirdSelector(
+                              flockId: _selectedFlockId,
+                              selectedBirdId: _selectedBirdId,
+                              onChanged: (birdId) => setState(() => _selectedBirdId = birdId),
+                            ),
+                            const SizedBox(height: 12),
+                            // Size chips
+                            Text('Size', style: Theme.of(context).textTheme.labelMedium),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: EggSize.values.map((size) {
+                                final isSelected = _selectedSize == size;
+                                return ChoiceChip(
+                                  label: Text(
+                                    size.displayName,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Theme.of(context).colorScheme.onPrimary
+                                          : Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  selected: isSelected,
+                                  selectedColor: Theme.of(context).colorScheme.primary,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      _selectedSize = selected ? size : null;
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 12),
+                            // Quality chips
+                            Text('Quality', style: Theme.of(context).textTheme.labelMedium),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: EggQuality.values.map((quality) {
+                                final isSelected = _selectedQuality == quality;
+                                return ChoiceChip(
+                                  label: Text(
+                                    quality.displayName,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Theme.of(context).colorScheme.onPrimary
+                                          : Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  selected: isSelected,
+                                  selectedColor: Theme.of(context).colorScheme.primary,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      _selectedQuality = selected ? quality : null;
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 12),
+                            // Notes field
+                            TextField(
+                              decoration: const InputDecoration(
+                                labelText: 'Notes',
+                                hintText: 'Optional notes...',
+                                border: OutlineInputBorder(),
+                              ),
+                              maxLines: 2,
+                              onChanged: (value) => _notes = value.isEmpty ? null : value,
+                            ),
+                            const SizedBox(height: 8),
                           ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Bird selector (optional - attribute to specific bird)
-                    _BirdSelector(
-                      flockId: _selectedFlockId,
-                      selectedBirdId: _selectedBirdId,
-                      onChanged: (birdId) => setState(() => _selectedBirdId = birdId),
-                    ),
-                    const SizedBox(height: 12),
-                    // Size chips
-                    Text('Size', style: Theme.of(context).textTheme.labelMedium),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: EggSize.values.map((size) {
-                        final isSelected = _selectedSize == size;
-                        return ChoiceChip(
-                          label: Text(
-                            size.displayName,
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.onPrimary
-                                  : Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                          selected: isSelected,
-                          selectedColor: Theme.of(context).colorScheme.primary,
-                          onSelected: (selected) {
-                            setState(() {
-                              _selectedSize = selected ? size : null;
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 12),
-                    // Quality chips
-                    Text('Quality', style: Theme.of(context).textTheme.labelMedium),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: EggQuality.values.map((quality) {
-                        final isSelected = _selectedQuality == quality;
-                        return ChoiceChip(
-                          label: Text(
-                            quality.displayName,
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.onPrimary
-                                  : Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                          selected: isSelected,
-                          selectedColor: Theme.of(context).colorScheme.primary,
-                          onSelected: (selected) {
-                            setState(() {
-                              _selectedQuality = selected ? quality : null;
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 12),
-                    // Notes field
-                    TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Notes',
-                        hintText: 'Optional notes...',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 2,
-                      onChanged: (value) => _notes = value.isEmpty ? null : value,
-                    ),
-                    const SizedBox(height: 8),
                   ],
                 ),
               ),
             ),
-          // Save button
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: FilledButton(
-                onPressed: _isLoading || _selectedFlockId == null
-                    ? null
-                    : _saveEggLog,
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(
-                        _count == 0 ? 'Save (No Eggs)' : 'Save $_count ${_count == 1 ? 'Egg' : 'Eggs'}',
-                        style: const TextStyle(fontSize: 18),
-                      ),
+            // Save button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FilledButton(
+                  onPressed: _isLoading || _selectedFlockId == null
+                      ? null
+                      : _saveEggLog,
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          _count == 0 ? 'Save (No Eggs)' : 'Save $_count ${_count == 1 ? 'Egg' : 'Eggs'}',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                ),
               ),
             ),
-          ),
-          // Bottom padding for gesture navigation area
-          SizedBox(height: MediaQuery.of(context).viewPadding.bottom),
-        ],
+            // Bottom padding for gesture navigation area
+            SizedBox(height: MediaQuery.of(context).viewPadding.bottom),
+          ],
+        ),
       ),
     );
   }

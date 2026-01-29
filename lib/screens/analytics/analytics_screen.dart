@@ -111,7 +111,11 @@ class AnalyticsScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
 
                   // Trend indicator
-                  _TrendCard(weekOverWeekChange: analytics.weekOverWeekChange),
+                  _TrendCard(
+                    periodChange: analytics.periodChange,
+                    hasPreviousPeriodData: analytics.hasPreviousPeriodData,
+                    period: selectedPeriod,
+                  ),
                   const SizedBox(height: 24),
 
                   // Per-bird breakdown
@@ -456,14 +460,61 @@ class _ProductionChart extends StatelessWidget {
 }
 
 class _TrendCard extends StatelessWidget {
-  final double weekOverWeekChange;
+  final double periodChange;
+  final bool hasPreviousPeriodData;
+  final AnalyticsPeriod period;
 
-  const _TrendCard({required this.weekOverWeekChange});
+  const _TrendCard({
+    required this.periodChange,
+    required this.hasPreviousPeriodData,
+    required this.period,
+  });
+
+  String get _periodLabel => switch (period) {
+        AnalyticsPeriod.week => 'Week over Week',
+        AnalyticsPeriod.month => 'Month over Month',
+        AnalyticsPeriod.year => 'Year over Year',
+        AnalyticsPeriod.allTime => 'Week over Week',
+      };
 
   @override
   Widget build(BuildContext context) {
-    final isUp = weekOverWeekChange > 0;
-    final isDown = weekOverWeekChange < 0;
+    // If no previous period data, show a different message
+    if (!hasPreviousPeriodData) {
+      return Card(
+        color: Colors.grey.withValues(alpha: 0.1),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.grey, size: 32),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _periodLabel,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    Text(
+                      'Not enough data',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final isUp = periodChange > 0;
+    final isDown = periodChange < 0;
 
     Color color;
     IconData icon;
@@ -472,11 +523,11 @@ class _TrendCard extends StatelessWidget {
     if (isUp) {
       color = Colors.green;
       icon = Icons.trending_up;
-      label = '+${weekOverWeekChange.toStringAsFixed(1)}%';
+      label = '+${periodChange.toStringAsFixed(1)}%';
     } else if (isDown) {
       color = Colors.red;
       icon = Icons.trending_down;
-      label = '${weekOverWeekChange.toStringAsFixed(1)}%';
+      label = '${periodChange.toStringAsFixed(1)}%';
     } else {
       color = Colors.grey;
       icon = Icons.trending_flat;
@@ -496,7 +547,7 @@ class _TrendCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Week over Week',
+                    _periodLabel,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   Text(

@@ -96,7 +96,8 @@ class AnalyticsSummary {
   final DateTime? worstDayDate;
   final int daysWithData;
   final int daysWithoutData;
-  final double weekOverWeekChange; // percentage change
+  final double periodChange; // percentage change vs previous period
+  final bool hasPreviousPeriodData; // whether comparison data exists
   final List<BirdEggStats> birdStats;
   final List<DailyEggCount> dailyCounts;
 
@@ -109,10 +110,14 @@ class AnalyticsSummary {
     this.worstDayDate,
     required this.daysWithData,
     required this.daysWithoutData,
-    required this.weekOverWeekChange,
+    required this.periodChange,
+    required this.hasPreviousPeriodData,
     required this.birdStats,
     required this.dailyCounts,
   });
+
+  // Keep for backwards compatibility
+  double get weekOverWeekChange => periodChange;
 
   List<BirdEggStats> get topLayers =>
       birdStats.where((s) => s.isTopLayer).toList()
@@ -226,10 +231,11 @@ final analyticsProvider = FutureProvider<AnalyticsSummary>((ref) async {
   final dailyAverage =
       dateRange.dayCount > 0 ? totalEggs / dateRange.dayCount : 0.0;
 
-  // Calculate week over week change
-  final weekOverWeekChange = await _calculateWeekOverWeekChange(
+  // Calculate period over period change
+  final periodChangeResult = await _calculatePeriodChange(
     eggRepo,
     selectedFlockId,
+    period,
   );
 
   // Calculate per-bird stats
@@ -248,57 +254,104 @@ final analyticsProvider = FutureProvider<AnalyticsSummary>((ref) async {
     worstDayDate: worstDayDate,
     daysWithData: daysWithData,
     daysWithoutData: daysWithoutData,
-    weekOverWeekChange: weekOverWeekChange,
+    periodChange: periodChangeResult.change,
+    hasPreviousPeriodData: periodChangeResult.hasPreviousData,
     birdStats: birdStats,
     dailyCounts: dailyCounts,
   );
 });
 
-Future<double> _calculateWeekOverWeekChange(
+/// Result of period change calculation
+class PeriodChangeResult {
+  final double change;
+  final bool hasPreviousData;
+
+  const PeriodChangeResult(this.change, this.hasPreviousData);
+}
+
+Future<PeriodChangeResult> _calculatePeriodChange(
   EggRepository eggRepo,
   String? flockId,
+  AnalyticsPeriod period,
 ) async {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
 
-  // Current week (from Sunday)
-  final startOfCurrentWeek = today.subtract(Duration(days: today.weekday % 7));
-  final currentWeekEnd = today;
+  late DateTime currentStart, currentEnd, previousStart, previousEnd;
 
-  // Previous week
-  final startOfPreviousWeek = startOfCurrentWeek.subtract(const Duration(days: 7));
-  final previousWeekEnd = startOfCurrentWeek.subtract(const Duration(days: 1));
+  switch (period) {
+    case AnalyticsPeriod.week:
+      // Current week (from Sunday)
+      currentStart = today.subtract(Duration(days: today.weekday % 7));
+      currentEnd = today;
+      // Previous week
+      previousStart = currentStart.subtract(const Duration(days: 7));
+      previousEnd = currentStart.subtract(const Duration(days: 1));
 
-  int currentWeekCount;
-  int previousWeekCount;
+    case AnalyticsPeriod.month:
+      // Current month
+      currentStart = DateTime(now.year, now.month, 1);
+      currentEnd = today;
+      // Previous month
+      final prevMonth = now.month == 1 ? 12 : now.month - 1;
+      final prevYear = now.month == 1 ? now.year - 1 : now.year;
+      previousStart = DateTime(prevYear, prevMonth, 1);
+      previousEnd = DateTime(now.year, now.month, 1).subtract(const Duration(days: 1));
+
+    case AnalyticsPeriod.year:
+      // Current year
+      currentStart = DateTime(now.year, 1, 1);
+      currentEnd = today;
+      // Previous year
+      previousStart = DateTime(now.year - 1, 1, 1);
+      previousEnd = DateTime(now.year, 1, 1).subtract(const Duration(days: 1));
+
+    case AnalyticsPeriod.allTime:
+      // For all time, fall back to week over week
+      currentStart = today.subtract(Duration(days: today.weekday % 7));
+      currentEnd = today;
+      previousStart = currentStart.subtract(const Duration(days: 7));
+      previousEnd = currentStart.subtract(const Duration(days: 1));
+  }
+
+  // Check if we have data in the previous period
+  final firstEggDate = await eggRepo.getFirstEggLogDate();
+  if (firstEggDate == null || firstEggDate.isAfter(previousEnd)) {
+    // No data exists for the previous period
+    return const PeriodChangeResult(0.0, false);
+  }
+
+  int currentCount;
+  int previousCount;
 
   if (flockId != null) {
-    currentWeekCount = await eggRepo.getEggCountByFlockAndDateRange(
+    currentCount = await eggRepo.getEggCountByFlockAndDateRange(
       flockId,
-      startOfCurrentWeek,
-      currentWeekEnd,
+      currentStart,
+      currentEnd,
     );
-    previousWeekCount = await eggRepo.getEggCountByFlockAndDateRange(
+    previousCount = await eggRepo.getEggCountByFlockAndDateRange(
       flockId,
-      startOfPreviousWeek,
-      previousWeekEnd,
+      previousStart,
+      previousEnd,
     );
   } else {
-    currentWeekCount = await eggRepo.getEggCountByDateRange(
-      startOfCurrentWeek,
-      currentWeekEnd,
+    currentCount = await eggRepo.getEggCountByDateRange(
+      currentStart,
+      currentEnd,
     );
-    previousWeekCount = await eggRepo.getEggCountByDateRange(
-      startOfPreviousWeek,
-      previousWeekEnd,
+    previousCount = await eggRepo.getEggCountByDateRange(
+      previousStart,
+      previousEnd,
     );
   }
 
-  if (previousWeekCount == 0) {
-    return currentWeekCount > 0 ? 100.0 : 0.0;
+  if (previousCount == 0) {
+    return PeriodChangeResult(currentCount > 0 ? 100.0 : 0.0, false);
   }
 
-  return ((currentWeekCount - previousWeekCount) / previousWeekCount) * 100;
+  final change = ((currentCount - previousCount) / previousCount) * 100;
+  return PeriodChangeResult(change, true);
 }
 
 Future<List<BirdEggStats>> _calculateBirdStats(
