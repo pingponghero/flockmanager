@@ -60,7 +60,7 @@ class GreetingHeader extends ConsumerWidget {
   }
 
   void _showStreakInfo(BuildContext context, WidgetRef ref, int streak) {
-    final totalDays = ref.read(totalLoggedDaysProvider).valueOrNull ?? 0;
+    final totalDays = ref.read(totalLoggedDaysProvider).value ?? 0;
     final showStats = totalDays >= 30;
 
     showDialog(
@@ -107,8 +107,8 @@ class GreetingHeader extends ConsumerWidget {
                     final longestAsync = ref.watch(longestStreakProvider);
                     final totalDaysAsync = ref.watch(totalLoggedDaysProvider);
 
-                    final longest = longestAsync.valueOrNull ?? streak;
-                    final totalDays = totalDaysAsync.valueOrNull ?? 0;
+                    final longest = longestAsync.value ?? streak;
+                    final totalDays = totalDaysAsync.value ?? 0;
 
                     return Container(
                       padding: const EdgeInsets.all(16),

@@ -6,7 +6,7 @@ import 'enums.dart';
 part 'health_note.freezed.dart';
 
 @freezed
-class HealthNote with _$HealthNote {
+abstract class HealthNote with _$HealthNote {
   const HealthNote._();
 
   const factory HealthNote({

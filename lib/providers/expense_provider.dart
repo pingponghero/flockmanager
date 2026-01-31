@@ -137,10 +137,18 @@ enum FinanceDateRange {
   }
 }
 
+/// Finance date range notifier
+class FinanceDateRangeNotifier extends Notifier<FinanceDateRange> {
+  @override
+  FinanceDateRange build() => FinanceDateRange.thisMonth;
+
+  void setRange(FinanceDateRange range) => state = range;
+}
+
 /// Selected date range for finances screen
-final financeDateRangeProvider = StateProvider<FinanceDateRange>((ref) {
-  return FinanceDateRange.thisMonth;
-});
+final financeDateRangeProvider =
+    NotifierProvider<FinanceDateRangeNotifier, FinanceDateRange>(
+        FinanceDateRangeNotifier.new);
 
 DateTime _startOfMonth() {
   final now = DateTime.now();

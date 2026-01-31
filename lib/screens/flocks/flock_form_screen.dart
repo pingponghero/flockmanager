@@ -287,7 +287,7 @@ class _FlockFormScreenState extends ConsumerState<FlockFormScreen> {
 
       if (widget.isEditing) {
         // Update existing flock
-        final existingFlock = ref.read(flockByIdProvider(widget.flockId!)).valueOrNull;
+        final existingFlock = ref.read(flockByIdProvider(widget.flockId!)).value;
         if (existingFlock != null) {
           final updatedFlock = existingFlock.copyWith(
             name: _nameController.text.trim(),

@@ -27,7 +27,7 @@ class BirdInfoTab extends ConsumerWidget {
             _InfoItem(label: 'Name', value: bird.name),
             _InfoItem(
               label: 'Flock',
-              value: flockAsync.valueOrNull?.name ?? 'Loading...',
+              value: flockAsync.value?.name ?? 'Loading...',
             ),
             if (bird.breed != null)
               _InfoItem(label: 'Breed', value: bird.breed!),

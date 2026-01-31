@@ -4,7 +4,7 @@ import 'package:uuid/uuid.dart';
 part 'medication_log.freezed.dart';
 
 @freezed
-class MedicationLog with _$MedicationLog {
+abstract class MedicationLog with _$MedicationLog {
   const MedicationLog._();
 
   const factory MedicationLog({

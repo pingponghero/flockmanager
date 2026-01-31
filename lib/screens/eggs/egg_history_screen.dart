@@ -49,114 +49,127 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Flock filter
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: flocksAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (error, stack) => const SizedBox.shrink(),
-              data: (flocks) => DropdownMenu<String?>(
-                initialSelection: selectedFlockId,
-                expandedInsets: EdgeInsets.zero,
-                label: const Text('Flock'),
-                dropdownMenuEntries: [
-                  const DropdownMenuEntry(
-                    value: null,
-                    label: 'All Flocks',
-                  ),
-                  ...flocks.map((flock) => DropdownMenuEntry(
-                        value: flock.id,
-                        label: flock.name,
-                      )),
-                ],
-                onSelected: (value) {
-                  ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
-                },
-              ),
-            ),
+      body: dailyCountsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error: $error'),
+            ],
           ),
-          const SizedBox(height: 8),
-          // Month navigation
-          _MonthNavigation(
-            currentMonth: _currentMonth,
-            onPreviousMonth: () {
-              setState(() {
-                _currentMonth = DateTime(
-                  _currentMonth.year,
-                  _currentMonth.month - 1,
-                  1,
-                );
-                _selectedDate = null;
-              });
-            },
-            onNextMonth: () {
-              final now = DateTime.now();
-              final nextMonth = DateTime(
-                _currentMonth.year,
-                _currentMonth.month + 1,
-                1,
-              );
-              if (nextMonth.isBefore(DateTime(now.year, now.month + 1, 1))) {
-                setState(() {
-                  _currentMonth = nextMonth;
-                  _selectedDate = null;
-                });
-              }
-            },
-          ),
-          // Calendar grid
-          Expanded(
-            child: dailyCountsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text('Error: $error'),
+        ),
+        data: (dailyCounts) => ListView(
+          children: [
+            // Flock filter
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: flocksAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (error, stack) => const SizedBox.shrink(),
+                data: (flocks) => DropdownMenu<String?>(
+                  initialSelection: selectedFlockId,
+                  expandedInsets: EdgeInsets.zero,
+                  label: const Text('Flock'),
+                  dropdownMenuEntries: [
+                    const DropdownMenuEntry(
+                      value: null,
+                      label: 'All Flocks',
+                    ),
+                    ...flocks.map((flock) => DropdownMenuEntry(
+                          value: flock.id,
+                          label: flock.name,
+                        )),
                   ],
+                  onSelected: (value) {
+                    ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
+                  },
                 ),
               ),
-              data: (dailyCounts) => Column(
-                children: [
-                  // Calendar
-                  _CalendarGrid(
-                    currentMonth: _currentMonth,
-                    dailyCounts: dailyCounts,
-                    selectedDate: _selectedDate,
-                    onDateSelected: (date) {
-                      setState(() => _selectedDate = date);
-                    },
-                  ),
-                  const Divider(height: 1),
-                  // Day details
-                  Expanded(
-                    child: _selectedDate != null
-                        ? _DayDetails(
-                            date: _selectedDate!,
-                            onLogDeleted: () {
-                              // Refresh the counts
-                              ref.invalidate(dailyEggCountsProvider(dateRange));
-                            },
-                          )
-                        : const Center(
-                            child: Text(
-                              'Select a day to view details',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ),
-                  ),
-                ],
-              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            // Month navigation
+            _MonthNavigation(
+              currentMonth: _currentMonth,
+              onPreviousMonth: () {
+                setState(() {
+                  _currentMonth = DateTime(
+                    _currentMonth.year,
+                    _currentMonth.month - 1,
+                    1,
+                  );
+                  _selectedDate = null;
+                });
+              },
+              onNextMonth: () {
+                final now = DateTime.now();
+                final nextMonth = DateTime(
+                  _currentMonth.year,
+                  _currentMonth.month + 1,
+                  1,
+                );
+                if (nextMonth.isBefore(DateTime(now.year, now.month + 1, 1))) {
+                  setState(() {
+                    _currentMonth = nextMonth;
+                    _selectedDate = null;
+                  });
+                }
+              },
+            ),
+            // Calendar
+            _CalendarGrid(
+              currentMonth: _currentMonth,
+              dailyCounts: dailyCounts,
+              selectedDate: _selectedDate,
+              onDateSelected: (date) {
+                setState(() => _selectedDate = date);
+              },
+            ),
+            const Divider(height: 1),
+            // Day details
+            if (_selectedDate != null)
+              _DayDetailsInline(
+                date: _selectedDate!,
+                onLogDeleted: () {
+                  ref.invalidate(dailyEggCountsProvider(dateRange));
+                },
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(
+                  child: Text(
+                    'Select a day to view details',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => showEggQuickLog(context),
+        onPressed: () async {
+          final log = await showEggQuickLog(context);
+          if (log != null && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  log.count == 0
+                      ? 'Logged: No eggs collected'
+                      : 'Logged: ${log.count} egg${log.count == 1 ? '' : 's'}',
+                ),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'Edit',
+                  onPressed: () => context.push('/eggs/log', extra: log),
+                ),
+              ),
+            );
+          }
+        },
         child: const Icon(Icons.add),
       ),
     );
@@ -385,11 +398,11 @@ class _DayCell extends StatelessWidget {
   }
 }
 
-class _DayDetails extends ConsumerWidget {
+class _DayDetailsInline extends ConsumerWidget {
   final DateTime date;
   final VoidCallback onLogDeleted;
 
-  const _DayDetails({
+  const _DayDetailsInline({
     required this.date,
     required this.onLogDeleted,
   });
@@ -399,11 +412,18 @@ class _DayDetails extends ConsumerWidget {
     final logsAsync = ref.watch(eggLogsByDateProvider(date));
 
     return logsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(child: Text('Error: $error')),
+      loading: () => const Padding(
+        padding: EdgeInsets.all(32),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Padding(
+        padding: const EdgeInsets.all(32),
+        child: Center(child: Text('Error: $error')),
+      ),
       data: (logs) {
         if (logs.isEmpty) {
-          return Center(
+          return Padding(
+            padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -461,77 +481,81 @@ class _DayDetails extends ConsumerWidget {
                 ],
               ),
             ),
-            // Logs list
-            Expanded(
-              child: ListView.builder(
-                itemCount: logs.length,
-                itemBuilder: (context, index) {
-                  final log = logs[index];
-                  return _EggLogTile(
+            // Logs list (inline, not in a nested ListView)
+            ...logs.map((log) => Dismissible(
+                  key: Key(log.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  confirmDismiss: (direction) async {
+                    return await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Entry?'),
+                            content: Text(
+                                'Delete ${log.count} egg${log.count == 1 ? '' : 's'} entry?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        ) ??
+                        false;
+                  },
+                  onDismissed: (direction) async {
+                    await ref.read(eggLogsProvider.notifier).deleteEggLog(log.id);
+                    onLogDeleted();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Entry deleted')),
+                      );
+                    }
+                  },
+                  child: _EggLogTile(
                     log: log,
                     onEdit: () => context.push('/eggs/log', extra: log),
-                    onDelete: () => _deleteLog(context, ref, log),
-                  );
-                },
-              ),
-            ),
+                  ),
+                )),
+            // Add some bottom padding for FAB clearance
+            const SizedBox(height: 80),
           ],
         );
       },
     );
-  }
-
-  Future<void> _deleteLog(
-    BuildContext context,
-    WidgetRef ref,
-    EggLog log,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Entry?'),
-        content: Text('Delete ${log.count} egg${log.count == 1 ? '' : 's'} entry?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && context.mounted) {
-      await ref.read(eggLogsProvider.notifier).deleteEggLog(log.id);
-      onLogDeleted();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Entry deleted')),
-        );
-      }
-    }
   }
 }
 
 class _EggLogTile extends ConsumerWidget {
   final EggLog log;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   const _EggLogTile({
     required this.log,
     required this.onEdit,
-    required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final flockAsync = ref.watch(flockByIdProvider(log.flockId));
 
+    final subtitleParts = [
+      if (log.size != null) log.size!.displayName,
+      if (log.quality != null) log.quality!.displayName,
+      if (log.notes != null) log.notes,
+    ];
+
     return ListTile(
+      onTap: onEdit,
       leading: CircleAvatar(
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         child: Text(
@@ -547,42 +571,8 @@ class _EggLogTile extends ConsumerWidget {
         error: (error, stack) => const Text('Unknown Flock'),
         data: (flock) => Text(flock?.name ?? 'Unknown Flock'),
       ),
-      subtitle: Text([
-        if (log.size != null) log.size!.displayName,
-        if (log.quality != null) log.quality!.displayName,
-        if (log.notes != null) log.notes,
-      ].join(' • ')),
-      trailing: PopupMenuButton(
-        itemBuilder: (context) => [
-          const PopupMenuItem(
-            value: 'edit',
-            child: Row(
-              children: [
-                Icon(Icons.edit),
-                SizedBox(width: 8),
-                Text('Edit'),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete, color: Colors.red),
-                SizedBox(width: 8),
-                Text('Delete', style: TextStyle(color: Colors.red)),
-              ],
-            ),
-          ),
-        ],
-        onSelected: (value) {
-          if (value == 'edit') {
-            onEdit();
-          } else if (value == 'delete') {
-            onDelete();
-          }
-        },
-      ),
+      subtitle: subtitleParts.isNotEmpty ? Text(subtitleParts.join(' • ')) : null,
+      trailing: const Icon(Icons.chevron_right),
     );
   }
 }

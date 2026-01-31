@@ -4,7 +4,7 @@ import 'package:uuid/uuid.dart';
 part 'flock.freezed.dart';
 
 @freezed
-class Flock with _$Flock {
+abstract class Flock with _$Flock {
   const Flock._();
 
   const factory Flock({

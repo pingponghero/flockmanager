@@ -4,7 +4,7 @@ import 'package:uuid/uuid.dart';
 part 'income.freezed.dart';
 
 @freezed
-class Income with _$Income {
+abstract class Income with _$Income {
   const Income._();
 
   const factory Income({

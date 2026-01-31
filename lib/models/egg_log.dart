@@ -6,7 +6,7 @@ import 'enums.dart';
 part 'egg_log.freezed.dart';
 
 @freezed
-class EggLog with _$EggLog {
+abstract class EggLog with _$EggLog {
   const EggLog._();
 
   const factory EggLog({

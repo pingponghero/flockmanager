@@ -19,7 +19,7 @@ class LatestAchievement extends ConsumerWidget {
       data: (achievement) {
         if (achievement == null) return const SizedBox.shrink();
 
-        final summary = summaryAsync.valueOrNull;
+        final summary = summaryAsync.value;
 
         return GestureDetector(
           onTap: () => context.go('/settings/achievements'),

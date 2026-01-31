@@ -408,7 +408,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
 
       if (widget.isEditing) {
         // Update existing bird
-        final existingBird = ref.read(birdByIdProvider(widget.birdId!)).valueOrNull;
+        final existingBird = ref.read(birdByIdProvider(widget.birdId!)).value;
         if (existingBird != null) {
           final updatedBird = existingBird.copyWith(
             name: _nameController.text.trim(),

@@ -232,7 +232,8 @@ void main() {
         worstDayDate: DateTime(2024, 6, 10),
         daysWithData: 7,
         daysWithoutData: 0,
-        weekOverWeekChange: 10.0,
+        periodChange: 10.0,
+        hasPreviousPeriodData: true,
         birdStats: birdStats,
         dailyCounts: [],
       );
@@ -249,7 +250,8 @@ void main() {
         worstDayCount: 1,
         daysWithData: 7,
         daysWithoutData: 0,
-        weekOverWeekChange: 10.0,
+        periodChange: 10.0,
+        hasPreviousPeriodData: true,
         birdStats: birdStats,
         dailyCounts: [],
       );
@@ -266,7 +268,8 @@ void main() {
         worstDayCount: 1,
         daysWithData: 7,
         daysWithoutData: 0,
-        weekOverWeekChange: 10.0,
+        periodChange: 10.0,
+        hasPreviousPeriodData: true,
         birdStats: birdStats,
         dailyCounts: [],
       );
@@ -302,7 +305,8 @@ void main() {
         worstDayCount: 2,
         daysWithData: 7,
         daysWithoutData: 0,
-        weekOverWeekChange: 0,
+        periodChange: 0,
+        hasPreviousPeriodData: true,
         birdStats: multipleTopLayers,
         dailyCounts: [],
       );

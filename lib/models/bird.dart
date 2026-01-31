@@ -6,7 +6,7 @@ import 'enums.dart';
 part 'bird.freezed.dart';
 
 @freezed
-class Bird with _$Bird {
+abstract class Bird with _$Bird {
   const Bird._();
 
   const factory Bird({

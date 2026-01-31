@@ -4,7 +4,7 @@ part 'breed.freezed.dart';
 
 /// Breed information for reference (not stored in SQLite, static data)
 @freezed
-class Breed with _$Breed {
+abstract class Breed with _$Breed {
   const Breed._();
 
   const factory Breed({

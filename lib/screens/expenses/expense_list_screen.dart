@@ -150,7 +150,7 @@ class _ExpensesTab extends ConsumerWidget {
                   label: Text(range.displayName),
                   selected: isSelected,
                   onSelected: (_) {
-                    ref.read(financeDateRangeProvider.notifier).state = range;
+                    ref.read(financeDateRangeProvider.notifier).setRange(range);
                   },
                 ),
               );
@@ -418,7 +418,7 @@ class _IncomeTab extends ConsumerWidget {
                   label: Text(range.displayName),
                   selected: isSelected,
                   onSelected: (_) {
-                    ref.read(financeDateRangeProvider.notifier).state = range;
+                    ref.read(financeDateRangeProvider.notifier).setRange(range);
                   },
                 ),
               );

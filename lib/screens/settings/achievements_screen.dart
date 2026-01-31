@@ -40,7 +40,7 @@ class AchievementsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Error: $error')),
         data: (categories) {
-          final progress = progressData.valueOrNull ?? {};
+          final progress = progressData.value ?? {};
 
           // Define category order
           const categoryOrder = [

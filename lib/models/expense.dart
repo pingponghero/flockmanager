@@ -6,7 +6,7 @@ import 'enums.dart';
 part 'expense.freezed.dart';
 
 @freezed
-class Expense with _$Expense {
+abstract class Expense with _$Expense {
   const Expense._();
 
   const factory Expense({

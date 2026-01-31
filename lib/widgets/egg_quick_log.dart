@@ -12,16 +12,16 @@ import '../providers/flock_provider.dart';
 import 'achievement_celebration_dialog.dart';
 
 /// Shows the quick egg log bottom sheet.
-/// Returns true if an egg was logged, false otherwise.
-Future<bool> showEggQuickLog(BuildContext context) async {
-  final result = await showModalBottomSheet<bool>(
+/// Returns the created EggLog if logged, null otherwise.
+Future<EggLog?> showEggQuickLog(BuildContext context) async {
+  final result = await showModalBottomSheet<EggLog?>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
     builder: (context) => const EggQuickLogSheet(),
   );
-  return result ?? false;
+  return result;
 }
 
 /// Quick egg logging bottom sheet.
@@ -86,7 +86,7 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   IconButton(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => Navigator.pop(context, null),
                     icon: const Icon(Icons.close),
                   ),
                 ],
@@ -278,7 +278,7 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
 
     // Check flocks first - if only one exists, always use it
     final flocksAsync = ref.read(flocksProvider);
-    final flocks = flocksAsync.valueOrNull ?? [];
+    final flocks = flocksAsync.value ?? [];
 
     if (flocks.length == 1) {
       // Single flock - always auto-select it
@@ -334,19 +334,6 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
       HapticFeedback.mediumImpact();
 
       if (mounted) {
-        // Show success toast
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _count == 0
-                  ? 'Logged: No eggs collected'
-                  : 'Logged: $_count egg${_count == 1 ? '' : 's'}',
-            ),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-
         // Check for new achievements BEFORE closing sheet (context becomes invalid after pop)
         final newAchievements = await checkAndCelebrateAchievements(ref, context);
 
@@ -357,8 +344,8 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
           await markAchievementsAsShown(newAchievements);
         }
 
-        // Close sheet after dialog is dismissed
-        if (mounted) Navigator.pop(context, true);
+        // Close sheet and return the created log (caller will show snackbar)
+        if (mounted) Navigator.pop(context, log);
       }
     } catch (e) {
       if (mounted) {

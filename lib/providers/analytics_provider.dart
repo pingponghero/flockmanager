@@ -129,9 +129,18 @@ class AnalyticsSummary {
   int get activeBirdCount => birdStats.length;
 }
 
+/// Selected analytics period notifier
+class AnalyticsPeriodNotifier extends Notifier<AnalyticsPeriod> {
+  @override
+  AnalyticsPeriod build() => AnalyticsPeriod.week;
+
+  void setPeriod(AnalyticsPeriod period) => state = period;
+}
+
 /// Selected analytics period provider
 final analyticsPeriodProvider =
-    StateProvider<AnalyticsPeriod>((ref) => AnalyticsPeriod.week);
+    NotifierProvider<AnalyticsPeriodNotifier, AnalyticsPeriod>(
+        AnalyticsPeriodNotifier.new);
 
 /// Repository providers
 final _eggRepositoryProvider = Provider<EggRepository>((ref) {

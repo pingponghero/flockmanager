@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -123,7 +124,9 @@ class NotificationSettingsNotifier extends Notifier<NotificationSettings> {
     // Note: expense reminders would be scheduled when expenses are created
   }
 
-  Future<void> setEggReminders(bool enabled) async {
+  /// Enable or disable egg reminders.
+  /// Returns true if Samsung-specific setup is needed (caller should show dialog).
+  Future<bool> setEggReminders(bool enabled) async {
     state = state.copyWith(eggReminders: enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyEggReminders, enabled);
@@ -136,9 +139,25 @@ class NotificationSettingsNotifier extends Notifier<NotificationSettings> {
       } else {
         await _scheduleEggReminderIfNeeded();
       }
+
+      // Check if battery optimization needs to be disabled
+      final isOptimizationDisabled = await service.isBatteryOptimizationDisabled();
+      if (!isOptimizationDisabled) {
+        debugPrint('🔔 Battery optimization enabled, prompting user');
+        // Request standard Android battery optimization
+        await service.requestDisableBatteryOptimization();
+      }
+
+      // Check if Samsung-specific setup is needed
+      final isSamsung = await service.isSamsungDevice();
+      if (isSamsung) {
+        debugPrint('🔔 Samsung device detected - extra setup may be needed');
+        return true; // Signal to UI to show Samsung help dialog
+      }
     } else {
       await service.cancelEggReminder();
     }
+    return false;
   }
 
   Future<void> setEggReminderTime(TimeOfDay time) async {
@@ -162,17 +181,21 @@ class NotificationSettingsNotifier extends Notifier<NotificationSettings> {
 
   /// Evaluates and schedules egg reminder based on current state
   Future<void> evaluateEggReminder() async {
+    debugPrint('🔔 evaluateEggReminder called - eggReminders: ${state.eggReminders}, time: ${state.eggReminderTime}');
     if (!state.eggReminders || state.eggReminderTime == null) return;
 
     await _scheduleEggReminderIfNeeded();
   }
 
   Future<void> _scheduleEggReminderIfNeeded() async {
+    debugPrint('🔔 _scheduleEggReminderIfNeeded called');
     if (!state.eggReminders || state.eggReminderTime == null) return;
 
     final eggRepo = EggRepository();
     final hasEggsToday = await eggRepo.hasEggsLoggedToday();
     final service = NotificationService();
+
+    debugPrint('🔔 hasEggsToday: $hasEggsToday, time: ${state.eggReminderTime}');
 
     if (hasEggsToday) {
       // Already logged today - schedule for tomorrow

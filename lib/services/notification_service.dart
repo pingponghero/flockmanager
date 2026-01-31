@@ -1,10 +1,14 @@
 import 'dart:io';
 
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:battery_optimization_helper/battery_optimization_helper.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-
 import '../models/medication_log.dart';
 
 /// Service for managing local notifications.
@@ -37,8 +41,12 @@ class NotificationService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // Initialize timezone data
+    // Initialize timezone data and set local timezone
     tz.initializeTimeZones();
+    final timezoneInfo = await FlutterTimezone.getLocalTimezone();
+    final timeZoneName = timezoneInfo.identifier;
+    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    debugPrint('🔔 Timezone initialized. Local: ${tz.local.name}');
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings(
@@ -53,13 +61,25 @@ class NotificationService {
     );
 
     await _notifications.initialize(
-      settings,
+      settings: settings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
     // Create notification channels for Android
     if (Platform.isAndroid) {
       await _createAndroidChannels();
+
+      // Check exact alarm permission
+      final androidPlugin =
+          _notifications.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin != null) {
+        final canScheduleExact = await androidPlugin.canScheduleExactNotifications();
+        debugPrint('🔔 Can schedule exact notifications: $canScheduleExact');
+        if (canScheduleExact != true) {
+          debugPrint('🔔 WARNING: Exact alarm permission not granted!');
+        }
+      }
     }
 
     _isInitialized = true;
@@ -105,7 +125,7 @@ class NotificationService {
         _eggReminderChannelId,
         'Egg Reminders',
         description: 'Daily reminders to log eggs',
-        importance: Importance.defaultImportance,
+        importance: Importance.high,
       ),
     );
   }
@@ -240,20 +260,20 @@ class NotificationService {
   Future<void> cancelMedicationNotification(String medicationId) async {
     final notificationId =
         _medicationIdPrefix + medicationId.hashCode.abs() % 1000;
-    await _notifications.cancel(notificationId);
+    await _notifications.cancel(id: notificationId);
   }
 
   /// Cancel a withdrawal notification.
   Future<void> cancelWithdrawalNotification(String medicationId) async {
     final notificationId =
         _withdrawalIdPrefix + medicationId.hashCode.abs() % 1000;
-    await _notifications.cancel(notificationId);
+    await _notifications.cancel(id: notificationId);
   }
 
   /// Cancel an expense reminder notification.
   Future<void> cancelExpenseNotification(String expenseId) async {
     final notificationId = _expenseIdPrefix + expenseId.hashCode.abs() % 1000;
-    await _notifications.cancel(notificationId);
+    await _notifications.cancel(id: notificationId);
   }
 
   /// Schedule a daily egg reminder notification.
@@ -276,6 +296,8 @@ class NotificationService {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
+    debugPrint('🔔 Scheduling egg reminder for: $scheduledDate (now: $now)');
+
     await _scheduleNotification(
       id: _eggReminderId,
       channelId: _eggReminderChannelId,
@@ -284,11 +306,31 @@ class NotificationService {
       scheduledDate: scheduledDate,
       payload: 'egg_reminder',
     );
+
+    debugPrint('🔔 Egg reminder scheduled successfully');
   }
 
   /// Cancel the egg reminder notification.
   Future<void> cancelEggReminder() async {
-    await _notifications.cancel(_eggReminderId);
+    await _notifications.cancel(id: _eggReminderId);
+  }
+
+  /// Show an immediate test notification (for debugging)
+  Future<void> showTestNotification() async {
+    const androidDetails = AndroidNotificationDetails(
+      _eggReminderChannelId,
+      'Egg Reminders',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    const details = NotificationDetails(android: androidDetails);
+    await _notifications.show(
+      id: 9999,
+      title: 'Test Notification',
+      body: 'This is a test notification',
+      notificationDetails: details,
+    );
+    debugPrint('🔔 Test notification shown');
   }
 
   /// Cancel all notifications.
@@ -341,18 +383,29 @@ class NotificationService {
     );
 
     final tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
+    debugPrint('🔔 TZ local: ${tz.local.name}, tzScheduledDate: $tzScheduledDate');
 
-    await _notifications.zonedSchedule(
-      id,
-      title,
-      body,
-      tzScheduledDate,
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: payload,
-    );
+    try {
+      await _notifications.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: tzScheduledDate,
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
+        payload: payload,
+      );
+      debugPrint('🔔 zonedSchedule completed for id $id (alarmClock mode)');
+
+      // Check pending notifications
+      final pending = await _notifications.pendingNotificationRequests();
+      debugPrint('🔔 Pending notifications: ${pending.length}');
+      for (final p in pending) {
+        debugPrint('🔔   - id: ${p.id}, title: ${p.title}');
+      }
+    } catch (e) {
+      debugPrint('🔔 ERROR scheduling notification: $e');
+    }
   }
 
   /// Handle notification tap.
@@ -360,6 +413,65 @@ class NotificationService {
     // Handle egg reminder tap - open quick log sheet
     if (response.payload == 'egg_reminder' && onEggReminderTapped != null) {
       onEggReminderTapped!();
+    }
+  }
+
+  /// Check if battery optimization is disabled for this app.
+  /// Returns true if battery optimization is already disabled (good for notifications).
+  Future<bool> isBatteryOptimizationDisabled() async {
+    if (!Platform.isAndroid) return true;
+    final isEnabled = await BatteryOptimizationHelper.isBatteryOptimizationEnabled();
+    // Return true if optimization is disabled (i.e., NOT enabled)
+    return !isEnabled;
+  }
+
+  /// Request the user to disable battery optimization.
+  /// Shows system dialog and attempts OEM-specific settings on Samsung/other OEMs.
+  Future<void> requestDisableBatteryOptimization() async {
+    if (!Platform.isAndroid) return;
+
+    // First, try the standard Android battery optimization dialog
+    await BatteryOptimizationHelper.ensureOptimizationDisabled();
+
+    // Also try to open OEM-specific auto-start settings (for Samsung, Xiaomi, etc.)
+    // This handles Samsung's "Sleeping apps" and similar on other OEMs
+    await BatteryOptimizationHelper.openAutoStartSettings();
+  }
+
+  /// Check if the device is a Samsung device.
+  Future<bool> isSamsungDevice() async {
+    if (!Platform.isAndroid) return false;
+
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    final manufacturer = androidInfo.manufacturer.toLowerCase();
+    return manufacturer == 'samsung';
+  }
+
+  /// Open Samsung's battery optimization settings.
+  /// This opens the "Background usage limits" or "Never sleeping apps" screen.
+  Future<void> openSamsungBatterySettings() async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      // Try to open Samsung's Device Care battery settings directly
+      const intent = AndroidIntent(
+        action: 'android.intent.action.MAIN',
+        package: 'com.samsung.android.lool',
+        componentName: 'com.samsung.android.lool.activities.MainActivity',
+      );
+      await intent.launch();
+    } catch (e) {
+      debugPrint('🔔 Could not open Samsung Device Care: $e');
+      // Fallback to standard battery optimization settings
+      try {
+        const fallbackIntent = AndroidIntent(
+          action: 'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS',
+        );
+        await fallbackIntent.launch();
+      } catch (e2) {
+        debugPrint('🔔 Could not open battery settings: $e2');
+      }
     }
   }
 }

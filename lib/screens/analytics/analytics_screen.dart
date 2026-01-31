@@ -69,7 +69,7 @@ class AnalyticsScreen extends ConsumerWidget {
             _PeriodSelector(
               selectedPeriod: selectedPeriod,
               onPeriodChanged: (period) {
-                ref.read(analyticsPeriodProvider.notifier).state = period;
+                ref.read(analyticsPeriodProvider.notifier).setPeriod(period);
               },
             ),
             const SizedBox(height: 24),
@@ -820,7 +820,7 @@ class _ActivityTile extends ConsumerWidget {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
       ),
-      onTap: () => context.go('/eggs'),
+      onTap: () => context.push('/eggs/log', extra: log),
     );
   }
 

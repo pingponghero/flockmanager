@@ -19,14 +19,31 @@ class TodayEggCard extends ConsumerWidget {
     final avgAsync = ref.watch(weeklyAverageEggCountProvider);
     final canEdit = ref.watch(canEditProvider);
 
-    final todayCount = todayAsync.valueOrNull ?? 0;
+    final todayCount = todayAsync.value ?? 0;
 
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () {
+        onTap: () async {
           if (todayCount == 0 && canEdit) {
-            showEggQuickLog(context);
+            final log = await showEggQuickLog(context);
+            if (log != null && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    log.count == 0
+                        ? 'Logged: No eggs collected'
+                        : 'Logged: ${log.count} egg${log.count == 1 ? '' : 's'}',
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 4),
+                  action: SnackBarAction(
+                    label: 'Edit',
+                    onPressed: () => context.push('/eggs/log', extra: log),
+                  ),
+                ),
+              );
+            }
           } else if (todayCount == 0 && !canEdit) {
             showTrialExpiredDialog(context, ref);
           } else {
