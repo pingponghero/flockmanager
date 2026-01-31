@@ -844,12 +844,9 @@ class _NotificationSettingsCard extends ConsumerWidget {
                   : 'Remind me to log eggs'),
               value: settings.eggReminders,
               onChanged: (value) async {
-                final needsSamsungSetup = await ref
+                await ref
                     .read(notificationSettingsProvider.notifier)
                     .setEggReminders(value);
-                if (needsSamsungSetup && value && context.mounted) {
-                  _showSamsungSetupDialog(context);
-                }
               },
             ),
             // Time picker (shown when egg reminders enabled)
@@ -920,71 +917,6 @@ class _NotificationSettingsCard extends ConsumerWidget {
     if (picked != null) {
       ref.read(notificationSettingsProvider.notifier).setEggReminderTime(picked);
     }
-  }
-
-  void _showSamsungSetupDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.smartphone, size: 24),
-            SizedBox(width: 8),
-            Text('Samsung Setup'),
-          ],
-        ),
-        content: const SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Samsung phones may block notifications from apps running in the background. '
-                'To ensure reminders work reliably:',
-              ),
-              SizedBox(height: 16),
-              Text(
-                '1. Open Settings → Battery',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 4),
-              Text(
-                '2. Tap "Background usage limits"',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 4),
-              Text(
-                '3. Check "Sleeping apps" - if Flock Manager is there, remove it',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 4),
-              Text(
-                '4. Tap "Never sleeping apps" and add Flock Manager',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'This only needs to be done once.',
-                style: TextStyle(fontStyle: FontStyle.italic),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Later'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              NotificationService().openSamsungBatterySettings();
-            },
-            child: const Text('Open Settings'),
-          ),
-        ],
-      ),
-    );
   }
 }
 

@@ -125,13 +125,26 @@ class NotificationSettingsNotifier extends Notifier<NotificationSettings> {
   }
 
   /// Enable or disable egg reminders.
-  /// Returns true if Samsung-specific setup is needed (caller should show dialog).
-  Future<bool> setEggReminders(bool enabled) async {
+  Future<void> setEggReminders(bool enabled) async {
+    final service = NotificationService();
+
+    if (enabled) {
+      // Ensure notification permission is granted
+      final hasPermission = await service.areNotificationsEnabled();
+      if (!hasPermission) {
+        debugPrint('🔔 Notifications not enabled, requesting permission');
+        final granted = await requestPermission();
+        if (!granted) {
+          debugPrint('🔔 Notification permission denied, not enabling egg reminders');
+          return;
+        }
+      }
+    }
+
     state = state.copyWith(eggReminders: enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyEggReminders, enabled);
 
-    final service = NotificationService();
     if (enabled) {
       // Set default time (6:00 PM) if not already set
       if (state.eggReminderTime == null) {
@@ -139,25 +152,9 @@ class NotificationSettingsNotifier extends Notifier<NotificationSettings> {
       } else {
         await _scheduleEggReminderIfNeeded();
       }
-
-      // Check if battery optimization needs to be disabled
-      final isOptimizationDisabled = await service.isBatteryOptimizationDisabled();
-      if (!isOptimizationDisabled) {
-        debugPrint('🔔 Battery optimization enabled, prompting user');
-        // Request standard Android battery optimization
-        await service.requestDisableBatteryOptimization();
-      }
-
-      // Check if Samsung-specific setup is needed
-      final isSamsung = await service.isSamsungDevice();
-      if (isSamsung) {
-        debugPrint('🔔 Samsung device detected - extra setup may be needed');
-        return true; // Signal to UI to show Samsung help dialog
-      }
     } else {
       await service.cancelEggReminder();
     }
-    return false;
   }
 
   Future<void> setEggReminderTime(TimeOfDay time) async {

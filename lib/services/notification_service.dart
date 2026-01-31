@@ -1,32 +1,21 @@
-import 'dart:io';
-
-import 'package:android_intent_plus/android_intent.dart';
-import 'package:battery_optimization_helper/battery_optimization_helper.dart';
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'package:flutter/material.dart' show TimeOfDay;
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:timezone/data/latest.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter/material.dart' show Color, Colors, TimeOfDay;
 import '../models/medication_log.dart';
 
-/// Service for managing local notifications.
+/// Service for managing local notifications using awesome_notifications.
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin _notifications =
-      FlutterLocalNotificationsPlugin();
-
   bool _isInitialized = false;
 
-  // Notification channel IDs
-  static const String _medicationChannelId = 'medication_reminders';
-  static const String _withdrawalChannelId = 'withdrawal_alerts';
-  static const String _expenseChannelId = 'expense_reminders';
-  static const String _eggReminderChannelId = 'egg_reminders';
+  // Notification channel keys
+  static const String _medicationChannelKey = 'medication_reminders';
+  static const String _withdrawalChannelKey = 'withdrawal_alerts';
+  static const String _expenseChannelKey = 'expense_reminders';
+  static const String _eggReminderChannelKey = 'egg_reminders_v2';
 
   // Notification ID prefixes (to avoid collisions)
   static const int _medicationIdPrefix = 1000;
@@ -41,129 +30,90 @@ class NotificationService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // Initialize timezone data and set local timezone
-    tz.initializeTimeZones();
-    final timezoneInfo = await FlutterTimezone.getLocalTimezone();
-    final timeZoneName = timezoneInfo.identifier;
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
-    debugPrint('🔔 Timezone initialized. Local: ${tz.local.name}');
-
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
+    await AwesomeNotifications().initialize(
+      // Use default app icon
+      null,
+      [
+        NotificationChannel(
+          channelKey: _medicationChannelKey,
+          channelName: 'Medication Reminders',
+          channelDescription: 'Reminders when medication treatments end',
+          importance: NotificationImportance.High,
+          defaultColor: Colors.blue,
+          ledColor: Colors.blue,
+        ),
+        NotificationChannel(
+          channelKey: _withdrawalChannelKey,
+          channelName: 'Withdrawal Alerts',
+          channelDescription: 'Alerts when egg withdrawal periods end',
+          importance: NotificationImportance.High,
+          defaultColor: Colors.orange,
+          ledColor: Colors.orange,
+        ),
+        NotificationChannel(
+          channelKey: _expenseChannelKey,
+          channelName: 'Expense Reminders',
+          channelDescription: 'Reminders for recurring expenses',
+          importance: NotificationImportance.Default,
+          defaultColor: Colors.green,
+          ledColor: Colors.green,
+        ),
+        NotificationChannel(
+          channelKey: _eggReminderChannelKey,
+          channelName: 'Egg Reminders',
+          channelDescription: 'Daily reminders to log eggs',
+          importance: NotificationImportance.Max, // Max importance for heads-up
+          defaultColor: const Color(0xFFFFB74D), // Orange/egg color
+          ledColor: const Color(0xFFFFB74D),
+          playSound: true,
+          enableVibration: true,
+          criticalAlerts: true, // Bypass DND
+        ),
+      ],
+      debug: true, // Enable debug logging
     );
 
-    const settings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
+    // Set up notification action listener
+    AwesomeNotifications().setListeners(
+      onActionReceivedMethod: _onActionReceived,
     );
 
-    await _notifications.initialize(
-      settings: settings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
-    );
-
-    // Create notification channels for Android
-    if (Platform.isAndroid) {
-      await _createAndroidChannels();
-
-      // Check exact alarm permission
-      final androidPlugin =
-          _notifications.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      if (androidPlugin != null) {
-        final canScheduleExact = await androidPlugin.canScheduleExactNotifications();
-        debugPrint('🔔 Can schedule exact notifications: $canScheduleExact');
-        if (canScheduleExact != true) {
-          debugPrint('🔔 WARNING: Exact alarm permission not granted!');
-        }
-      }
-    }
-
+    debugPrint('🔔 awesome_notifications initialized');
     _isInitialized = true;
   }
 
-  /// Create Android notification channels.
-  Future<void> _createAndroidChannels() async {
-    final androidPlugin =
-        _notifications.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-
-    if (androidPlugin == null) return;
-
-    await androidPlugin.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _medicationChannelId,
-        'Medication Reminders',
-        description: 'Reminders when medication treatments end',
-        importance: Importance.high,
-      ),
-    );
-
-    await androidPlugin.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _withdrawalChannelId,
-        'Withdrawal Alerts',
-        description: 'Alerts when egg withdrawal periods end',
-        importance: Importance.high,
-      ),
-    );
-
-    await androidPlugin.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _expenseChannelId,
-        'Expense Reminders',
-        description: 'Reminders for recurring expenses',
-        importance: Importance.defaultImportance,
-      ),
-    );
-
-    await androidPlugin.createNotificationChannel(
-      const AndroidNotificationChannel(
-        _eggReminderChannelId,
-        'Egg Reminders',
-        description: 'Daily reminders to log eggs',
-        importance: Importance.high,
-      ),
-    );
+  /// Static callback for notification actions
+  @pragma('vm:entry-point')
+  static Future<void> _onActionReceived(ReceivedAction receivedAction) async {
+    debugPrint('🔔 Notification action received: ${receivedAction.payload}');
+    if (receivedAction.payload?['type'] == 'egg_reminder' && onEggReminderTapped != null) {
+      onEggReminderTapped!();
+    }
   }
 
   /// Request notification permissions.
   Future<bool> requestPermissions() async {
-    if (Platform.isIOS) {
-      final iosPlugin = _notifications.resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin>();
-      final result = await iosPlugin?.requestPermissions(
-        alert: true,
-        badge: true,
-        sound: true,
+    final isAllowed = await AwesomeNotifications().isNotificationAllowed();
+    if (!isAllowed) {
+      // Request both alert and precise alarm permissions upfront
+      final granted = await AwesomeNotifications().requestPermissionToSendNotifications(
+        permissions: [
+          NotificationPermission.Alert,
+          NotificationPermission.Sound,
+          NotificationPermission.Badge,
+          NotificationPermission.Vibration,
+          NotificationPermission.PreciseAlarms,
+        ],
       );
-      return result ?? false;
+      if (!granted) return false;
     }
 
-    if (Platform.isAndroid) {
-      final androidPlugin =
-          _notifications.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      final result = await androidPlugin?.requestNotificationsPermission();
-      return result ?? false;
-    }
-
-    return false;
+    return true;
   }
 
   /// Check if notifications are permitted.
   Future<bool> areNotificationsEnabled() async {
-    if (Platform.isAndroid) {
-      final androidPlugin =
-          _notifications.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      return await androidPlugin?.areNotificationsEnabled() ?? false;
-    }
-    // iOS doesn't have a simple check, assume true after permission granted
-    return true;
+    return await AwesomeNotifications().isNotificationAllowed();
   }
 
   /// Schedule a notification when a medication treatment ends.
@@ -189,7 +139,7 @@ class NotificationService {
 
     await _scheduleNotification(
       id: notificationId,
-      channelId: _medicationChannelId,
+      channelKey: _medicationChannelKey,
       title: 'Medication Ending',
       body: '${medication.medicationName} treatment ends today',
       scheduledDate: scheduledDate,
@@ -218,7 +168,7 @@ class NotificationService {
 
     await _scheduleNotification(
       id: notificationId,
-      channelId: _withdrawalChannelId,
+      channelKey: _withdrawalChannelKey,
       title: 'Eggs Safe to Eat',
       body:
           'Withdrawal period for ${medication.medicationName} is complete. Eggs are safe to eat again!',
@@ -249,7 +199,7 @@ class NotificationService {
 
     await _scheduleNotification(
       id: notificationId,
-      channelId: _expenseChannelId,
+      channelKey: _expenseChannelKey,
       title: 'Expense Reminder',
       body: 'Time to: $description',
       scheduledDate: scheduledDate,
@@ -260,20 +210,20 @@ class NotificationService {
   Future<void> cancelMedicationNotification(String medicationId) async {
     final notificationId =
         _medicationIdPrefix + medicationId.hashCode.abs() % 1000;
-    await _notifications.cancel(id: notificationId);
+    await AwesomeNotifications().cancel(notificationId);
   }
 
   /// Cancel a withdrawal notification.
   Future<void> cancelWithdrawalNotification(String medicationId) async {
     final notificationId =
         _withdrawalIdPrefix + medicationId.hashCode.abs() % 1000;
-    await _notifications.cancel(id: notificationId);
+    await AwesomeNotifications().cancel(notificationId);
   }
 
   /// Cancel an expense reminder notification.
   Future<void> cancelExpenseNotification(String expenseId) async {
     final notificationId = _expenseIdPrefix + expenseId.hashCode.abs() % 1000;
-    await _notifications.cancel(id: notificationId);
+    await AwesomeNotifications().cancel(notificationId);
   }
 
   /// Schedule a daily egg reminder notification.
@@ -300,11 +250,11 @@ class NotificationService {
 
     await _scheduleNotification(
       id: _eggReminderId,
-      channelId: _eggReminderChannelId,
+      channelKey: _eggReminderChannelKey,
       title: 'Time to check for eggs!',
       body: "You haven't logged any eggs today 🥚",
       scheduledDate: scheduledDate,
-      payload: 'egg_reminder',
+      payload: {'type': 'egg_reminder'},
     );
 
     debugPrint('🔔 Egg reminder scheduled successfully');
@@ -312,166 +262,75 @@ class NotificationService {
 
   /// Cancel the egg reminder notification.
   Future<void> cancelEggReminder() async {
-    await _notifications.cancel(id: _eggReminderId);
+    await AwesomeNotifications().cancel(_eggReminderId);
   }
 
   /// Show an immediate test notification (for debugging)
   Future<void> showTestNotification() async {
-    const androidDetails = AndroidNotificationDetails(
-      _eggReminderChannelId,
-      'Egg Reminders',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
-    const details = NotificationDetails(android: androidDetails);
-    await _notifications.show(
-      id: 9999,
-      title: 'Test Notification',
-      body: 'This is a test notification',
-      notificationDetails: details,
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: 9999,
+        channelKey: _eggReminderChannelKey,
+        title: 'Test Notification',
+        body: 'This is a test notification from awesome_notifications',
+        notificationLayout: NotificationLayout.Default,
+      ),
     );
     debugPrint('🔔 Test notification shown');
   }
 
   /// Cancel all notifications.
   Future<void> cancelAllNotifications() async {
-    await _notifications.cancelAll();
+    await AwesomeNotifications().cancelAll();
   }
 
-  /// Get all pending notification requests.
-  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
-    return _notifications.pendingNotificationRequests();
+  /// Get all scheduled notification IDs.
+  Future<List<NotificationModel>> getScheduledNotifications() async {
+    return await AwesomeNotifications().listScheduledNotifications();
   }
 
   /// Internal method to schedule a notification.
   Future<void> _scheduleNotification({
     required int id,
-    required String channelId,
+    required String channelKey,
     required String title,
     required String body,
     required DateTime scheduledDate,
-    String? payload,
+    Map<String, String>? payload,
+    NotificationCategory? category,
   }) async {
-    String channelName;
-    switch (channelId) {
-      case _medicationChannelId:
-        channelName = 'Medication Reminders';
-      case _withdrawalChannelId:
-        channelName = 'Withdrawal Alerts';
-      case _eggReminderChannelId:
-        channelName = 'Egg Reminders';
-      default:
-        channelName = 'Expense Reminders';
-    }
-
-    final androidDetails = AndroidNotificationDetails(
-      channelId,
-      channelName,
-      importance: Importance.high,
-      priority: Priority.high,
-    );
-
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
-
-    final details = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
-
-    final tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
-    debugPrint('🔔 TZ local: ${tz.local.name}, tzScheduledDate: $tzScheduledDate');
+    debugPrint('🔔 Scheduling notification id=$id for $scheduledDate');
 
     try {
-      await _notifications.zonedSchedule(
-        id: id,
-        title: title,
-        body: body,
-        scheduledDate: tzScheduledDate,
-        notificationDetails: details,
-        androidScheduleMode: AndroidScheduleMode.alarmClock,
-        payload: payload,
+      final success = await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: id,
+          channelKey: channelKey,
+          title: title,
+          body: body,
+          notificationLayout: NotificationLayout.Default,
+          payload: payload,
+          wakeUpScreen: true,
+          category: category,
+        ),
+        schedule: NotificationCalendar.fromDate(
+          date: scheduledDate,
+          preciseAlarm: false,
+          allowWhileIdle: false, // Try without - may not need exact alarm permission
+        ),
       );
-      debugPrint('🔔 zonedSchedule completed for id $id (alarmClock mode)');
 
-      // Check pending notifications
-      final pending = await _notifications.pendingNotificationRequests();
-      debugPrint('🔔 Pending notifications: ${pending.length}');
-      for (final p in pending) {
-        debugPrint('🔔   - id: ${p.id}, title: ${p.title}');
+      debugPrint('🔔 Notification scheduled: $success');
+
+      // List scheduled notifications for verification
+      final scheduled = await AwesomeNotifications().listScheduledNotifications();
+      debugPrint('🔔 Scheduled notifications count: ${scheduled.length}');
+      for (final n in scheduled) {
+        debugPrint('🔔   - id: ${n.content?.id}, title: ${n.content?.title}');
       }
     } catch (e) {
       debugPrint('🔔 ERROR scheduling notification: $e');
     }
   }
 
-  /// Handle notification tap.
-  void _onNotificationTapped(NotificationResponse response) {
-    // Handle egg reminder tap - open quick log sheet
-    if (response.payload == 'egg_reminder' && onEggReminderTapped != null) {
-      onEggReminderTapped!();
-    }
-  }
-
-  /// Check if battery optimization is disabled for this app.
-  /// Returns true if battery optimization is already disabled (good for notifications).
-  Future<bool> isBatteryOptimizationDisabled() async {
-    if (!Platform.isAndroid) return true;
-    final isEnabled = await BatteryOptimizationHelper.isBatteryOptimizationEnabled();
-    // Return true if optimization is disabled (i.e., NOT enabled)
-    return !isEnabled;
-  }
-
-  /// Request the user to disable battery optimization.
-  /// Shows system dialog and attempts OEM-specific settings on Samsung/other OEMs.
-  Future<void> requestDisableBatteryOptimization() async {
-    if (!Platform.isAndroid) return;
-
-    // First, try the standard Android battery optimization dialog
-    await BatteryOptimizationHelper.ensureOptimizationDisabled();
-
-    // Also try to open OEM-specific auto-start settings (for Samsung, Xiaomi, etc.)
-    // This handles Samsung's "Sleeping apps" and similar on other OEMs
-    await BatteryOptimizationHelper.openAutoStartSettings();
-  }
-
-  /// Check if the device is a Samsung device.
-  Future<bool> isSamsungDevice() async {
-    if (!Platform.isAndroid) return false;
-
-    final deviceInfo = DeviceInfoPlugin();
-    final androidInfo = await deviceInfo.androidInfo;
-    final manufacturer = androidInfo.manufacturer.toLowerCase();
-    return manufacturer == 'samsung';
-  }
-
-  /// Open Samsung's battery optimization settings.
-  /// This opens the "Background usage limits" or "Never sleeping apps" screen.
-  Future<void> openSamsungBatterySettings() async {
-    if (!Platform.isAndroid) return;
-
-    try {
-      // Try to open Samsung's Device Care battery settings directly
-      const intent = AndroidIntent(
-        action: 'android.intent.action.MAIN',
-        package: 'com.samsung.android.lool',
-        componentName: 'com.samsung.android.lool.activities.MainActivity',
-      );
-      await intent.launch();
-    } catch (e) {
-      debugPrint('🔔 Could not open Samsung Device Care: $e');
-      // Fallback to standard battery optimization settings
-      try {
-        const fallbackIntent = AndroidIntent(
-          action: 'android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS',
-        );
-        await fallbackIntent.launch();
-      } catch (e2) {
-        debugPrint('🔔 Could not open battery settings: $e2');
-      }
-    }
-  }
 }

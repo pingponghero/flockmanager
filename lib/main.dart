@@ -26,9 +26,9 @@ void main() async {
   await NotificationService().initialize();
   await IAPService().initialize();
 
-  // Set up egg reminder tap handler to navigate to quick log
+  // Set up egg reminder tap handler to navigate to home
   NotificationService.onEggReminderTapped = () {
-    router.go('/eggs/log');
+    router.go('/');
   };
 
   runApp(
