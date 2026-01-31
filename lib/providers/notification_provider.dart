@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -132,10 +131,8 @@ class NotificationSettingsNotifier extends Notifier<NotificationSettings> {
       // Ensure notification permission is granted
       final hasPermission = await service.areNotificationsEnabled();
       if (!hasPermission) {
-        debugPrint('🔔 Notifications not enabled, requesting permission');
         final granted = await requestPermission();
         if (!granted) {
-          debugPrint('🔔 Notification permission denied, not enabling egg reminders');
           return;
         }
       }
@@ -178,21 +175,17 @@ class NotificationSettingsNotifier extends Notifier<NotificationSettings> {
 
   /// Evaluates and schedules egg reminder based on current state
   Future<void> evaluateEggReminder() async {
-    debugPrint('🔔 evaluateEggReminder called - eggReminders: ${state.eggReminders}, time: ${state.eggReminderTime}');
     if (!state.eggReminders || state.eggReminderTime == null) return;
 
     await _scheduleEggReminderIfNeeded();
   }
 
   Future<void> _scheduleEggReminderIfNeeded() async {
-    debugPrint('🔔 _scheduleEggReminderIfNeeded called');
     if (!state.eggReminders || state.eggReminderTime == null) return;
 
     final eggRepo = EggRepository();
     final hasEggsToday = await eggRepo.hasEggsLoggedToday();
     final service = NotificationService();
-
-    debugPrint('🔔 hasEggsToday: $hasEggsToday, time: ${state.eggReminderTime}');
 
     if (hasEggsToday) {
       // Already logged today - schedule for tomorrow

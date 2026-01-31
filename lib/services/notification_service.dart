@@ -1,5 +1,4 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart' show Color, Colors, TimeOfDay;
 import '../models/medication_log.dart';
 
@@ -70,7 +69,6 @@ class NotificationService {
           criticalAlerts: true, // Bypass DND
         ),
       ],
-      debug: true, // Enable debug logging
     );
 
     // Set up notification action listener
@@ -78,14 +76,12 @@ class NotificationService {
       onActionReceivedMethod: _onActionReceived,
     );
 
-    debugPrint('🔔 awesome_notifications initialized');
     _isInitialized = true;
   }
 
   /// Static callback for notification actions
   @pragma('vm:entry-point')
   static Future<void> _onActionReceived(ReceivedAction receivedAction) async {
-    debugPrint('🔔 Notification action received: ${receivedAction.payload}');
     if (receivedAction.payload?['type'] == 'egg_reminder' && onEggReminderTapped != null) {
       onEggReminderTapped!();
     }
@@ -246,8 +242,6 @@ class NotificationService {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    debugPrint('🔔 Scheduling egg reminder for: $scheduledDate (now: $now)');
-
     await _scheduleNotification(
       id: _eggReminderId,
       channelKey: _eggReminderChannelKey,
@@ -256,8 +250,6 @@ class NotificationService {
       scheduledDate: scheduledDate,
       payload: {'type': 'egg_reminder'},
     );
-
-    debugPrint('🔔 Egg reminder scheduled successfully');
   }
 
   /// Cancel the egg reminder notification.
@@ -276,7 +268,6 @@ class NotificationService {
         notificationLayout: NotificationLayout.Default,
       ),
     );
-    debugPrint('🔔 Test notification shown');
   }
 
   /// Cancel all notifications.
@@ -299,38 +290,23 @@ class NotificationService {
     Map<String, String>? payload,
     NotificationCategory? category,
   }) async {
-    debugPrint('🔔 Scheduling notification id=$id for $scheduledDate');
-
-    try {
-      final success = await AwesomeNotifications().createNotification(
-        content: NotificationContent(
-          id: id,
-          channelKey: channelKey,
-          title: title,
-          body: body,
-          notificationLayout: NotificationLayout.Default,
-          payload: payload,
-          wakeUpScreen: true,
-          category: category,
-        ),
-        schedule: NotificationCalendar.fromDate(
-          date: scheduledDate,
-          preciseAlarm: false,
-          allowWhileIdle: false, // Try without - may not need exact alarm permission
-        ),
-      );
-
-      debugPrint('🔔 Notification scheduled: $success');
-
-      // List scheduled notifications for verification
-      final scheduled = await AwesomeNotifications().listScheduledNotifications();
-      debugPrint('🔔 Scheduled notifications count: ${scheduled.length}');
-      for (final n in scheduled) {
-        debugPrint('🔔   - id: ${n.content?.id}, title: ${n.content?.title}');
-      }
-    } catch (e) {
-      debugPrint('🔔 ERROR scheduling notification: $e');
-    }
+    await AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: id,
+        channelKey: channelKey,
+        title: title,
+        body: body,
+        notificationLayout: NotificationLayout.Default,
+        payload: payload,
+        wakeUpScreen: true,
+        category: category,
+      ),
+      schedule: NotificationCalendar.fromDate(
+        date: scheduledDate,
+        preciseAlarm: false,
+        allowWhileIdle: false,
+      ),
+    );
   }
 
 }
