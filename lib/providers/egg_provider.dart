@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/egg_log.dart';
+import '../models/enums.dart';
 import '../repositories/egg_repository.dart';
 import 'flock_provider.dart';
 import 'notification_provider.dart';
@@ -30,7 +32,43 @@ class EggLogsNotifier extends AsyncNotifier<List<EggLog>> {
     // Invalidate related providers
     _invalidateEggCountProviders();
     // Reschedule egg reminder for tomorrow (eggs logged today)
-    await ref.read(notificationSettingsProvider.notifier).onEggsLogged();
+    // Wrapped in try-catch to handle notification permission errors gracefully
+    try {
+      await ref.read(notificationSettingsProvider.notifier).onEggsLogged();
+    } catch (_) {
+      // Ignore notification errors - egg save should still succeed
+    }
+  }
+
+  /// Add distributed egg logs (one per bird with same timestamp)
+  Future<List<EggLog>> addDistributedEggLogs({
+    required DateTime date,
+    required String flockId,
+    required Map<String, int> distribution,
+    EggSize? size,
+    EggQuality? quality,
+    String? notes,
+  }) async {
+    final repository = ref.read(eggRepositoryProvider);
+    final logs = await repository.insertDistributedEggLogs(
+      date: date,
+      flockId: flockId,
+      distribution: distribution,
+      size: size,
+      quality: quality,
+      notes: notes,
+    );
+    ref.invalidateSelf();
+    // Invalidate related providers
+    _invalidateEggCountProviders();
+    // Reschedule egg reminder for tomorrow (eggs logged today)
+    // Wrapped in try-catch to handle notification permission errors gracefully
+    try {
+      await ref.read(notificationSettingsProvider.notifier).onEggsLogged();
+    } catch (_) {
+      // Ignore notification errors - egg save should still succeed
+    }
+    return logs;
   }
 
   /// Update an existing egg log
@@ -321,4 +359,29 @@ final longestStreakProvider = FutureProvider<int>((ref) async {
 final totalLoggedDaysProvider = FutureProvider<int>((ref) async {
   final repository = ref.read(eggRepositoryProvider);
   return repository.getDistinctLogDays();
+});
+
+// ==================== EGG DISTRIBUTION SETTINGS ====================
+
+const _keyAutoDistributeEggs = 'auto_distribute_eggs';
+
+/// Notifier for auto-distribute eggs setting
+class AutoDistributeNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyAutoDistributeEggs) ?? false;
+  }
+
+  Future<void> setAutoDistribute(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAutoDistributeEggs, value);
+    state = AsyncData(value);
+  }
+}
+
+/// Provider for auto-distribute eggs setting
+final autoDistributeEggsProvider =
+    AsyncNotifierProvider<AutoDistributeNotifier, bool>(() {
+  return AutoDistributeNotifier();
 });

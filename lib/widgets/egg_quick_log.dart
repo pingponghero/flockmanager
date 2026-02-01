@@ -9,7 +9,9 @@ import '../providers/achievements_provider.dart';
 import '../providers/bird_provider.dart';
 import '../providers/egg_provider.dart';
 import '../providers/flock_provider.dart';
+import '../utils/distribution_helper.dart';
 import 'achievement_celebration_dialog.dart';
+import 'distribute_eggs_dialog.dart';
 
 /// Shows the quick egg log bottom sheet.
 /// Returns the created EggLog if logged, null otherwise.
@@ -318,6 +320,80 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
     setState(() => _isLoading = true);
 
     try {
+      // Check if distribution should be offered (only if no specific bird selected)
+      if (_selectedBirdId == null && _count > 0) {
+        final activeBirds = await ref.read(
+          activeBirdsByFlockProvider(_selectedFlockId!).future,
+        );
+
+        if (shouldOfferDistribution(
+          eggCount: _count,
+          activeBirds: activeBirds,
+          selectedFlockId: _selectedFlockId,
+        )) {
+          // Check if auto-distribute is enabled
+          final autoDistribute = await ref.read(autoDistributeEggsProvider.future);
+
+          Map<String, int>? distribution;
+
+          if (autoDistribute) {
+            // Auto-distribute without prompt
+            distribution = {for (final bird in activeBirds) bird.id: 1};
+          } else {
+            // Show distribution dialog
+            distribution = await showDialog<Map<String, int>>(
+              context: context,
+              builder: (context) => DistributeEggsDialog(
+                eggCount: _count,
+                birds: activeBirds,
+              ),
+            );
+          }
+
+          if (distribution != null) {
+            // User chose to distribute
+            await ref.read(eggLogsProvider.notifier).addDistributedEggLogs(
+              date: DateTime(_date.year, _date.month, _date.day),
+              flockId: _selectedFlockId!,
+              distribution: distribution,
+              size: _selectedSize,
+              quality: _selectedQuality,
+              notes: _notes,
+            );
+
+            // Haptic feedback
+            HapticFeedback.mediumImpact();
+
+            if (mounted) {
+              // Check for new achievements
+              final newAchievements = await checkAndCelebrateAchievements(ref, context);
+
+              if (mounted && newAchievements.isNotEmpty) {
+                await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+                await markAchievementsAsShown(newAchievements);
+              }
+
+              // Show success message with bird names
+              if (mounted) {
+                final birdNames = activeBirds.map((b) => b.name).join(', ');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Logged $_count eggs (1 each to $birdNames)',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                Navigator.pop(context, null); // Return null since we handled the snackbar
+              }
+            }
+            return;
+          }
+          // User tapped "Skip" — fall through to normal save
+        }
+      }
+
+      // Normal save (single egg log)
       final log = EggLog.create(
         date: DateTime(_date.year, _date.month, _date.day),
         flockId: _selectedFlockId!,

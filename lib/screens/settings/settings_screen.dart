@@ -15,7 +15,7 @@ import '../../app/theme.dart';
 import '../../data/test_data.dart';
 import '../../database/database_helper.dart';
 import '../../providers/bird_provider.dart' show birdsProvider;
-import '../../providers/egg_provider.dart' show eggLogsProvider;
+import '../../providers/egg_provider.dart' show autoDistributeEggsProvider, eggLogsProvider;
 import '../../providers/expense_provider.dart' show expensesProvider;
 import '../../providers/flock_provider.dart' show flocksProvider, selectedFlockIdProvider;
 import '../../providers/medication_provider.dart' show medicationsProvider;
@@ -149,6 +149,42 @@ class SettingsScreen extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/settings/achievements'),
             ),
+          ),
+          const SizedBox(height: 24),
+
+          // Egg Logging Section
+          Text(
+            'Egg Logging',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ref.watch(autoDistributeEggsProvider).when(
+                  loading: () => const ListTile(
+                    leading: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    title: Text('Auto-distribute eggs'),
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (autoDistribute) => SwitchListTile(
+                    secondary: const Icon(Icons.egg),
+                    title: const Text('Auto-distribute eggs'),
+                    subtitle: const Text(
+                      'When egg count matches bird count, automatically attribute one egg per bird',
+                    ),
+                    value: autoDistribute,
+                    onChanged: (value) {
+                      ref
+                          .read(autoDistributeEggsProvider.notifier)
+                          .setAutoDistribute(value);
+                    },
+                  ),
+                ),
           ),
           const SizedBox(height: 24),
 

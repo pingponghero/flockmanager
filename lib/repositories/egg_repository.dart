@@ -1,5 +1,8 @@
+import 'package:uuid/uuid.dart';
+
 import '../database/database_helper.dart';
 import '../models/egg_log.dart';
+import '../models/enums.dart';
 
 /// Repository for egg log data access operations.
 class EggRepository {
@@ -136,6 +139,40 @@ class EggRepository {
     final db = await _db.database;
 
     await db.insert('egg_logs', log.toMap());
+  }
+
+  /// Insert multiple egg logs as a distributed set.
+  /// All logs share the same created_at timestamp for grouping.
+  Future<List<EggLog>> insertDistributedEggLogs({
+    required DateTime date,
+    required String flockId,
+    required Map<String, int> distribution, // birdId -> count
+    EggSize? size,
+    EggQuality? quality,
+    String? notes,
+  }) async {
+    final now = DateTime.now();
+    final logs = <EggLog>[];
+
+    for (final entry in distribution.entries) {
+      if (entry.value > 0) {
+        final log = EggLog(
+          id: const Uuid().v4(),
+          date: date,
+          flockId: flockId,
+          birdId: entry.key,
+          count: entry.value,
+          size: size,
+          quality: quality,
+          notes: notes,
+          createdAt: now, // Same timestamp for all
+        );
+        await insertEggLog(log);
+        logs.add(log);
+      }
+    }
+
+    return logs;
   }
 
   /// Update an existing egg log.

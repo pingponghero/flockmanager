@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/egg_log.dart';
+import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../utils/egg_log_grouper.dart';
 import '../../widgets/egg_quick_log.dart';
 
 class EggHistoryScreen extends ConsumerStatefulWidget {
@@ -450,6 +452,8 @@ class _DayDetailsInline extends ConsumerWidget {
           );
         }
 
+        // Group logs for display
+        final groups = groupEggLogs(logs);
         final totalCount = logs.fold<int>(0, (sum, log) => sum + log.count);
 
         return Column(
@@ -481,8 +485,29 @@ class _DayDetailsInline extends ConsumerWidget {
                 ],
               ),
             ),
-            // Logs list (inline, not in a nested ListView)
-            ...logs.map((log) => Dismissible(
+            // Grouped logs list
+            ...groups.map((group) {
+              if (group.isDistributed) {
+                // Show distributed group tile
+                return _DistributedEggGroupTile(
+                  group: group,
+                  onDelete: () async {
+                    // Delete all logs in the group
+                    for (final log in group.logs) {
+                      await ref.read(eggLogsProvider.notifier).deleteEggLog(log.id);
+                    }
+                    onLogDeleted();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Distributed entry deleted')),
+                      );
+                    }
+                  },
+                );
+              } else {
+                // Show single log tile with dismiss
+                final log = group.firstLog;
+                return Dismissible(
                   key: Key(log.id),
                   direction: DismissDirection.endToStart,
                   background: Container(
@@ -525,7 +550,9 @@ class _DayDetailsInline extends ConsumerWidget {
                     log: log,
                     onEdit: () => context.push('/eggs/log', extra: log),
                   ),
-                )),
+                );
+              }
+            }),
             // Add some bottom padding for FAB clearance
             const SizedBox(height: 80),
           ],
@@ -573,6 +600,180 @@ class _EggLogTile extends ConsumerWidget {
       ),
       subtitle: subtitleParts.isNotEmpty ? Text(subtitleParts.join(' • ')) : null,
       trailing: const Icon(Icons.chevron_right),
+    );
+  }
+}
+
+/// Tile for displaying a distributed egg group.
+class _DistributedEggGroupTile extends ConsumerStatefulWidget {
+  final EggLogGroup group;
+  final VoidCallback onDelete;
+
+  const _DistributedEggGroupTile({
+    required this.group,
+    required this.onDelete,
+  });
+
+  @override
+  ConsumerState<_DistributedEggGroupTile> createState() =>
+      _DistributedEggGroupTileState();
+}
+
+class _DistributedEggGroupTileState
+    extends ConsumerState<_DistributedEggGroupTile> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final flockAsync = ref.watch(flockByIdProvider(widget.group.flockId));
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Column(
+        children: [
+          // Header tile
+          ListTile(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            leading: CircleAvatar(
+              backgroundColor: theme.colorScheme.primaryContainer,
+              child: Text(
+                '${widget.group.totalCount}',
+                style: TextStyle(
+                  color: theme.colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            title: Row(
+              children: [
+                flockAsync.when(
+                  loading: () => const Text('Loading...'),
+                  error: (_, __) => const Text('Unknown Flock'),
+                  data: (flock) => Text(flock?.name ?? 'Unknown Flock'),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.tertiaryContainer,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Distributed',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onTertiaryContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: Text(
+              '${widget.group.logs.length} birds • ${_formatTime(widget.group.displayTime)}',
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Delete Distributed Entry?'),
+                        content: Text(
+                          'Delete all ${widget.group.totalCount} eggs distributed to ${widget.group.logs.length} birds?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Delete'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true) {
+                      widget.onDelete();
+                    }
+                  },
+                ),
+                Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
+              ],
+            ),
+          ),
+          // Expanded bird list
+          if (_isExpanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Column(
+                children: widget.group.logs.map((log) {
+                  return _BirdEggRow(log: log);
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final hour = dt.hour > 12
+        ? dt.hour - 12
+        : (dt.hour == 0 ? 12 : dt.hour);
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
+  }
+}
+
+/// Row showing a bird and their egg count in a distributed group.
+class _BirdEggRow extends ConsumerWidget {
+  final EggLog log;
+
+  const _BirdEggRow({required this.log});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final birdAsync = log.birdId != null
+        ? ref.watch(birdByIdProvider(log.birdId!))
+        : null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            Icons.egg_outlined,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: birdAsync?.when(
+                  loading: () => const Text('Loading...'),
+                  error: (_, __) => const Text('Unknown Bird'),
+                  data: (bird) => Text(bird?.name ?? 'Unknown Bird'),
+                ) ??
+                const Text('Unknown Bird'),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${log.count}',
+              style: theme.textTheme.labelMedium,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
