@@ -2,6 +2,8 @@
 
 A cross-platform mobile app for backyard chicken keepers to track flocks, log eggs, monitor expenses, and manage bird health.
 
+**Current Version:** 1.2.0
+
 ## Tech Stack
 
 - **Framework:** Flutter 3.x
@@ -12,13 +14,15 @@ A cross-platform mobile app for backyard chicken keepers to track flocks, log eg
 - **Charts:** fl_chart
 - **Photos:** image_picker
 - **Preferences:** shared_preferences
+- **Notifications:** awesome_notifications
+- **In-App Purchases:** in_app_purchase
 
 ## Getting Started
 
 ### Prerequisites
 
-- Flutter SDK 3.10+
-- Dart SDK 3.10+
+- Flutter SDK 3.10.4+
+- Dart SDK 3.10.4+
 - Xcode (for iOS)
 - Android Studio (for Android)
 
@@ -75,7 +79,8 @@ lib/
 │   └── theme.dart            # ThemeData, colors, text styles
 ├── data/                     # Static reference data
 │   ├── breeds.dart           # 50 chicken breeds
-│   └── medications.dart      # Medication reference guide
+│   ├── medications.dart      # Medication reference guide
+│   └── test_data.dart        # Sample data for development/screenshots
 ├── models/                   # Freezed data classes
 ├── database/
 │   ├── database_helper.dart  # SQLite singleton, migrations
@@ -84,7 +89,8 @@ lib/
 ├── providers/                # Riverpod providers
 ├── screens/                  # Full-page views
 ├── widgets/                  # Reusable components
-└── utils/                    # Helpers and constants
+├── services/                 # Notification service, etc.
+└── utils/                    # Helpers (distribution, grouping, constants)
 ```
 
 ## Database Schema
@@ -107,7 +113,7 @@ lib/
 ```dart
 enum BirdStatus { active, deceased, sold, givenAway }
 enum EggSize { small, medium, large, jumbo }
-enum EggQuality { normal, softShell, doubleYolk, abnormal }
+enum EggQuality { normal, softShell, doubleYolk, abnormal, fairy }
 enum ExpenseCategory { feed, bedding, supplies, medical, equipment, other }
 enum HealthNoteType { observation, symptom, treatment, vetVisit, other }
 enum RecurringInterval { weekly, monthly }
@@ -128,11 +134,14 @@ Test structure:
 - `test/database/` - Database schema tests
 - `test/repositories/` - Repository CRUD tests (flock, bird, egg)
 - `test/providers/` - Provider and analytics class tests
+- `test/utils/` - Utility function tests (distribution helper, egg log grouper)
 - `test/helpers/` - Test utilities and mocks
 
 ## Key Features
 
 - **Quick Egg Logging** - Log daily eggs in 2 taps from anywhere in the app
+- **Egg Distribution** - Evenly distribute eggs to individual birds for small flocks (2-10 birds)
+- **Daily Reminders** - Configurable notifications to remind you to log eggs
 - **Flock Management** - Organize birds into multiple flocks
 - **Bird Profiles** - Track individual birds with photos, breed, hatch date, and status
 - **Expense Tracking** - Monitor costs with category breakdown and recurring expenses
@@ -140,6 +149,7 @@ Test structure:
 - **Medication Tracking** - Log treatments with egg withdrawal period alerts
 - **Health Notes** - Record observations, symptoms, and vet visits per bird
 - **Analytics** - View production trends, per-bird statistics, and cost analysis
+- **Data Export/Import** - Backup and restore your data with photo support
 - **Breed Reference** - Built-in guide to 50 chicken breeds with egg color, temperament, and production info
 - **Medication Reference** - Common treatments with dosages and withdrawal periods
 - **Theme Customization** - Three color palettes (Barn Red, Sage, Egg-Inspired)
