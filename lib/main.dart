@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,20 +23,33 @@ void main() async {
     ),
   );
 
-  // Initialize services
-  await NotificationService().initialize();
-  await IAPService().initialize();
-
-  // Set up egg reminder tap handler to navigate to home
-  NotificationService.onEggReminderTapped = () {
-    router.go('/');
-  };
+  // Initialize services - each plugin is a guest, not a gatekeeper
+  await _initServices();
 
   runApp(
     const ProviderScope(
       child: FlockManagerApp(),
     ),
   );
+}
+
+/// Initialize all services with graceful error handling.
+/// App launches with degraded features if any service fails.
+Future<void> _initServices() async {
+  try {
+    await NotificationService().initialize();
+    NotificationService.onEggReminderTapped = () {
+      router.go('/');
+    };
+  } catch (e) {
+    debugPrint('Notification init failed: $e');
+  }
+
+  try {
+    await IAPService().initialize();
+  } catch (e) {
+    debugPrint('IAP init failed: $e');
+  }
 }
 
 class FlockManagerApp extends ConsumerStatefulWidget {

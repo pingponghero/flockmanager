@@ -36,20 +36,25 @@ class IAPService {
 
   /// Initialize the IAP service.
   Future<void> initialize() async {
-    _isAvailable = await _iap.isAvailable();
-    if (!_isAvailable) return;
+    try {
+      _isAvailable = await _iap.isAvailable();
+      if (!_isAvailable) return;
 
-    // Listen to purchase updates
-    _subscription = _iap.purchaseStream.listen(
-      _onPurchaseUpdate,
-      onDone: () => _subscription?.cancel(),
-      onError: (error) {
-        onPurchaseError?.call(error.toString());
-      },
-    );
+      // Listen to purchase updates
+      _subscription = _iap.purchaseStream.listen(
+        _onPurchaseUpdate,
+        onDone: () => _subscription?.cancel(),
+        onError: (error) {
+          onPurchaseError?.call(error.toString());
+        },
+      );
 
-    // Load products
-    await _loadProducts();
+      // Load products
+      await _loadProducts();
+    } catch (e) {
+      // Don't let IAP failures crash the app
+      _isAvailable = false;
+    }
   }
 
   /// Load product details from the store.
@@ -64,10 +69,10 @@ class IAPService {
     }
 
     if (response.productDetails.isNotEmpty) {
-      _premiumProduct = response.productDetails.firstWhere(
-        (p) => p.id == premiumProductId,
-        orElse: () => response.productDetails.first,
-      );
+      // Find the premium product, or use the first product if not found
+      final products = response.productDetails;
+      final premium = products.where((p) => p.id == premiumProductId);
+      _premiumProduct = premium.isNotEmpty ? premium.first : products.first;
     }
   }
 
