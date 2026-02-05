@@ -110,19 +110,21 @@ class BirdRepository {
     );
   }
 
-  /// Update a bird's status with optional notes.
+  /// Update a bird's status with optional notes and event date.
   Future<void> updateBirdStatus(
     String id,
     BirdStatus status,
-    String? notes,
-  ) async {
+    String? notes, [
+    DateTime? eventDate,
+  ]) async {
     final db = await _db.database;
+    final date = eventDate ?? DateTime.now();
 
     await db.update(
       'birds',
       {
         'status': status.name,
-        'status_date': DateTime.now().toIso8601String(),
+        'status_date': date.toIso8601String(),
         'status_notes': notes,
       },
       where: 'id = ?',

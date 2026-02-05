@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/bird.dart';
+import '../models/bird_status_event.dart';
 import '../models/enums.dart';
 import '../repositories/bird_repository.dart';
+import 'bird_status_event_provider.dart';
 import 'flock_provider.dart';
 
 /// Repository provider
@@ -25,10 +27,25 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
   /// Add a new bird
   Future<void> addBird(Bird bird) async {
     final repository = ref.read(birdRepositoryProvider);
+    final eventRepository = ref.read(birdStatusEventRepositoryProvider);
+
     await repository.insertBird(bird);
+
+    // Create 'active' event for the new bird
+    await eventRepository.insertEvent(
+      BirdStatusEvent.create(
+        birdId: bird.id,
+        flockId: bird.flockId,
+        status: 'active',
+        eventDate: bird.createdAt,
+      ),
+    );
+
     ref.invalidateSelf();
     // Also invalidate the flock bird count
     ref.invalidate(flockBirdCountProvider(bird.flockId));
+    // Invalidate events
+    ref.invalidate(birdStatusEventsProvider);
   }
 
   /// Update an existing bird
@@ -44,18 +61,37 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
   Future<void> updateBirdStatus(
     String id,
     BirdStatus status,
-    String? notes,
-  ) async {
+    String? notes, {
+    DateTime? eventDate,
+  }) async {
     final repository = ref.read(birdRepositoryProvider);
+    final eventRepository = ref.read(birdStatusEventRepositoryProvider);
     final flockRepository = ref.read(flockRepositoryProvider);
 
     // Get the bird to find its flock
     final bird = await repository.getBirdById(id);
 
-    await repository.updateBirdStatus(id, status, notes);
+    final date = eventDate ?? DateTime.now();
+
+    // Create event for the status change
+    if (bird != null) {
+      await eventRepository.insertEvent(
+        BirdStatusEvent.create(
+          birdId: id,
+          flockId: bird.flockId,
+          status: status.name,
+          eventDate: date,
+          notes: notes,
+        ),
+      );
+    }
+
+    await repository.updateBirdStatus(id, status, notes, date);
     ref.invalidateSelf();
     // Also invalidate the single bird provider so detail screens refresh
     ref.invalidate(birdByIdProvider(id));
+    // Invalidate events
+    ref.invalidate(birdStatusEventsProvider);
 
     // Also invalidate the flock bird count if status changed to/from active
     if (bird != null) {
@@ -76,12 +112,27 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
   /// Delete a bird permanently
   Future<void> deleteBird(String id) async {
     final repository = ref.read(birdRepositoryProvider);
+    final eventRepository = ref.read(birdStatusEventRepositoryProvider);
 
     // Get the bird to find its flock
     final bird = await repository.getBirdById(id);
 
+    // Create 'deleted' event before deleting the bird
+    if (bird != null) {
+      await eventRepository.insertEvent(
+        BirdStatusEvent.create(
+          birdId: id,
+          flockId: bird.flockId,
+          status: 'deleted',
+          eventDate: DateTime.now(),
+        ),
+      );
+    }
+
     await repository.deleteBird(id);
     ref.invalidateSelf();
+    // Invalidate events
+    ref.invalidate(birdStatusEventsProvider);
 
     // Also invalidate the flock bird count
     if (bird != null) {

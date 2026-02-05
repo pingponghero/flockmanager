@@ -307,6 +307,7 @@ class _BirdDetailContent extends ConsumerWidget {
                         notesController.text.trim().isEmpty
                             ? null
                             : notesController.text.trim(),
+                        eventDate: selectedDate,
                       );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

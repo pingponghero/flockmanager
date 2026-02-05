@@ -264,6 +264,34 @@ void main() {
         expect(updateData['status'], 'sold');
         expect(updateData['status_notes'], isNull);
       });
+
+      test('updates status with custom event date', () async {
+        when(() => mockDatabase.update(
+              'birds',
+              any(),
+              where: 'id = ?',
+              whereArgs: ['bird-1'],
+            )).thenAnswer((_) async => 1);
+
+        final customDate = DateTime(2024, 3, 15);
+        await repository.updateBirdStatus(
+          'bird-1',
+          BirdStatus.deceased,
+          'Natural causes',
+          customDate,
+        );
+
+        final captured = verify(() => mockDatabase.update(
+              'birds',
+              captureAny(),
+              where: 'id = ?',
+              whereArgs: ['bird-1'],
+            )).captured;
+
+        final updateData = captured.first as Map<String, dynamic>;
+        expect(updateData['status'], 'deceased');
+        expect(updateData['status_date'], '2024-03-15T00:00:00.000');
+      });
     });
 
     group('deleteBird', () {

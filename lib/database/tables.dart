@@ -120,6 +120,20 @@ class Tables {
     )
   ''';
 
+  /// Bird status events for tracking lifecycle changes.
+  /// No foreign key - events must survive bird deletion.
+  static const String birdStatusEvents = '''
+    CREATE TABLE bird_status_events (
+      id TEXT PRIMARY KEY,
+      bird_id TEXT NOT NULL,
+      flock_id TEXT NOT NULL,
+      status TEXT NOT NULL,
+      event_date TEXT NOT NULL,
+      notes TEXT,
+      created_at TEXT NOT NULL
+    )
+  ''';
+
   /// All tables in creation order (respecting foreign key dependencies)
   static const List<String> allTables = [
     flocks,
@@ -130,5 +144,6 @@ class Tables {
     income,
     medicationLogs,
     healthNotes,
+    birdStatusEvents,
   ];
 }
