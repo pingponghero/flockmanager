@@ -170,14 +170,16 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Trend indicator
-                        _TrendCard(
-                          periodChange: analytics.periodChange,
-                          hasPreviousPeriodData: analytics.hasPreviousPeriodData,
-                          comparisonEndDate: analytics.comparisonEndDate,
-                          period: selectedPeriod,
-                        ),
-                        const SizedBox(height: 24),
+                        // Trend indicator (not shown for All Time - no meaningful comparison)
+                        if (selectedPeriod != AnalyticsPeriod.allTime) ...[
+                          _TrendCard(
+                            periodChange: analytics.periodChange,
+                            hasPreviousPeriodData: analytics.hasPreviousPeriodData,
+                            comparisonEndDate: analytics.comparisonEndDate,
+                            period: selectedPeriod,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
 
                         // Golden egg radial chart (not shown for Last 7 Days)
                         if (selectedPeriod != AnalyticsPeriod.week) ...[
@@ -549,25 +551,40 @@ class _ProductionChart extends StatelessWidget {
     );
   }
 
+  bool get _spansMultipleYears {
+    if (chartData.isEmpty) return false;
+    return chartData.first.startDate.year != chartData.last.startDate.year;
+  }
+
   String _formatXLabel(ChartDataPoint point) {
     if (granularity == ChartGranularity.daily) {
       return DateFormat.MMMd().format(point.startDate);
     } else if (granularity == ChartGranularity.monthly) {
+      // Include year if data spans multiple years
+      if (_spansMultipleYears) {
+        return DateFormat("MMM ''yy").format(point.startDate);
+      }
       return DateFormat.MMM().format(point.startDate);
     } else {
-      // Weekly - show start of week
+      // Weekly - include year if data spans multiple years
+      if (_spansMultipleYears) {
+        return DateFormat("M/d/yy").format(point.startDate);
+      }
       return DateFormat.MMMd().format(point.startDate);
     }
   }
 
   String _formatTooltip(ChartDataPoint point) {
+    // Include year in tooltips if data spans multiple years
+    final dateFormat = _spansMultipleYears ? DateFormat.yMMMd() : DateFormat.MMMd();
+
     if (granularity == ChartGranularity.daily) {
-      return '${DateFormat.MMMd().format(point.startDate)}\n${point.totalEggs} eggs';
+      return '${dateFormat.format(point.startDate)}\n${point.totalEggs} eggs';
     } else {
       // Show range and both total and average
       final dateRange = point.startDate == point.endDate
-          ? DateFormat.MMMd().format(point.startDate)
-          : '${DateFormat.MMMd().format(point.startDate)} - ${DateFormat.MMMd().format(point.endDate)}';
+          ? dateFormat.format(point.startDate)
+          : '${dateFormat.format(point.startDate)} - ${dateFormat.format(point.endDate)}';
       return '$dateRange\n${point.totalEggs} eggs (${point.value.toStringAsFixed(1)}/day)';
     }
   }
