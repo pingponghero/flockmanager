@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+/// Notifier to track current tab index for scroll reset, etc.
+class TabIndexNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void setIndex(int index) => state = index;
+}
+
+final tabChangeNotifierProvider = NotifierProvider<TabIndexNotifier, int>(
+  TabIndexNotifier.new,
+);
+
 /// Shell widget that provides persistent bottom navigation bar.
-class ScaffoldWithNavBar extends StatelessWidget {
+class ScaffoldWithNavBar extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const ScaffoldWithNavBar({
@@ -11,7 +24,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final iconColor = Theme.of(context).colorScheme.onSurfaceVariant;
     final selectedIconColor = Theme.of(context).colorScheme.onSecondaryContainer;
 
@@ -57,6 +70,8 @@ class ScaffoldWithNavBar extends StatelessWidget {
           ),
         ],
         onDestinationSelected: (index) {
+          // Notify listeners about tab change (for scroll reset)
+          ref.read(tabChangeNotifierProvider.notifier).setIndex(index);
           navigationShell.goBranch(
             index,
             initialLocation: index == navigationShell.currentIndex,

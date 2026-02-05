@@ -3,7 +3,8 @@
 /// This file provides realistic sample data optimized for screenshots:
 /// - 2 flocks (backyard layers with 5 hens, bantams with 2)
 /// - 7 birds with varied breeds for colorful egg basket
-/// - 60 days of egg production logs with nice patterns
+/// - 365 days of egg production logs with seasonal patterns
+/// - Bird status events for flock size tracking
 /// - Expenses and income with clean numbers
 /// - Some medication logs and health notes
 ///
@@ -50,11 +51,22 @@ class TestIds {
 }
 
 
-/// Generate 60 days of egg production data optimized for screenshots
-/// - Nice consistent patterns that look good in charts
+/// Calculate seasonal egg production multiplier based on day of year.
+/// Simulates natural daylight-driven production cycle.
+/// Summer (June): peak production (1.0)
+/// Winter (December): low production (0.4)
+double _seasonalMultiplier(int dayOfYear) {
+  // Sine wave centered on June 21 (day 172)
+  // Ranges from ~0.4 in winter to ~1.0 in summer
+  final angle = 2 * pi * (dayOfYear - 172) / 365;
+  return 0.7 + 0.3 * -cos(angle); // cos because we want peak at day 172
+}
+
+/// Generate 365 days of egg production data with seasonal variation
+/// - Realistic seasonal patterns tied to daylight hours
 /// - Some distributed egg entries (one per bird)
-/// - Backyard: 5 hens -> 4-5 eggs/day average
-/// - Bantams: 2 hens -> 1-2 eggs/day
+/// - Backyard: 5 hens -> varies 2-5 eggs/day based on season
+/// - Bantams: 2 hens -> varies 0-2 eggs/day based on season
 List<Map<String, dynamic>> generateEggLogs() {
   final logs = <Map<String, dynamic>>[];
 
@@ -67,18 +79,37 @@ List<Map<String, dynamic>> generateEggLogs() {
     TestIds.birdHazel,
   ];
 
-  for (int day = 0; day < 60; day++) {
+  final now = DateTime.now();
+
+  for (int day = 0; day < 365; day++) {
     final date = _daysAgo(day);
-    final timestamp = DateTime.now().subtract(Duration(days: day, hours: 10));
+    final timestamp = now.subtract(Duration(days: day, hours: 10));
     final timestampStr = timestamp.toIso8601String();
 
-    // Backyard flock - aim for 4-5 eggs daily with nice variation
-    // Pattern: 5, 4, 5, 4, 5, 3, 4 repeating (avg ~4.3)
-    final dailyPattern = [5, 4, 5, 4, 5, 3, 4];
-    int backyardCount = dailyPattern[day % 7];
+    // Calculate day of year for seasonal adjustment
+    final logDate = now.subtract(Duration(days: day));
+    final startOfYear = DateTime(logDate.year, 1, 1);
+    final dayOfYear = logDate.difference(startOfYear).inDays + 1;
 
-    // Every 7 days, log as distributed (one egg per bird) for demo
-    if (day % 7 == 0 && backyardCount == 5) {
+    // Seasonal multiplier (0.4 in winter, 1.0 in summer)
+    final seasonal = _seasonalMultiplier(dayOfYear);
+
+    // Backyard flock - base 5 eggs/day with seasonal and daily variation
+    // Pattern: 5, 4, 5, 4, 5, 3, 4 repeating (avg ~4.3) scaled by season
+    final dailyPattern = [5, 4, 5, 4, 5, 3, 4];
+    int baseCount = dailyPattern[day % 7];
+    int backyardCount = (baseCount * seasonal).round();
+
+    // Add some random variation
+    if (_random.nextDouble() < 0.1) {
+      backyardCount = (backyardCount - 1).clamp(0, 5);
+    }
+    if (_random.nextDouble() < 0.05) {
+      backyardCount = (backyardCount + 1).clamp(0, 5);
+    }
+
+    // Every 14 days, log as distributed (one egg per bird) for demo
+    if (day % 14 == 0 && backyardCount == 5) {
       // Create distributed entries - same timestamp, different birds
       for (final birdId in backyardBirds) {
         logs.add({
@@ -107,6 +138,10 @@ List<Map<String, dynamic>> generateEggLogs() {
         notes = 'Beautiful olive egg from Olive';
       } else if (day == 21) {
         notes = 'Blue egg extra vibrant today';
+      } else if (day == 100) {
+        notes = 'First egg after molt!';
+      } else if (day == 180) {
+        notes = 'Peak summer production';
       }
 
       logs.add({
@@ -122,10 +157,13 @@ List<Map<String, dynamic>> generateEggLogs() {
       });
     }
 
-    // Bantam flock - 1-2 eggs, simpler pattern
-    int bantamCount = day % 3 == 0 ? 2 : 1;
-    // Skip some days to make it realistic
-    if (day % 5 == 0) bantamCount = 0;
+    // Bantam flock - 1-2 eggs, simpler pattern with seasonal adjustment
+    int bantamBase = day % 3 == 0 ? 2 : 1;
+    int bantamCount = (bantamBase * seasonal).round();
+    // Skip more days in winter
+    if (day % 5 == 0 || (seasonal < 0.6 && _random.nextDouble() < 0.3)) {
+      bantamCount = 0;
+    }
 
     if (bantamCount > 0) {
       logs.add({
@@ -145,6 +183,80 @@ List<Map<String, dynamic>> generateEggLogs() {
   return logs;
 }
 
+/// Generate bird status events for flock size tracking
+List<Map<String, dynamic>> generateBirdStatusEvents() {
+  final events = <Map<String, dynamic>>[];
+
+  // Henrietta and Ginger added first (365 days ago)
+  for (final birdId in [TestIds.birdHenrietta, TestIds.birdGinger]) {
+    events.add({
+      'id': _generateId(),
+      'bird_id': birdId,
+      'flock_id': TestIds.flockBackyard,
+      'status': 'active',
+      'event_date': _daysAgo(365),
+      'notes': 'Initial flock member',
+      'created_at': _daysAgoFull(365),
+    });
+  }
+
+  // Pepper added 300 days ago
+  events.add({
+    'id': _generateId(),
+    'bird_id': TestIds.birdPepper,
+    'flock_id': TestIds.flockBackyard,
+    'status': 'active',
+    'event_date': _daysAgo(300),
+    'notes': 'Added from neighbor',
+    'created_at': _daysAgoFull(300),
+  });
+
+  // Olive added 250 days ago
+  events.add({
+    'id': _generateId(),
+    'bird_id': TestIds.birdOlive,
+    'flock_id': TestIds.flockBackyard,
+    'status': 'active',
+    'event_date': _daysAgo(250),
+    'notes': 'Added from hatchery',
+    'created_at': _daysAgoFull(250),
+  });
+
+  // Hazel added 200 days ago
+  events.add({
+    'id': _generateId(),
+    'bird_id': TestIds.birdHazel,
+    'flock_id': TestIds.flockBackyard,
+    'status': 'active',
+    'event_date': _daysAgo(200),
+    'notes': 'Added from breeder',
+    'created_at': _daysAgoFull(200),
+  });
+
+  // Bantam flock
+  events.add({
+    'id': _generateId(),
+    'bird_id': TestIds.birdPebbles,
+    'flock_id': TestIds.flockBantams,
+    'status': 'active',
+    'event_date': _daysAgo(180),
+    'notes': 'Initial bantam flock',
+    'created_at': _daysAgoFull(180),
+  });
+
+  events.add({
+    'id': _generateId(),
+    'bird_id': TestIds.birdCookie,
+    'flock_id': TestIds.flockBantams,
+    'status': 'active',
+    'event_date': _daysAgo(170),
+    'notes': 'Added from poultry show',
+    'created_at': _daysAgoFull(170),
+  });
+
+  return events;
+}
+
 
 /// All test data consolidated
 class TestData {
@@ -156,6 +268,8 @@ class TestData {
   static List<Map<String, dynamic>> get income => _generateIncome();
   static List<Map<String, dynamic>> get medicationLogs => _generateMedicationLogs();
   static List<Map<String, dynamic>> get healthNotes => _generateHealthNotes();
+  static List<Map<String, dynamic>> get birdStatusEvents =>
+      generateBirdStatusEvents();
 
   // Generator functions for fresh data
   static List<Map<String, dynamic>> _generateFlocks() => [
@@ -522,17 +636,30 @@ class TestData {
   static void printSummary() {
     final eggs = eggLogs;
     final totalEggs = eggs.fold<int>(0, (sum, log) => sum + (log['count'] as int));
-    
+
+    // ignore: avoid_print
     print('=== TEST DATA SUMMARY ===');
+    // ignore: avoid_print
     print('Flocks: ${flocks.length}');
+    // ignore: avoid_print
     print('Birds: ${birds.length} (${birds.where((b) => b['status'] == 'active').length} active)');
+    // ignore: avoid_print
     print('Egg logs: ${eggs.length} entries');
-    print('Total eggs: $totalEggs over 60 days');
-    print('Daily average: ${(totalEggs / 60).toStringAsFixed(1)} eggs');
+    // ignore: avoid_print
+    print('Total eggs: $totalEggs over 365 days');
+    // ignore: avoid_print
+    print('Daily average: ${(totalEggs / 365).toStringAsFixed(1)} eggs');
+    // ignore: avoid_print
+    print('Bird status events: ${birdStatusEvents.length} entries');
+    // ignore: avoid_print
     print('Expenses: ${expenses.length} entries');
+    // ignore: avoid_print
     print('Income: ${income.length} entries');
+    // ignore: avoid_print
     print('Medication logs: ${medicationLogs.length} entries');
+    // ignore: avoid_print
     print('Health notes: ${healthNotes.length} entries');
+    // ignore: avoid_print
     print('========================');
   }
   
@@ -546,6 +673,7 @@ class TestData {
     final db = await DatabaseHelper.instance.database;
 
     // Clear existing data (order matters due to foreign keys)
+    await db.delete('bird_status_events');
     await db.delete('health_notes');
     await db.delete('medication_logs');
     await db.delete('income');
@@ -563,6 +691,11 @@ class TestData {
     // Insert birds
     for (final bird in birds) {
       await db.insert('birds', bird);
+    }
+
+    // Insert bird status events
+    for (final event in birdStatusEvents) {
+      await db.insert('bird_status_events', event);
     }
 
     // Insert egg logs

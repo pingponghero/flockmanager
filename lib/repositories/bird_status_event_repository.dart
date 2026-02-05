@@ -128,7 +128,12 @@ class BirdStatusEventRepository {
     }
 
     final result = await db.rawQuery(query, args);
-    return result.first['count'] as int? ?? 0;
+    if (result.isEmpty) return 0;
+    final count = result.first['count'];
+    if (count == null) return 0;
+    if (count is int) return count;
+    if (count is num) return count.toInt();
+    return 0;
   }
 
   /// Get the flock size history - active bird count at the end of each day

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../repositories/bird_status_event_repository.dart';
 import '../repositories/egg_repository.dart';
 import 'analytics_provider.dart';
 import 'flock_provider.dart';
@@ -47,6 +48,7 @@ class MonthlyEggData {
   final int daysRecorded;
   final double dailyAverage;
   final bool isActual; // true if real data, false if forecast
+  final double avgFlockSize; // average active bird count during the month
 
   const MonthlyEggData({
     required this.month,
@@ -55,6 +57,7 @@ class MonthlyEggData {
     required this.daysRecorded,
     required this.dailyAverage,
     required this.isActual,
+    this.avgFlockSize = 0,
   });
 
   /// Check if this month has enough data (15+ days) to be considered complete.
@@ -67,20 +70,26 @@ class GoldenEggChartData {
   final List<DailyEggData> dailyCounts;
   final List<WeeklyEggData> weeklyCounts;
   final List<MonthlyEggData> monthlyCounts;
+  final List<MonthlyEggData> prevYearMonthlyCounts; // Previous year for ghost layer
   final int totalEggs;
   final double dailyAverage;
   final int daysOfData;
   final int maxDailyCount;
+  final double allTimeDailyAverage; // For forecasting based on all historical data
+  final int activeFlockSize; // Current active bird count for projecting forward
 
   const GoldenEggChartData({
     required this.timeScale,
     this.dailyCounts = const [],
     this.weeklyCounts = const [],
     this.monthlyCounts = const [],
+    this.prevYearMonthlyCounts = const [],
     required this.totalEggs,
     required this.dailyAverage,
     required this.daysOfData,
     required this.maxDailyCount,
+    this.allTimeDailyAverage = 0,
+    this.activeFlockSize = 0,
   });
 
   /// Empty chart data for when there's no data.
@@ -90,6 +99,8 @@ class GoldenEggChartData {
     dailyAverage: 0,
     daysOfData: 0,
     maxDailyCount: 0,
+    allTimeDailyAverage: 0,
+    activeFlockSize: 0,
   );
 }
 
@@ -98,10 +109,17 @@ final eggRepositoryProvider = Provider<EggRepository>((ref) {
   return EggRepository();
 });
 
+/// Repository provider for bird status event data access.
+final birdStatusEventRepositoryProvider =
+    Provider<BirdStatusEventRepository>((ref) {
+  return BirdStatusEventRepository();
+});
+
 /// Main chart data provider - uses the analytics period selector.
 final goldenEggChartDataProvider =
     FutureProvider<GoldenEggChartData>((ref) async {
   final repository = ref.read(eggRepositoryProvider);
+  final statusEventRepo = ref.read(birdStatusEventRepositoryProvider);
   final selectedFlockId = ref.watch(selectedFlockIdProvider);
   final period = ref.watch(analyticsPeriodProvider);
 
@@ -114,6 +132,12 @@ final goldenEggChartDataProvider =
     return GoldenEggChartData.empty;
   }
 
+  // Get current active flock size
+  final activeFlockSize = await statusEventRepo.getActiveCountOnDate(
+    selectedFlockId,
+    DateTime.now(),
+  );
+
   // Aggregate by date
   final dailyMap = <DateTime, int>{};
   for (final log in logs) {
@@ -121,21 +145,44 @@ final goldenEggChartDataProvider =
     dailyMap[date] = (dailyMap[date] ?? 0) + log.count;
   }
 
+  // Calculate all-time daily average for forecasting
+  final allTimeTotal = dailyMap.values.fold(0, (sum, count) => sum + count);
+  final allTimeDaysWithData = dailyMap.values.where((c) => c > 0).length;
+  final allTimeDailyAverage = allTimeDaysWithData > 0
+      ? allTimeTotal / allTimeDaysWithData
+      : 0.0;
+
   // Build chart data based on selected period
   switch (period) {
     case AnalyticsPeriod.week:
-      return _buildWeekChartData(dailyMap);
+      return _buildWeekChartData(dailyMap, allTimeDailyAverage, activeFlockSize);
     case AnalyticsPeriod.month:
-      return _buildMonthChartData(dailyMap);
+      return _buildMonthChartData(dailyMap, allTimeDailyAverage, activeFlockSize);
     case AnalyticsPeriod.year:
-      return _buildYearChartData(dailyMap);
+      return _buildYearChartData(
+        dailyMap,
+        allTimeDailyAverage,
+        activeFlockSize,
+        statusEventRepo,
+        selectedFlockId,
+      );
     case AnalyticsPeriod.allTime:
-      return _buildAllTimeChartData(dailyMap);
+      return _buildAllTimeChartData(
+        dailyMap,
+        allTimeDailyAverage,
+        activeFlockSize,
+        statusEventRepo,
+        selectedFlockId,
+      );
   }
 });
 
 /// Build chart data for "This Week" - daily view showing 7 days.
-GoldenEggChartData _buildWeekChartData(Map<DateTime, int> dailyMap) {
+GoldenEggChartData _buildWeekChartData(
+  Map<DateTime, int> dailyMap,
+  double allTimeDailyAverage,
+  int activeFlockSize,
+) {
   final now = DateTime.now();
   final today = _dateOnly(now);
 
@@ -169,11 +216,17 @@ GoldenEggChartData _buildWeekChartData(Map<DateTime, int> dailyMap) {
     dailyAverage: dailyAverage,
     daysOfData: daysWithData,
     maxDailyCount: maxDailyCount,
+    allTimeDailyAverage: allTimeDailyAverage,
+    activeFlockSize: activeFlockSize,
   );
 }
 
 /// Build chart data for "This Month" - daily view showing days in current month.
-GoldenEggChartData _buildMonthChartData(Map<DateTime, int> dailyMap) {
+GoldenEggChartData _buildMonthChartData(
+  Map<DateTime, int> dailyMap,
+  double allTimeDailyAverage,
+  int activeFlockSize,
+) {
   final now = DateTime.now();
   final monthStart = DateTime(now.year, now.month, 1);
   final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
@@ -205,24 +258,37 @@ GoldenEggChartData _buildMonthChartData(Map<DateTime, int> dailyMap) {
     dailyAverage: dailyAverage,
     daysOfData: daysWithData,
     maxDailyCount: maxDailyCount,
+    allTimeDailyAverage: allTimeDailyAverage,
+    activeFlockSize: activeFlockSize,
   );
 }
 
 /// Build chart data for "This Year" - monthly view showing 12 months.
-GoldenEggChartData _buildYearChartData(Map<DateTime, int> dailyMap) {
+/// Also collects previous year data for ghost layer comparison.
+Future<GoldenEggChartData> _buildYearChartData(
+  Map<DateTime, int> dailyMap,
+  double allTimeDailyAverage,
+  int activeFlockSize,
+  BirdStatusEventRepository statusEventRepo,
+  String? flockId,
+) async {
   final now = DateTime.now();
+  final currentYear = now.year;
+  final prevYear = currentYear - 1;
 
   final monthlyCounts = <MonthlyEggData>[];
+  final prevYearMonthlyCounts = <MonthlyEggData>[];
   var totalEggs = 0;
   var totalDaysWithData = 0;
 
   for (var m = 1; m <= 12; m++) {
-    final daysInMonth = DateTime(now.year, m + 1, 0).day;
+    // Current year data
+    final daysInMonth = DateTime(currentYear, m + 1, 0).day;
     var monthTotal = 0;
     var daysRecorded = 0;
 
     for (var d = 1; d <= daysInMonth; d++) {
-      final date = DateTime(now.year, m, d);
+      final date = DateTime(currentYear, m, d);
       final count = dailyMap[date];
       if (count != null) {
         monthTotal += count;
@@ -233,13 +299,46 @@ GoldenEggChartData _buildYearChartData(Map<DateTime, int> dailyMap) {
     totalEggs += monthTotal;
     totalDaysWithData += daysRecorded;
 
+    // Calculate average flock size for this month
+    final avgFlockSize = await _calculateMonthlyAvgFlockSize(
+      statusEventRepo,
+      flockId,
+      currentYear,
+      m,
+      daysRecorded,
+    );
+
     monthlyCounts.add(MonthlyEggData(
       month: m,
-      year: now.year,
+      year: currentYear,
       totalCount: monthTotal,
       daysRecorded: daysRecorded,
       dailyAverage: daysRecorded > 0 ? monthTotal / daysRecorded : 0,
       isActual: daysRecorded > 0,
+      avgFlockSize: avgFlockSize,
+    ));
+
+    // Previous year data (for ghost layer)
+    final prevDaysInMonth = DateTime(prevYear, m + 1, 0).day;
+    var prevMonthTotal = 0;
+    var prevDaysRecorded = 0;
+
+    for (var d = 1; d <= prevDaysInMonth; d++) {
+      final date = DateTime(prevYear, m, d);
+      final count = dailyMap[date];
+      if (count != null) {
+        prevMonthTotal += count;
+        prevDaysRecorded++;
+      }
+    }
+
+    prevYearMonthlyCounts.add(MonthlyEggData(
+      month: m,
+      year: prevYear,
+      totalCount: prevMonthTotal,
+      daysRecorded: prevDaysRecorded,
+      dailyAverage: prevDaysRecorded > 0 ? prevMonthTotal / prevDaysRecorded : 0,
+      isActual: prevDaysRecorded > 0,
     ));
   }
 
@@ -251,42 +350,46 @@ GoldenEggChartData _buildYearChartData(Map<DateTime, int> dailyMap) {
   return GoldenEggChartData(
     timeScale: ChartTimeScale.monthly,
     monthlyCounts: monthlyCounts,
+    prevYearMonthlyCounts: prevYearMonthlyCounts,
     totalEggs: totalEggs,
     dailyAverage: dailyAverage,
     daysOfData: totalDaysWithData,
     maxDailyCount: maxMonthlyCount,
+    allTimeDailyAverage: allTimeDailyAverage,
+    activeFlockSize: activeFlockSize,
   );
 }
 
-/// Build chart data for "All Time" - monthly view showing all available months.
-GoldenEggChartData _buildAllTimeChartData(Map<DateTime, int> dailyMap) {
+/// Build chart data for "All Time" - radial view with current year + previous year ghost.
+/// For the radial chart, we separate current year (monthlyCounts) from previous year (prevYearMonthlyCounts).
+Future<GoldenEggChartData> _buildAllTimeChartData(
+  Map<DateTime, int> dailyMap,
+  double allTimeDailyAverage,
+  int activeFlockSize,
+  BirdStatusEventRepository statusEventRepo,
+  String? flockId,
+) async {
   if (dailyMap.isEmpty) {
     return GoldenEggChartData.empty;
   }
 
-  // Find date range
-  final dates = dailyMap.keys.toList()..sort();
-  final firstDate = dates.first;
-  final lastDate = dates.last;
+  final now = DateTime.now();
+  final currentYear = now.year;
+  final prevYear = currentYear - 1;
 
   final monthlyCounts = <MonthlyEggData>[];
+  final prevYearMonthlyCounts = <MonthlyEggData>[];
   var totalEggs = 0;
   var totalDaysWithData = 0;
 
-  // Iterate through all months from first to last
-  var current = DateTime(firstDate.year, firstDate.month, 1);
-  final end = DateTime(lastDate.year, lastDate.month + 1, 0);
-
-  while (current.isBefore(end) || current.isAtSameMomentAs(end)) {
-    final year = current.year;
-    final month = current.month;
-    final daysInMonth = DateTime(year, month + 1, 0).day;
-
+  // Build current year data (12 months)
+  for (var m = 1; m <= 12; m++) {
+    final daysInMonth = DateTime(currentYear, m + 1, 0).day;
     var monthTotal = 0;
     var daysRecorded = 0;
 
     for (var d = 1; d <= daysInMonth; d++) {
-      final date = DateTime(year, month, d);
+      final date = DateTime(currentYear, m, d);
       final count = dailyMap[date];
       if (count != null) {
         monthTotal += count;
@@ -297,17 +400,52 @@ GoldenEggChartData _buildAllTimeChartData(Map<DateTime, int> dailyMap) {
     totalEggs += monthTotal;
     totalDaysWithData += daysRecorded;
 
+    final avgFlockSize = await _calculateMonthlyAvgFlockSize(
+      statusEventRepo,
+      flockId,
+      currentYear,
+      m,
+      daysRecorded,
+    );
+
     monthlyCounts.add(MonthlyEggData(
-      month: month,
-      year: year,
+      month: m,
+      year: currentYear,
+      totalCount: monthTotal,
+      daysRecorded: daysRecorded,
+      dailyAverage: daysRecorded > 0 ? monthTotal / daysRecorded : 0,
+      isActual: daysRecorded > 0,
+      avgFlockSize: avgFlockSize,
+    ));
+  }
+
+  // Build previous year data (12 months) for ghost layer
+  for (var m = 1; m <= 12; m++) {
+    final daysInMonth = DateTime(prevYear, m + 1, 0).day;
+    var monthTotal = 0;
+    var daysRecorded = 0;
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      final date = DateTime(prevYear, m, d);
+      final count = dailyMap[date];
+      if (count != null) {
+        monthTotal += count;
+        daysRecorded++;
+      }
+    }
+
+    // Add to total for all-time stats
+    totalEggs += monthTotal;
+    totalDaysWithData += daysRecorded;
+
+    prevYearMonthlyCounts.add(MonthlyEggData(
+      month: m,
+      year: prevYear,
       totalCount: monthTotal,
       daysRecorded: daysRecorded,
       dailyAverage: daysRecorded > 0 ? monthTotal / daysRecorded : 0,
       isActual: daysRecorded > 0,
     ));
-
-    // Move to next month
-    current = DateTime(year, month + 1, 1);
   }
 
   final dailyAverage = totalDaysWithData > 0 ? totalEggs / totalDaysWithData : 0.0;
@@ -318,11 +456,31 @@ GoldenEggChartData _buildAllTimeChartData(Map<DateTime, int> dailyMap) {
   return GoldenEggChartData(
     timeScale: ChartTimeScale.monthly,
     monthlyCounts: monthlyCounts,
+    prevYearMonthlyCounts: prevYearMonthlyCounts,
     totalEggs: totalEggs,
     dailyAverage: dailyAverage,
     daysOfData: totalDaysWithData,
     maxDailyCount: maxMonthlyCount,
+    allTimeDailyAverage: allTimeDailyAverage,
+    activeFlockSize: activeFlockSize,
   );
+}
+
+/// Calculate the average flock size for a given month.
+/// Uses the mid-month date as a reasonable approximation.
+Future<double> _calculateMonthlyAvgFlockSize(
+  BirdStatusEventRepository statusEventRepo,
+  String? flockId,
+  int year,
+  int month,
+  int daysRecorded,
+) async {
+  if (daysRecorded == 0) return 0;
+
+  // Use mid-month as a reasonable approximation for average flock size
+  final midMonth = DateTime(year, month, 15);
+  final count = await statusEventRepo.getActiveCountOnDate(flockId, midMonth);
+  return count.toDouble();
 }
 
 /// Helper to strip time from DateTime.
