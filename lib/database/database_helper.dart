@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:uuid/uuid.dart';
 
 import 'tables.dart';
 
@@ -14,7 +15,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String _databaseName = 'flock_manager.db';
-  static const int _databaseVersion = 2;
+  static const int _databaseVersion = 3;
 
   /// Get the database instance, initializing if needed.
   Future<Database> get database async {
@@ -55,6 +56,52 @@ class DatabaseHelper {
     if (oldVersion < 2) {
       await db.execute("ALTER TABLE birds ADD COLUMN sex TEXT DEFAULT 'female'");
       await db.execute("ALTER TABLE birds ADD COLUMN species TEXT DEFAULT 'chicken'");
+    }
+
+    // Migration to version 3: Add bird_status_events table and backfill
+    if (oldVersion < 3) {
+      // Create the table
+      await db.execute(Tables.birdStatusEvents);
+
+      // Backfill events from existing birds
+      final birds = await db.query('birds');
+      final batch = db.batch();
+      const uuid = Uuid();
+
+      for (final bird in birds) {
+        final birdId = bird['id'] as String;
+        final flockId = bird['flock_id'] as String;
+        final createdAt = bird['created_at'] as String;
+        final status = bird['status'] as String;
+        final statusDate = bird['status_date'] as String?;
+        final statusNotes = bird['status_notes'] as String?;
+
+        // Event 1: Bird was added (active)
+        batch.insert('bird_status_events', {
+          'id': uuid.v4(),
+          'bird_id': birdId,
+          'flock_id': flockId,
+          'status': 'active',
+          'event_date': createdAt,
+          'notes': null,
+          'created_at': createdAt,
+        });
+
+        // Event 2: If status changed from active, add another event
+        if (status != 'active' && statusDate != null) {
+          batch.insert('bird_status_events', {
+            'id': uuid.v4(),
+            'bird_id': birdId,
+            'flock_id': flockId,
+            'status': status,
+            'event_date': statusDate,
+            'notes': statusNotes,
+            'created_at': statusDate,
+          });
+        }
+      }
+
+      await batch.commit(noResult: true);
     }
   }
 

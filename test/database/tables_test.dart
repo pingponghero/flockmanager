@@ -63,8 +63,20 @@ void main() {
       expect(Tables.healthNotes, contains('FOREIGN KEY (bird_id) REFERENCES birds(id)'));
     });
 
-    test('allTables contains all 8 tables', () {
-      expect(Tables.allTables.length, 8);
+    test('birdStatusEvents table SQL is valid', () {
+      expect(Tables.birdStatusEvents, contains('CREATE TABLE bird_status_events'));
+      expect(Tables.birdStatusEvents, contains('id TEXT PRIMARY KEY'));
+      expect(Tables.birdStatusEvents, contains('bird_id TEXT NOT NULL'));
+      expect(Tables.birdStatusEvents, contains('flock_id TEXT NOT NULL'));
+      expect(Tables.birdStatusEvents, contains('status TEXT NOT NULL'));
+      expect(Tables.birdStatusEvents, contains('event_date TEXT NOT NULL'));
+      expect(Tables.birdStatusEvents, contains('created_at TEXT NOT NULL'));
+      // Verify NO foreign key - events must survive bird deletion
+      expect(Tables.birdStatusEvents, isNot(contains('FOREIGN KEY')));
+    });
+
+    test('allTables contains all 9 tables', () {
+      expect(Tables.allTables.length, 9);
       expect(Tables.allTables, contains(Tables.flocks));
       expect(Tables.allTables, contains(Tables.birds));
       expect(Tables.allTables, contains(Tables.birdPhotos));
@@ -73,6 +85,7 @@ void main() {
       expect(Tables.allTables, contains(Tables.income));
       expect(Tables.allTables, contains(Tables.medicationLogs));
       expect(Tables.allTables, contains(Tables.healthNotes));
+      expect(Tables.allTables, contains(Tables.birdStatusEvents));
     });
 
     test('allTables has correct order for foreign key dependencies', () {
