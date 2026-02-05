@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/golden_egg_provider.dart';
 import 'golden_egg_daily.dart';
-import 'golden_egg_weekly.dart';
 import 'golden_egg_yearly.dart';
 
-/// Main golden egg chart widget that switches between daily, weekly, and yearly views
-/// based on the amount of data available.
+/// Main golden egg chart widget that switches between daily and monthly views
+/// based on the selected analytics period.
 class GoldenEggChart extends ConsumerWidget {
   const GoldenEggChart({super.key});
 
@@ -17,14 +16,13 @@ class GoldenEggChart extends ConsumerWidget {
 
     return chartDataAsync.when(
       data: (data) {
-        if (data.daysOfData == 0) {
+        if (data.totalEggs == 0) {
           return _EmptyState();
         }
 
         return switch (data.timeScale) {
           ChartTimeScale.daily => GoldenEggDailyChart(data: data),
-          ChartTimeScale.weekly => GoldenEggWeeklyChart(data: data),
-          ChartTimeScale.yearly => GoldenEggYearlyChart(data: data),
+          ChartTimeScale.monthly => GoldenEggYearlyChart(data: data),
         };
       },
       loading: () => const Center(

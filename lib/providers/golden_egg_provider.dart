@@ -2,13 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../repositories/egg_repository.dart';
+import 'analytics_provider.dart';
 import 'flock_provider.dart';
 
-/// Time scale for the golden egg chart based on data volume.
+/// Time scale for the golden egg chart display.
 enum ChartTimeScale {
-  daily, // Days 1-30: Individual days
-  weekly, // Days 31-89: Weekly buckets
-  yearly, // Days 90+: Full year with months
+  daily, // Show individual days (week/month view)
+  monthly, // Show months (year/allTime view)
 }
 
 /// Data for a single day's egg count.
@@ -98,35 +98,12 @@ final eggRepositoryProvider = Provider<EggRepository>((ref) {
   return EggRepository();
 });
 
-/// Provider that counts total days with egg log data.
-final _daysWithEggDataProvider = FutureProvider<int>((ref) async {
-  final repository = ref.read(eggRepositoryProvider);
-  final selectedFlockId = ref.watch(selectedFlockIdProvider);
-
-  final logs = selectedFlockId != null
-      ? await repository.getEggLogsByFlock(selectedFlockId)
-      : await repository.getAllEggLogs();
-
-  // Count unique dates
-  final uniqueDates = logs.map((log) => _dateOnly(log.date)).toSet();
-  return uniqueDates.length;
-});
-
-/// Determines which time scale to use based on data volume.
-final goldenEggTimeScaleProvider = FutureProvider<ChartTimeScale>((ref) async {
-  final daysOfData = await ref.watch(_daysWithEggDataProvider.future);
-
-  if (daysOfData < 31) return ChartTimeScale.daily;
-  if (daysOfData < 90) return ChartTimeScale.weekly;
-  return ChartTimeScale.yearly;
-});
-
-/// Main chart data provider.
+/// Main chart data provider - uses the analytics period selector.
 final goldenEggChartDataProvider =
     FutureProvider<GoldenEggChartData>((ref) async {
   final repository = ref.read(eggRepositoryProvider);
   final selectedFlockId = ref.watch(selectedFlockIdProvider);
-  final timeScale = await ref.watch(goldenEggTimeScaleProvider.future);
+  final period = ref.watch(analyticsPeriodProvider);
 
   // Get all egg logs for the selected flock
   final logs = selectedFlockId != null
@@ -144,58 +121,34 @@ final goldenEggChartDataProvider =
     dailyMap[date] = (dailyMap[date] ?? 0) + log.count;
   }
 
-  final totalEggs = dailyMap.values.fold(0, (sum, count) => sum + count);
-  final daysOfData = dailyMap.length;
-  final dailyAverage = daysOfData > 0 ? totalEggs / daysOfData : 0.0;
-  final maxDailyCount =
-      dailyMap.values.isEmpty ? 0 : dailyMap.values.reduce((a, b) => a > b ? a : b);
-
-  switch (timeScale) {
-    case ChartTimeScale.daily:
-      return _buildDailyChartData(
-        dailyMap,
-        totalEggs,
-        dailyAverage,
-        daysOfData,
-        maxDailyCount,
-      );
-    case ChartTimeScale.weekly:
-      return _buildWeeklyChartData(
-        dailyMap,
-        totalEggs,
-        dailyAverage,
-        daysOfData,
-        maxDailyCount,
-      );
-    case ChartTimeScale.yearly:
-      return _buildYearlyChartData(
-        dailyMap,
-        totalEggs,
-        dailyAverage,
-        daysOfData,
-        maxDailyCount,
-      );
+  // Build chart data based on selected period
+  switch (period) {
+    case AnalyticsPeriod.week:
+      return _buildWeekChartData(dailyMap);
+    case AnalyticsPeriod.month:
+      return _buildMonthChartData(dailyMap);
+    case AnalyticsPeriod.year:
+      return _buildYearChartData(dailyMap);
+    case AnalyticsPeriod.allTime:
+      return _buildAllTimeChartData(dailyMap);
   }
 });
 
-/// Build chart data for daily view (last 30 days).
-GoldenEggChartData _buildDailyChartData(
-  Map<DateTime, int> dailyMap,
-  int totalEggs,
-  double dailyAverage,
-  int daysOfData,
-  int maxDailyCount,
-) {
+/// Build chart data for "This Week" - daily view showing 7 days.
+GoldenEggChartData _buildWeekChartData(Map<DateTime, int> dailyMap) {
   final now = DateTime.now();
   final today = _dateOnly(now);
 
-  // Get last 30 days (or fewer if less data)
-  final daysToShow = daysOfData.clamp(1, 30);
-  final dailyCounts = <DailyEggData>[];
+  // Get start of current week (Sunday)
+  final weekStart = today.subtract(Duration(days: today.weekday % 7));
 
-  for (var i = 0; i < daysToShow; i++) {
-    final date = today.subtract(Duration(days: i));
+  final dailyCounts = <DailyEggData>[];
+  var totalEggs = 0;
+
+  for (var i = 0; i < 7; i++) {
+    final date = weekStart.add(Duration(days: i));
     final count = dailyMap[date] ?? 0;
+    totalEggs += count;
     dailyCounts.add(DailyEggData(
       date: date,
       count: count,
@@ -203,107 +156,134 @@ GoldenEggChartData _buildDailyChartData(
     ));
   }
 
-  // Reverse so oldest is first
-  dailyCounts.sort((a, b) => a.date.compareTo(b.date));
-  for (var i = 0; i < dailyCounts.length; i++) {
-    dailyCounts[i] = DailyEggData(
-      date: dailyCounts[i].date,
-      count: dailyCounts[i].count,
-      dayIndex: i,
-    );
-  }
+  final daysWithData = dailyCounts.where((d) => d.count > 0).length;
+  final dailyAverage = daysWithData > 0 ? totalEggs / daysWithData : 0.0;
+  final maxDailyCount = dailyCounts.isEmpty
+      ? 0
+      : dailyCounts.map((d) => d.count).reduce((a, b) => a > b ? a : b);
 
   return GoldenEggChartData(
     timeScale: ChartTimeScale.daily,
     dailyCounts: dailyCounts,
     totalEggs: totalEggs,
     dailyAverage: dailyAverage,
-    daysOfData: daysOfData,
+    daysOfData: daysWithData,
     maxDailyCount: maxDailyCount,
   );
 }
 
-/// Build chart data for weekly view (last 12 weeks).
-GoldenEggChartData _buildWeeklyChartData(
-  Map<DateTime, int> dailyMap,
-  int totalEggs,
-  double dailyAverage,
-  int daysOfData,
-  int maxDailyCount,
-) {
+/// Build chart data for "This Month" - daily view showing days in current month.
+GoldenEggChartData _buildMonthChartData(Map<DateTime, int> dailyMap) {
   final now = DateTime.now();
-  final today = _dateOnly(now);
+  final monthStart = DateTime(now.year, now.month, 1);
+  final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
 
-  // Find the start of the current week (Sunday)
-  final currentWeekStart = today.subtract(Duration(days: today.weekday % 7));
+  final dailyCounts = <DailyEggData>[];
+  var totalEggs = 0;
 
-  // Get last 12 weeks
-  final weeklyCounts = <WeeklyEggData>[];
-
-  for (var w = 0; w < 12; w++) {
-    final weekStart = currentWeekStart.subtract(Duration(days: w * 7));
-    var weekTotal = 0;
-    var daysWithData = 0;
-
-    for (var d = 0; d < 7; d++) {
-      final date = weekStart.add(Duration(days: d));
-      final count = dailyMap[date];
-      if (count != null) {
-        weekTotal += count;
-        daysWithData++;
-      }
-    }
-
-    weeklyCounts.add(WeeklyEggData(
-      weekStart: weekStart,
-      totalCount: weekTotal,
-      dailyAverage: daysWithData > 0 ? weekTotal / daysWithData : 0,
-      daysWithData: daysWithData,
+  for (var i = 0; i < daysInMonth; i++) {
+    final date = monthStart.add(Duration(days: i));
+    final count = dailyMap[date] ?? 0;
+    totalEggs += count;
+    dailyCounts.add(DailyEggData(
+      date: date,
+      count: count,
+      dayIndex: i,
     ));
   }
 
-  // Reverse so oldest is first
-  weeklyCounts.sort((a, b) => a.weekStart.compareTo(b.weekStart));
-
-  // Calculate max weekly count for scaling
-  final maxWeeklyCount = weeklyCounts.isEmpty
+  final daysWithData = dailyCounts.where((d) => d.count > 0).length;
+  final dailyAverage = daysWithData > 0 ? totalEggs / daysWithData : 0.0;
+  final maxDailyCount = dailyCounts.isEmpty
       ? 0
-      : weeklyCounts.map((w) => w.totalCount).reduce((a, b) => a > b ? a : b);
+      : dailyCounts.map((d) => d.count).reduce((a, b) => a > b ? a : b);
 
   return GoldenEggChartData(
-    timeScale: ChartTimeScale.weekly,
-    weeklyCounts: weeklyCounts,
+    timeScale: ChartTimeScale.daily,
+    dailyCounts: dailyCounts,
     totalEggs: totalEggs,
     dailyAverage: dailyAverage,
-    daysOfData: daysOfData,
-    maxDailyCount: maxWeeklyCount, // Reuse for max weekly
+    daysOfData: daysWithData,
+    maxDailyCount: maxDailyCount,
   );
 }
 
-/// Build chart data for yearly view (last 12 months).
-GoldenEggChartData _buildYearlyChartData(
-  Map<DateTime, int> dailyMap,
-  int totalEggs,
-  double dailyAverage,
-  int daysOfData,
-  int maxDailyCount,
-) {
+/// Build chart data for "This Year" - monthly view showing 12 months.
+GoldenEggChartData _buildYearChartData(Map<DateTime, int> dailyMap) {
   final now = DateTime.now();
 
-  // Get last 12 months of data
   final monthlyCounts = <MonthlyEggData>[];
+  var totalEggs = 0;
+  var totalDaysWithData = 0;
 
-  for (var m = 0; m < 12; m++) {
-    final monthDate = DateTime(now.year, now.month - m, 1);
-    final month = monthDate.month;
-    final year = monthDate.year;
-
-    // Count eggs and days for this month
+  for (var m = 1; m <= 12; m++) {
+    final daysInMonth = DateTime(now.year, m + 1, 0).day;
     var monthTotal = 0;
     var daysRecorded = 0;
 
-    // Get number of days in this month
+    for (var d = 1; d <= daysInMonth; d++) {
+      final date = DateTime(now.year, m, d);
+      final count = dailyMap[date];
+      if (count != null) {
+        monthTotal += count;
+        daysRecorded++;
+      }
+    }
+
+    totalEggs += monthTotal;
+    totalDaysWithData += daysRecorded;
+
+    monthlyCounts.add(MonthlyEggData(
+      month: m,
+      year: now.year,
+      totalCount: monthTotal,
+      daysRecorded: daysRecorded,
+      dailyAverage: daysRecorded > 0 ? monthTotal / daysRecorded : 0,
+      isActual: daysRecorded > 0,
+    ));
+  }
+
+  final dailyAverage = totalDaysWithData > 0 ? totalEggs / totalDaysWithData : 0.0;
+  final maxMonthlyCount = monthlyCounts.isEmpty
+      ? 0
+      : monthlyCounts.map((m) => m.totalCount).reduce((a, b) => a > b ? a : b);
+
+  return GoldenEggChartData(
+    timeScale: ChartTimeScale.monthly,
+    monthlyCounts: monthlyCounts,
+    totalEggs: totalEggs,
+    dailyAverage: dailyAverage,
+    daysOfData: totalDaysWithData,
+    maxDailyCount: maxMonthlyCount,
+  );
+}
+
+/// Build chart data for "All Time" - monthly view showing all available months.
+GoldenEggChartData _buildAllTimeChartData(Map<DateTime, int> dailyMap) {
+  if (dailyMap.isEmpty) {
+    return GoldenEggChartData.empty;
+  }
+
+  // Find date range
+  final dates = dailyMap.keys.toList()..sort();
+  final firstDate = dates.first;
+  final lastDate = dates.last;
+
+  final monthlyCounts = <MonthlyEggData>[];
+  var totalEggs = 0;
+  var totalDaysWithData = 0;
+
+  // Iterate through all months from first to last
+  var current = DateTime(firstDate.year, firstDate.month, 1);
+  final end = DateTime(lastDate.year, lastDate.month + 1, 0);
+
+  while (current.isBefore(end) || current.isAtSameMomentAs(end)) {
+    final year = current.year;
+    final month = current.month;
     final daysInMonth = DateTime(year, month + 1, 0).day;
+
+    var monthTotal = 0;
+    var daysRecorded = 0;
 
     for (var d = 1; d <= daysInMonth; d++) {
       final date = DateTime(year, month, d);
@@ -314,6 +294,9 @@ GoldenEggChartData _buildYearlyChartData(
       }
     }
 
+    totalEggs += monthTotal;
+    totalDaysWithData += daysRecorded;
+
     monthlyCounts.add(MonthlyEggData(
       month: month,
       year: year,
@@ -322,27 +305,23 @@ GoldenEggChartData _buildYearlyChartData(
       dailyAverage: daysRecorded > 0 ? monthTotal / daysRecorded : 0,
       isActual: daysRecorded > 0,
     ));
+
+    // Move to next month
+    current = DateTime(year, month + 1, 1);
   }
 
-  // Reverse so oldest is first (chronological order)
-  monthlyCounts.sort((a, b) {
-    final aDate = DateTime(a.year, a.month);
-    final bDate = DateTime(b.year, b.month);
-    return aDate.compareTo(bDate);
-  });
-
-  // Calculate max monthly count for scaling
+  final dailyAverage = totalDaysWithData > 0 ? totalEggs / totalDaysWithData : 0.0;
   final maxMonthlyCount = monthlyCounts.isEmpty
       ? 0
       : monthlyCounts.map((m) => m.totalCount).reduce((a, b) => a > b ? a : b);
 
   return GoldenEggChartData(
-    timeScale: ChartTimeScale.yearly,
+    timeScale: ChartTimeScale.monthly,
     monthlyCounts: monthlyCounts,
     totalEggs: totalEggs,
     dailyAverage: dailyAverage,
-    daysOfData: daysOfData,
-    maxDailyCount: maxMonthlyCount, // Reuse for max monthly
+    daysOfData: totalDaysWithData,
+    maxDailyCount: maxMonthlyCount,
   );
 }
 
