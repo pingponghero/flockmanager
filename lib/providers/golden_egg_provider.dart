@@ -223,7 +223,7 @@ GoldenEggChartData _buildDailyChartData(
   );
 }
 
-/// Build chart data for weekly view.
+/// Build chart data for weekly view (last 12 weeks).
 GoldenEggChartData _buildWeeklyChartData(
   Map<DateTime, int> dailyMap,
   int totalEggs,
@@ -231,18 +231,56 @@ GoldenEggChartData _buildWeeklyChartData(
   int daysOfData,
   int maxDailyCount,
 ) {
-  // Placeholder - will be implemented later
+  final now = DateTime.now();
+  final today = _dateOnly(now);
+
+  // Find the start of the current week (Sunday)
+  final currentWeekStart = today.subtract(Duration(days: today.weekday % 7));
+
+  // Get last 12 weeks
+  final weeklyCounts = <WeeklyEggData>[];
+
+  for (var w = 0; w < 12; w++) {
+    final weekStart = currentWeekStart.subtract(Duration(days: w * 7));
+    var weekTotal = 0;
+    var daysWithData = 0;
+
+    for (var d = 0; d < 7; d++) {
+      final date = weekStart.add(Duration(days: d));
+      final count = dailyMap[date];
+      if (count != null) {
+        weekTotal += count;
+        daysWithData++;
+      }
+    }
+
+    weeklyCounts.add(WeeklyEggData(
+      weekStart: weekStart,
+      totalCount: weekTotal,
+      dailyAverage: daysWithData > 0 ? weekTotal / daysWithData : 0,
+      daysWithData: daysWithData,
+    ));
+  }
+
+  // Reverse so oldest is first
+  weeklyCounts.sort((a, b) => a.weekStart.compareTo(b.weekStart));
+
+  // Calculate max weekly count for scaling
+  final maxWeeklyCount = weeklyCounts.isEmpty
+      ? 0
+      : weeklyCounts.map((w) => w.totalCount).reduce((a, b) => a > b ? a : b);
+
   return GoldenEggChartData(
     timeScale: ChartTimeScale.weekly,
-    weeklyCounts: [],
+    weeklyCounts: weeklyCounts,
     totalEggs: totalEggs,
     dailyAverage: dailyAverage,
     daysOfData: daysOfData,
-    maxDailyCount: maxDailyCount,
+    maxDailyCount: maxWeeklyCount, // Reuse for max weekly
   );
 }
 
-/// Build chart data for yearly view.
+/// Build chart data for yearly view (last 12 months).
 GoldenEggChartData _buildYearlyChartData(
   Map<DateTime, int> dailyMap,
   int totalEggs,
@@ -250,14 +288,61 @@ GoldenEggChartData _buildYearlyChartData(
   int daysOfData,
   int maxDailyCount,
 ) {
-  // Placeholder - will be implemented later
+  final now = DateTime.now();
+
+  // Get last 12 months of data
+  final monthlyCounts = <MonthlyEggData>[];
+
+  for (var m = 0; m < 12; m++) {
+    final monthDate = DateTime(now.year, now.month - m, 1);
+    final month = monthDate.month;
+    final year = monthDate.year;
+
+    // Count eggs and days for this month
+    var monthTotal = 0;
+    var daysRecorded = 0;
+
+    // Get number of days in this month
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+
+    for (var d = 1; d <= daysInMonth; d++) {
+      final date = DateTime(year, month, d);
+      final count = dailyMap[date];
+      if (count != null) {
+        monthTotal += count;
+        daysRecorded++;
+      }
+    }
+
+    monthlyCounts.add(MonthlyEggData(
+      month: month,
+      year: year,
+      totalCount: monthTotal,
+      daysRecorded: daysRecorded,
+      dailyAverage: daysRecorded > 0 ? monthTotal / daysRecorded : 0,
+      isActual: daysRecorded > 0,
+    ));
+  }
+
+  // Reverse so oldest is first (chronological order)
+  monthlyCounts.sort((a, b) {
+    final aDate = DateTime(a.year, a.month);
+    final bDate = DateTime(b.year, b.month);
+    return aDate.compareTo(bDate);
+  });
+
+  // Calculate max monthly count for scaling
+  final maxMonthlyCount = monthlyCounts.isEmpty
+      ? 0
+      : monthlyCounts.map((m) => m.totalCount).reduce((a, b) => a > b ? a : b);
+
   return GoldenEggChartData(
     timeScale: ChartTimeScale.yearly,
-    monthlyCounts: [],
+    monthlyCounts: monthlyCounts,
     totalEggs: totalEggs,
     dailyAverage: dailyAverage,
     daysOfData: daysOfData,
-    maxDailyCount: maxDailyCount,
+    maxDailyCount: maxMonthlyCount, // Reuse for max monthly
   );
 }
 
@@ -284,13 +369,13 @@ class UserLatitudeNotifier extends Notifier<int> {
   }
 
   Future<void> setLatitude(int latitude) async {
-    final clamped = latitude.clamp(20, 60);
+    final clamped = latitude.clamp(-60, 60);
     state = clamped;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_latitudeKey, clamped);
   }
 }
 
-/// Provider for user latitude setting (20-60°N).
+/// Provider for user latitude setting (-60 to 60).
 final userLatitudeProvider =
     NotifierProvider<UserLatitudeNotifier, int>(UserLatitudeNotifier.new);
