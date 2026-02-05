@@ -14,12 +14,40 @@ import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/golden_egg_chart.dart';
+import '../../widgets/scaffold_with_nav_bar.dart';
 
-class AnalyticsScreen extends ConsumerWidget {
+class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AnalyticsScreen> createState() => _AnalyticsScreenState();
+}
+
+class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
+  final ScrollController _scrollController = ScrollController();
+  static const _statsTabIndex = 2;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Listen for tab changes and reset scroll when Stats tab becomes active
+    ref.listen<int>(tabChangeNotifierProvider, (previous, current) {
+      if (current == _statsTabIndex && previous != _statsTabIndex) {
+        _scrollToTop();
+      }
+    });
+
     final selectedPeriod = ref.watch(analyticsPeriodProvider);
     final analyticsAsync = ref.watch(analyticsProvider);
     final flocksAsync = ref.watch(flocksProvider);
@@ -29,140 +57,171 @@ class AnalyticsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Egg Stats'),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(analyticsProvider);
-        },
-        child: ListView(
-          padding: pagePadding(context),
-          children: [
-            // Flock filter (hidden if only 1 flock)
-            flocksAsync.when(
-              loading: () => const SizedBox.shrink(),
-              error: (error, stack) => const SizedBox.shrink(),
-              data: (flocks) {
-                if (flocks.length <= 1) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: DropdownMenu<String?>(
-                    initialSelection: selectedFlockId,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Flock'),
-                    dropdownMenuEntries: [
-                      const DropdownMenuEntry(
-                        value: null,
-                        label: 'All Flocks',
+      body: Column(
+        children: [
+          // Sticky selectors at top
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Column(
+              children: [
+                // Flock filter (hidden if only 1 flock)
+                flocksAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (error, stack) => const SizedBox.shrink(),
+                  data: (flocks) {
+                    if (flocks.length <= 1) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: DropdownMenu<String?>(
+                        initialSelection: selectedFlockId,
+                        expandedInsets: EdgeInsets.zero,
+                        label: const Text('Flock'),
+                        dropdownMenuEntries: [
+                          const DropdownMenuEntry(
+                            value: null,
+                            label: 'All Flocks',
+                          ),
+                          ...flocks.map((flock) => DropdownMenuEntry(
+                                value: flock.id,
+                                label: flock.name,
+                              )),
+                        ],
+                        onSelected: (value) {
+                          ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
+                        },
                       ),
-                      ...flocks.map((flock) => DropdownMenuEntry(
-                            value: flock.id,
-                            label: flock.name,
-                          )),
-                    ],
-                    onSelected: (value) {
-                      ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
-                    },
-                  ),
+                    );
+                  },
+                ),
+                // Period selector
+                _PeriodSelector(
+                  selectedPeriod: selectedPeriod,
+                  onPeriodChanged: (period) {
+                    ref.read(analyticsPeriodProvider.notifier).setPeriod(period);
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Loading indicator (shows while refreshing, doesn't disrupt scroll)
+          if (analyticsAsync.isLoading)
+            const LinearProgressIndicator(),
+          // Scrollable content
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(analyticsProvider);
+                // Wait for data to reload, then scroll to top
+                await ref.read(analyticsProvider.future);
+                _scrollToTop();
+              },
+              child: Builder(
+                builder: (context) {
+                  // Show error state
+                  if (analyticsAsync.hasError && !analyticsAsync.hasValue) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(48),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Text('Error: ${analyticsAsync.error}'),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Show loading spinner only on first load (no previous data)
+                  final analytics = analyticsAsync.hasValue ? analyticsAsync.value : null;
+                  if (analytics == null) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(48),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
+                  // Show data (keeps previous data visible while loading new)
+                  return ListView(
+                    controller: _scrollController,
+                    padding: pagePadding(context),
+                    children: [
+                      Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Summary stats
+                        _SummaryStats(analytics: analytics),
+                        const SizedBox(height: 24),
+
+                        // Production chart
+                        Text(
+                          'Production',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        _ProductionChart(
+                          chartData: analytics.chartData,
+                          granularity: analytics.chartGranularity,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Trend indicator
+                        _TrendCard(
+                          periodChange: analytics.periodChange,
+                          hasPreviousPeriodData: analytics.hasPreviousPeriodData,
+                          comparisonEndDate: analytics.comparisonEndDate,
+                          period: selectedPeriod,
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Golden egg radial chart
+                        Text(
+                          'Production Overview',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: SizedBox(
+                              height: 380,
+                              child: const GoldenEggChart(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Per-bird breakdown (collapsible)
+                        if (analytics.birdStats.isNotEmpty) ...[
+                          _CollapsibleBirdBreakdown(birdStats: analytics.birdStats),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Freeloaders
+                        if (analytics.freeloaders.isNotEmpty) ...[
+                          _FreeloardersCard(freeloaders: analytics.freeloaders),
+                          const SizedBox(height: 24),
+                        ],
+
+                        // Recent Activity (collapsible)
+                        const _CollapsibleRecentActivity(),
+                      ],
+                    ),
+                  ],
                 );
               },
             ),
-
-            // Period selector
-            _PeriodSelector(
-              selectedPeriod: selectedPeriod,
-              onPeriodChanged: (period) {
-                ref.read(analyticsPeriodProvider.notifier).setPeriod(period);
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Analytics content
-            analyticsAsync.when(
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(48),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              error: (error, stack) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(48),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text('Error: $error'),
-                    ],
-                  ),
-                ),
-              ),
-              data: (analytics) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Summary stats
-                  _SummaryStats(analytics: analytics),
-                  const SizedBox(height: 24),
-
-                  // Production chart
-                  Text(
-                    'Production',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  _ProductionChart(dailyCounts: analytics.dailyCounts),
-                  const SizedBox(height: 24),
-
-                  // Golden egg radial chart
-                  Text(
-                    'Production Overview',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: SizedBox(
-                        height: 280,
-                        child: const GoldenEggChart(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Trend indicator
-                  _TrendCard(
-                    periodChange: analytics.periodChange,
-                    hasPreviousPeriodData: analytics.hasPreviousPeriodData,
-                    period: selectedPeriod,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Per-bird breakdown
-                  if (analytics.birdStats.isNotEmpty) ...[
-                    Text(
-                      'Per-Bird Breakdown',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    _BirdBreakdown(birdStats: analytics.birdStats),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Freeloaders
-                  if (analytics.freeloaders.isNotEmpty) ...[
-                    _FreeloardersCard(freeloaders: analytics.freeloaders),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // Recent Activity
-                  const _RecentActivity(),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 }
 
 class _PeriodSelector extends StatelessWidget {
@@ -200,6 +259,8 @@ class _SummaryStats extends StatelessWidget {
 
   const _SummaryStats({required this.analytics});
 
+  static final _numberFormat = NumberFormat('#,###');
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -209,7 +270,7 @@ class _SummaryStats extends StatelessWidget {
             Expanded(
               child: _StatCard(
                 label: 'Total Eggs',
-                value: '${analytics.totalEggs}',
+                value: _numberFormat.format(analytics.totalEggs),
                 icon: Icons.egg,
               ),
             ),
@@ -231,7 +292,7 @@ class _SummaryStats extends StatelessWidget {
                 label: 'Best Day',
                 value: '${analytics.bestDayCount}',
                 subtitle: analytics.bestDayDate != null
-                    ? DateFormat.MMMd().format(analytics.bestDayDate!)
+                    ? DateFormat.yMMMd().format(analytics.bestDayDate!)
                     : null,
                 icon: Icons.star,
                 iconColor: Colors.amber,
@@ -240,13 +301,9 @@ class _SummaryStats extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: _StatCard(
-                label: 'Worst Day',
-                value: '${analytics.worstDayCount}',
-                subtitle: analytics.worstDayDate != null
-                    ? DateFormat.MMMd().format(analytics.worstDayDate!)
-                    : null,
-                icon: Icons.trending_down,
-                iconColor: Colors.red,
+                label: 'Days Logged',
+                value: '${analytics.daysWithData}',
+                icon: Icons.calendar_today,
               ),
             ),
           ],
@@ -318,13 +375,17 @@ class _StatCard extends StatelessWidget {
 }
 
 class _ProductionChart extends StatelessWidget {
-  final List<DailyEggCount> dailyCounts;
+  final List<ChartDataPoint> chartData;
+  final ChartGranularity granularity;
 
-  const _ProductionChart({required this.dailyCounts});
+  const _ProductionChart({
+    required this.chartData,
+    required this.granularity,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (dailyCounts.isEmpty) {
+    if (chartData.isEmpty) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -340,151 +401,193 @@ class _ProductionChart extends StatelessWidget {
       );
     }
 
-    final maxY = dailyCounts
-        .map((e) => e.count)
-        .reduce((a, b) => math.max(a, b))
-        .toDouble();
+    final maxY = chartData
+        .map((e) => e.value)
+        .reduce((a, b) => math.max(a, b));
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: SizedBox(
-          height: 200,
-          child: LineChart(
-            LineChartData(
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                horizontalInterval: maxY > 0 ? (maxY / 4).ceilToDouble() : 1,
-                getDrawingHorizontalLine: (value) => FlLine(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.1),
-                  strokeWidth: 1,
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Y-axis label
+            Text(
+              granularity.yAxisLabel,
+              style: TextStyle(
+                fontSize: 10,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-              titlesData: FlTitlesData(
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 30,
-                    interval: _calculateInterval(),
-                    getTitlesWidget: (value, meta) {
-                      final index = value.toInt();
-                      if (index < 0 || index >= dailyCounts.length) {
-                        return const SizedBox.shrink();
-                      }
-                      final date = dailyCounts[index].date;
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          DateFormat.MMMd().format(date),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 35,
-                    interval: maxY > 0 ? (maxY / 4).ceilToDouble() : 1,
-                    getTitlesWidget: (value, meta) {
-                      return Text(
-                        value.toInt().toString(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              borderData: FlBorderData(show: false),
-              minX: 0,
-              maxX: (dailyCounts.length - 1).toDouble(),
-              minY: 0,
-              maxY: maxY + (maxY * 0.1).ceilToDouble(),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: dailyCounts.asMap().entries.map((entry) {
-                    return FlSpot(
-                      entry.key.toDouble(),
-                      entry.value.count.toDouble(),
-                    );
-                  }).toList(),
-                  isCurved: true,
-                  curveSmoothness: 0.3,
-                  color: Theme.of(context).colorScheme.primary,
-                  barWidth: 3,
-                  isStrokeCapRound: true,
-                  dotData: FlDotData(
-                    show: dailyCounts.length <= 14,
-                    getDotPainter: (spot, percent, barData, index) {
-                      return FlDotCirclePainter(
-                        radius: 3,
-                        color: Theme.of(context).colorScheme.primary,
-                        strokeWidth: 0,
-                      );
-                    },
-                  ),
-                  belowBarData: BarAreaData(
+            ),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 200,
+              child: LineChart(
+                LineChartData(
+                  gridData: FlGridData(
                     show: true,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withValues(alpha: 0.1),
+                    drawVerticalLine: false,
+                    horizontalInterval: maxY > 0 ? (maxY / 4).ceilToDouble() : 1,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.1),
+                      strokeWidth: 1,
+                    ),
                   ),
-                ),
-              ],
-              lineTouchData: LineTouchData(
-                touchTooltipData: LineTouchTooltipData(
-                  getTooltipItems: (touchedSpots) {
-                    return touchedSpots.map((spot) {
-                      final index = spot.x.toInt();
-                      final date = dailyCounts[index].date;
-                      return LineTooltipItem(
-                        '${DateFormat.MMMd().format(date)}\n${spot.y.toInt()} eggs',
-                        TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      );
-                    }).toList();
-                  },
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 30,
+                        interval: _calculateInterval(),
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+                          if (index < 0 || index >= chartData.length) {
+                            return const SizedBox.shrink();
+                          }
+                          final point = chartData[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              _formatXLabel(point),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 35,
+                        interval: maxY > 0 ? (maxY / 4).ceilToDouble() : 1,
+                        getTitlesWidget: (value, meta) {
+                          // Show decimals for averages, integers for daily
+                          final label = granularity == ChartGranularity.daily
+                              ? value.toInt().toString()
+                              : value.toStringAsFixed(1);
+                          return Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  minX: 0,
+                  maxX: (chartData.length - 1).toDouble(),
+                  minY: 0,
+                  maxY: maxY + (maxY * 0.1).ceilToDouble(),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: chartData.asMap().entries.map((entry) {
+                        return FlSpot(
+                          entry.key.toDouble(),
+                          entry.value.value,
+                        );
+                      }).toList(),
+                      isCurved: true,
+                      curveSmoothness: 0.3,
+                      color: Theme.of(context).colorScheme.primary,
+                      barWidth: 3,
+                      isStrokeCapRound: true,
+                      dotData: FlDotData(
+                        show: chartData.length <= 14,
+                        getDotPainter: (spot, percent, barData, index) {
+                          return FlDotCirclePainter(
+                            radius: 3,
+                            color: Theme.of(context).colorScheme.primary,
+                            strokeWidth: 0,
+                          );
+                        },
+                      ),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.1),
+                      ),
+                    ),
+                  ],
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipItems: (touchedSpots) {
+                        return touchedSpots.map((spot) {
+                          final index = spot.x.toInt();
+                          final point = chartData[index];
+                          return LineTooltipItem(
+                            _formatTooltip(point),
+                            TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        }).toList();
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
+  String _formatXLabel(ChartDataPoint point) {
+    if (granularity == ChartGranularity.daily) {
+      return DateFormat.MMMd().format(point.startDate);
+    } else if (granularity == ChartGranularity.monthly) {
+      return DateFormat.MMM().format(point.startDate);
+    } else {
+      // Weekly - show start of week
+      return DateFormat.MMMd().format(point.startDate);
+    }
+  }
+
+  String _formatTooltip(ChartDataPoint point) {
+    if (granularity == ChartGranularity.daily) {
+      return '${DateFormat.MMMd().format(point.startDate)}\n${point.totalEggs} eggs';
+    } else {
+      // Show range and both total and average
+      final dateRange = point.startDate == point.endDate
+          ? DateFormat.MMMd().format(point.startDate)
+          : '${DateFormat.MMMd().format(point.startDate)} - ${DateFormat.MMMd().format(point.endDate)}';
+      return '$dateRange\n${point.totalEggs} eggs (${point.value.toStringAsFixed(1)}/day)';
+    }
+  }
+
   double _calculateInterval() {
-    if (dailyCounts.length <= 7) return 1;
-    if (dailyCounts.length <= 14) return 2;
-    if (dailyCounts.length <= 31) return 7;
-    return (dailyCounts.length / 5).roundToDouble();
+    if (chartData.length <= 7) return 1;
+    if (chartData.length <= 14) return 2;
+    if (chartData.length <= 31) return 7;
+    return (chartData.length / 5).roundToDouble();
   }
 }
 
 class _TrendCard extends StatelessWidget {
   final double periodChange;
   final bool hasPreviousPeriodData;
+  final DateTime? comparisonEndDate;
   final AnalyticsPeriod period;
 
   const _TrendCard({
     required this.periodChange,
     required this.hasPreviousPeriodData,
+    this.comparisonEndDate,
     required this.period,
   });
 
@@ -494,6 +597,28 @@ class _TrendCard extends StatelessWidget {
         AnalyticsPeriod.year => 'Year over Year',
         AnalyticsPeriod.allTime => 'Week over Week',
       };
+
+  String? get _comparisonSubtitle {
+    if (comparisonEndDate == null) return null;
+    return switch (period) {
+      AnalyticsPeriod.week || AnalyticsPeriod.allTime =>
+        'vs ${DateFormat.EEEE().format(comparisonEndDate!)} last week',
+      AnalyticsPeriod.month =>
+        'vs the ${_ordinal(comparisonEndDate!.day)} last month',
+      AnalyticsPeriod.year =>
+        'vs ${DateFormat.MMMd().format(comparisonEndDate!)} last year',
+    };
+  }
+
+  String _ordinal(int day) {
+    if (day >= 11 && day <= 13) return '${day}th';
+    return switch (day % 10) {
+      1 => '${day}st',
+      2 => '${day}nd',
+      3 => '${day}rd',
+      _ => '${day}th',
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -552,6 +677,8 @@ class _TrendCard extends StatelessWidget {
       label = 'No change';
     }
 
+    final subtitle = _comparisonSubtitle;
+
     return Card(
       color: color.withValues(alpha: 0.1),
       child: Padding(
@@ -575,6 +702,13 @@ class _TrendCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                   ),
+                  if (subtitle != null)
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
                 ],
               ),
             ),
@@ -585,10 +719,10 @@ class _TrendCard extends StatelessWidget {
   }
 }
 
-class _BirdBreakdown extends StatelessWidget {
+class _CollapsibleBirdBreakdown extends StatelessWidget {
   final List<BirdEggStats> birdStats;
 
-  const _BirdBreakdown({required this.birdStats});
+  const _CollapsibleBirdBreakdown({required this.birdStats});
 
   @override
   Widget build(BuildContext context) {
@@ -597,7 +731,19 @@ class _BirdBreakdown extends StatelessWidget {
         : birdStats.map((s) => s.eggCount).reduce((a, b) => math.max(a, b));
 
     return Card(
-      child: Column(
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        title: Text(
+          'Per-Bird Breakdown',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        subtitle: Text(
+          '${birdStats.length} birds',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        initiallyExpanded: false,
         children: birdStats.asMap().entries.map((entry) {
           final index = entry.key;
           final stats = entry.value;
@@ -653,7 +799,7 @@ class _BirdBreakdown extends StatelessWidget {
               children: [
                 const SizedBox(height: 4),
                 LinearProgressIndicator(
-                  value: maxEggs > 0 ? stats.eggCount / maxEggs : 0,
+                  value: maxEggs > 0 ? stats.eggCount.toDouble() / maxEggs : 0.0,
                   backgroundColor:
                       Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 ),
@@ -733,75 +879,91 @@ class _FreeloardersCard extends StatelessWidget {
   }
 }
 
-class _RecentActivity extends ConsumerWidget {
-  const _RecentActivity();
+class _CollapsibleRecentActivity extends ConsumerWidget {
+  const _CollapsibleRecentActivity();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final logsAsync = ref.watch(recentEggLogsProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: logsAsync.when(
+        loading: () => const ExpansionTile(
+          title: Text('Recent Activity'),
+          initiallyExpanded: false,
           children: [
-            Text(
-              'Recent Activity',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            TextButton(
-              onPressed: () => context.go('/eggs'),
-              child: const Text('See all'),
+            Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
             ),
           ],
         ),
-        logsAsync.when(
-          loading: () => const Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: CircularProgressIndicator(),
-            ),
+        error: (error, stack) => ExpansionTile(
+          title: Text(
+            'Recent Activity',
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-          error: (error, stack) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text('Error: $error'),
+          initiallyExpanded: false,
+          children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text('Error: $error'),
+              ),
             ),
-          ),
-          data: (logs) {
-            if (logs.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.egg_outlined,
-                        size: 48,
+          ],
+        ),
+        data: (logs) {
+          if (logs.isEmpty) {
+            return ExpansionTile(
+              title: Text(
+                'Recent Activity',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              subtitle: Text(
+                'No recent activity',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              initiallyExpanded: false,
+              children: const [],
+            );
+          }
+
+          return ExpansionTile(
+            title: Text(
+              'Recent Activity',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            subtitle: Row(
+              children: [
+                Text(
+                  '${logs.length} recent logs',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No recent activity',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => context.go('/eggs'),
+                  child: Text(
+                    'See all',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                   ),
                 ),
-              );
-            }
-
-            return Card(
-              child: Column(
-                children: logs.map((log) => _ActivityTile(log: log)).toList(),
-              ),
-            );
-          },
-        ),
-      ],
+              ],
+            ),
+            initiallyExpanded: false,
+            children: logs.map((log) => _ActivityTile(log: log)).toList(),
+          );
+        },
+      ),
     );
   }
 }

@@ -236,6 +236,8 @@ void main() {
         hasPreviousPeriodData: true,
         birdStats: birdStats,
         dailyCounts: [],
+        chartData: [],
+        chartGranularity: ChartGranularity.daily,
       );
 
       expect(summary.topLayers.length, 1);
@@ -254,6 +256,8 @@ void main() {
         hasPreviousPeriodData: true,
         birdStats: birdStats,
         dailyCounts: [],
+        chartData: [],
+        chartGranularity: ChartGranularity.daily,
       );
 
       expect(summary.freeloaders.length, 1);
@@ -272,6 +276,8 @@ void main() {
         hasPreviousPeriodData: true,
         birdStats: birdStats,
         dailyCounts: [],
+        chartData: [],
+        chartGranularity: ChartGranularity.daily,
       );
 
       expect(summary.activeBirdCount, 3);
@@ -309,6 +315,8 @@ void main() {
         hasPreviousPeriodData: true,
         birdStats: multipleTopLayers,
         dailyCounts: [],
+        chartData: [],
+        chartGranularity: ChartGranularity.daily,
       );
 
       final topLayers = summary.topLayers;
