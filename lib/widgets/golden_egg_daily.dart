@@ -226,25 +226,31 @@ class _DailyRadialPainter extends CustomPainter {
 
     // Draw day labels
     final labelPainter = TextPainter(textDirection: ui.TextDirection.ltr);
-    final dateFormat = DateFormat.E(); // Mon, Tue, etc.
+    final isWeekView = days.length <= 7;
 
     for (var i = 0; i < days.length; i++) {
       final day = days[i];
       final angle = -math.pi / 2 + i * anglePerDay;
       final isSelected = selectedDay?.dayIndex == day.dayIndex;
 
-      // Only show labels for every few days if there are many
-      final showLabel = days.length <= 14 || i % 2 == 0;
+      // For month view (>7 days), only show some labels to avoid crowding
+      final showLabel = isWeekView || i % 5 == 0 || i == days.length - 1;
       if (!showLabel && !isSelected) continue;
 
       final labelX = center.dx + labelRadius * math.cos(angle);
       final labelY = center.dy + labelRadius * math.sin(angle);
 
+      // Week view: show day letter (M, T, W...)
+      // Month view: show day number (1, 5, 10, 15...)
+      final labelText = isWeekView
+          ? DateFormat.E().format(day.date).substring(0, 1)
+          : '${day.date.day}';
+
       labelPainter.text = TextSpan(
-        text: dateFormat.format(day.date).substring(0, 1), // First letter: M, T, W...
+        text: labelText,
         style: TextStyle(
           color: isSelected ? secondaryColor : onSurfaceVariantColor,
-          fontSize: isSelected ? 12 : 10,
+          fontSize: isSelected ? 12 : (isWeekView ? 10 : 9),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       );
