@@ -7,6 +7,7 @@ import '../screens/flocks/flock_form_screen.dart';
 import '../screens/birds/bird_list_screen.dart';
 import '../screens/birds/bird_form_screen.dart';
 import '../screens/birds/bird_detail_screen.dart';
+import '../screens/birds/health_note_form_screen.dart';
 import '../screens/eggs/egg_history_screen.dart';
 import '../screens/eggs/egg_log_screen.dart';
 import '../screens/expenses/expense_list_screen.dart';
@@ -105,6 +106,23 @@ final router = GoRouter(
                         final birdId = state.pathParameters['id']!;
                         final openPhoto = state.uri.queryParameters['openPhoto'] == 'true';
                         return BirdFormScreen(birdId: birdId, openPhoto: openPhoto);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'health/new',
+                      name: 'health-note-new',
+                      builder: (context, state) {
+                        final birdId = state.pathParameters['id']!;
+                        return HealthNoteFormScreen(birdId: birdId);
+                      },
+                    ),
+                    GoRoute(
+                      path: 'health/:noteId',
+                      name: 'health-note-edit',
+                      builder: (context, state) {
+                        final birdId = state.pathParameters['id']!;
+                        final noteId = state.pathParameters['noteId']!;
+                        return HealthNoteFormScreen(birdId: birdId, noteId: noteId);
                       },
                     ),
                   ],

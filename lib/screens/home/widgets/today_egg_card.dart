@@ -85,51 +85,46 @@ class TodayEggCard extends ConsumerWidget {
                 loading: () => const SizedBox.shrink(),
                 error: (error, stack) => const SizedBox.shrink(),
                 data: (avg) {
-                  final diff = todayCount - avg;
-
                   if (avg == 0) {
                     return const SizedBox.shrink();
                   }
 
-                  final isUp = diff > 0.5;
-                  final isDown = diff < -0.5;
+                  // Only colorize for significant deviations (25%+ from average)
+                  // Normal fluctuation stays gray
+                  final percentDiff = (todayCount - avg) / avg;
+                  final isSignificantlyUp = percentDiff >= 0.25;
+                  final isSignificantlyDown = percentDiff <= -0.25;
+
+                  final color = isSignificantlyUp
+                      ? Colors.green
+                      : isSignificantlyDown
+                          ? Colors.red
+                          : Colors.grey;
 
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: isUp
-                          ? Colors.green.shade50
-                          : isDown
-                              ? Colors.red.shade50
-                              : Colors.grey.shade100,
+                      color: color.shade50,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isUp
+                          isSignificantlyUp
                               ? Icons.arrow_upward
-                              : isDown
+                              : isSignificantlyDown
                                   ? Icons.arrow_downward
                                   : Icons.remove,
                           size: 16,
-                          color: isUp
-                              ? Colors.green.shade700
-                              : isDown
-                                  ? Colors.red.shade700
-                                  : Colors.grey.shade700,
+                          color: color.shade700,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'avg ${avg.toStringAsFixed(1)}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isUp
-                                ? Colors.green.shade700
-                                : isDown
-                                    ? Colors.red.shade700
-                                    : Colors.grey.shade700,
+                            color: color.shade700,
                           ),
                         ),
                       ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/bird.dart';
@@ -43,7 +44,7 @@ class BirdHealthTab extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Medications and health notes for ${bird.name} will appear here.',
+                        'Tap + to add health observations for ${bird.name}.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
@@ -57,8 +58,9 @@ class BirdHealthTab extends ConsumerWidget {
             final items = <_HealthItem>[];
             for (final med in meds) {
               items.add(_HealthItem(
+                id: med.id,
                 date: med.startDate,
-                type: 'medication',
+                type: _HealthItemType.medication,
                 title: med.medicationName,
                 subtitle: med.dosage ?? '',
                 notes: med.notes,
@@ -66,8 +68,9 @@ class BirdHealthTab extends ConsumerWidget {
             }
             for (final note in notes) {
               items.add(_HealthItem(
+                id: note.id,
                 date: note.date,
-                type: 'note',
+                type: _HealthItemType.note,
                 title: note.type.displayName,
                 subtitle: '',
                 notes: note.description,
@@ -80,8 +83,9 @@ class BirdHealthTab extends ConsumerWidget {
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final item = items[index];
-                final isMed = item.type == 'medication';
+                final isMed = item.type == _HealthItemType.medication;
                 return Card(
+                  clipBehavior: Clip.antiAlias,
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: isMed
@@ -117,6 +121,12 @@ class BirdHealthTab extends ConsumerWidget {
                       ],
                     ),
                     isThreeLine: item.notes != null && item.notes!.isNotEmpty,
+                    trailing: item.type == _HealthItemType.note
+                        ? const Icon(Icons.chevron_right)
+                        : null,
+                    onTap: item.type == _HealthItemType.note
+                        ? () => context.push('/birds/${bird.id}/health/${item.id}')
+                        : null,
                   ),
                 );
               },
@@ -128,14 +138,18 @@ class BirdHealthTab extends ConsumerWidget {
   }
 }
 
+enum _HealthItemType { medication, note }
+
 class _HealthItem {
+  final String id;
   final DateTime date;
-  final String type;
+  final _HealthItemType type;
   final String title;
   final String subtitle;
   final String? notes;
 
   _HealthItem({
+    required this.id,
     required this.date,
     required this.type,
     required this.title,
