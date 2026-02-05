@@ -21,6 +21,7 @@ import '../../providers/flock_provider.dart' show flocksProvider, selectedFlockI
 import '../../providers/medication_provider.dart' show medicationsProvider;
 import '../../providers/notification_provider.dart';
 import '../../providers/onboarding_provider.dart';
+import '../../providers/golden_egg_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../services/export_service.dart';
@@ -95,6 +96,17 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: 24),
+
+          // Chart Settings Section
+          Text(
+            'Chart Settings',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          const _LatitudeSettingCard(),
           const SizedBox(height: 24),
 
           // Reference Guides Section
@@ -1102,5 +1114,194 @@ class _AccountSection extends ConsumerWidget {
         const SnackBar(content: Text('Checking for previous purchases...')),
       );
     }
+  }
+}
+
+/// Card for configuring latitude setting for daylight calculations.
+class _LatitudeSettingCard extends ConsumerWidget {
+  const _LatitudeSettingCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final latitude = ref.watch(userLatitudeProvider);
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.location_on_outlined),
+        title: const Text('Your Latitude'),
+        subtitle: const Text('Adjusts daylight curve on egg chart'),
+        trailing: Text(
+          '$latitude°N',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        onTap: () => _showLatitudeDialog(context, ref, latitude),
+      ),
+    );
+  }
+
+  void _showLatitudeDialog(BuildContext context, WidgetRef ref, int currentLatitude) {
+    var selectedLatitude = currentLatitude;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Your Latitude'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Adjusts the daylight curve on your egg chart. Approximate is fine.',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                // Latitude slider
+                Row(
+                  children: [
+                    const Text('20°N'),
+                    Expanded(
+                      child: Slider(
+                        value: selectedLatitude.toDouble(),
+                        min: 20,
+                        max: 60,
+                        divisions: 40,
+                        label: '$selectedLatitude°N',
+                        onChanged: (value) {
+                          setState(() => selectedLatitude = value.round());
+                        },
+                      ),
+                    ),
+                    const Text('60°N'),
+                  ],
+                ),
+                Text(
+                  '$selectedLatitude°N',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                // Quick pick buttons
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _QuickPickButton(
+                      label: 'Southern',
+                      range: '25-32°',
+                      value: 28,
+                      selected: selectedLatitude >= 25 && selectedLatitude <= 32,
+                      onTap: () => setState(() => selectedLatitude = 28),
+                    ),
+                    _QuickPickButton(
+                      label: 'Central',
+                      range: '33-40°',
+                      value: 37,
+                      selected: selectedLatitude >= 33 && selectedLatitude <= 40,
+                      onTap: () => setState(() => selectedLatitude = 37),
+                    ),
+                    _QuickPickButton(
+                      label: 'Northern',
+                      range: '41-48°',
+                      value: 45,
+                      selected: selectedLatitude >= 41 && selectedLatitude <= 48,
+                      onTap: () => setState(() => selectedLatitude = 45),
+                    ),
+                    _QuickPickButton(
+                      label: 'Far North',
+                      range: '49-58°',
+                      value: 53,
+                      selected: selectedLatitude >= 49 && selectedLatitude <= 58,
+                      onTap: () => setState(() => selectedLatitude = 53),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  ref.read(userLatitudeProvider.notifier).setLatitude(selectedLatitude);
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _QuickPickButton extends StatelessWidget {
+  final String label;
+  final String range;
+  final int value;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _QuickPickButton({
+    required this.label,
+    required this.range,
+    required this.value,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? theme.colorScheme.primaryContainer
+              : theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                color: selected
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onSurface,
+              ),
+            ),
+            Text(
+              range,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: selected
+                    ? theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7)
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

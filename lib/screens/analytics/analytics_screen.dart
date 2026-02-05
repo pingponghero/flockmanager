@@ -13,6 +13,7 @@ import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../widgets/golden_egg_chart.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
@@ -108,6 +109,23 @@ class AnalyticsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   _ProductionChart(dailyCounts: analytics.dailyCounts),
+                  const SizedBox(height: 24),
+
+                  // Golden egg radial chart
+                  Text(
+                    'Production Overview',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SizedBox(
+                        height: 280,
+                        child: const GoldenEggChart(),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 24),
 
                   // Trend indicator
