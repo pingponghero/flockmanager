@@ -8,8 +8,8 @@ import '../providers/golden_egg_provider.dart';
 import '../utils/daylight_calculator.dart';
 import 'golden_egg_tooltip.dart';
 
-/// Yearly egg chart showing monthly production with daylight curve overlay.
-/// Winter is always at the bottom of the chart.
+/// Yearly egg chart showing monthly production with daylight curve as the boundary.
+/// The golden daylight curve forms the egg shape, with production bars reaching toward it.
 class GoldenEggYearlyChart extends ConsumerStatefulWidget {
   final GoldenEggChartData data;
 
@@ -75,7 +75,7 @@ class _GoldenEggYearlyChartState extends ConsumerState<GoldenEggYearlyChart> {
                 width: 16,
                 height: 3,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.secondary.withValues(alpha: 0.5),
+                  color: const Color(0xFFFFB300),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -110,7 +110,7 @@ class _GoldenEggYearlyChartState extends ConsumerState<GoldenEggYearlyChart> {
     final dy = tapPosition.dy - center.dy;
     final distance = math.sqrt(dx * dx + dy * dy);
 
-    final innerRadius = size * 0.2;
+    final innerRadius = size * 0.18;
     final outerRadius = size * 0.42;
     if (distance < innerRadius || distance > outerRadius) {
       setState(() => _selectedMonth = null);
@@ -123,8 +123,8 @@ class _GoldenEggYearlyChartState extends ConsumerState<GoldenEggYearlyChart> {
 
     final anglePerMonth = 2 * math.pi / 12;
 
-    // Adjust for hemisphere rotation (Northern: July at top, Southern: January at top)
-    final rotationOffset = isNorthern ? 6 : 0; // 6 months = 180 degrees
+    // Adjust for hemisphere rotation
+    final rotationOffset = isNorthern ? 6 : 0;
     final adjustedAngle = (angle + rotationOffset * anglePerMonth) % (2 * math.pi);
     final monthIndex = (adjustedAngle / anglePerMonth).floor();
     final targetMonth = (monthIndex % 12) + 1;
@@ -166,17 +166,36 @@ class _YearlyEggPainter extends CustomPainter {
   });
 
   // Get angle for a month (1-12), with winter at bottom
-  // Northern: July (7) at top, Jan (1) at bottom
-  // Southern: January (1) at top, July (7) at bottom
-  double _angleForMonth(int month) {
+  double _angleForMonth(double month) {
     final anglePerMonth = 2 * math.pi / 12;
     if (isNorthernHemisphere) {
-      // July (month 7) at top (-pi/2)
       return -math.pi / 2 + (month - 7) * anglePerMonth;
     } else {
-      // January (month 1) at top (-pi/2)
       return -math.pi / 2 + (month - 1) * anglePerMonth;
     }
+  }
+
+  // Get the daylight radius for a given month (interpolated)
+  double _getDaylightRadius(double month, double innerRadius, double outerRadius) {
+    if (daylightCurve.isEmpty) return outerRadius;
+
+    final minDaylight = daylightCurve.reduce(math.min);
+    final maxDaylight = daylightCurve.reduce(math.max);
+    final range = maxDaylight - minDaylight;
+
+    if (range < 0.1) return outerRadius;
+
+    // Interpolate between months
+    final monthIndex = ((month - 1) % 12).floor();
+    final nextMonthIndex = (monthIndex + 1) % 12;
+    final t = (month - 1) - monthIndex;
+
+    final smoothT = (1 - math.cos(t * math.pi)) / 2;
+    final interpolatedDaylight = daylightCurve[monthIndex] +
+        (daylightCurve[nextMonthIndex] - daylightCurve[monthIndex]) * smoothT;
+
+    final normalized = (interpolatedDaylight - minDaylight) / range;
+    return innerRadius + (outerRadius - innerRadius) * normalized;
   }
 
   @override
@@ -184,77 +203,47 @@ class _YearlyEggPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) / 2;
 
-    _drawEggBackground(canvas, center, radius);
-    _drawDaylightCurve(canvas, center, radius);
+    // The daylight curve is the egg boundary
+    _drawDaylightEgg(canvas, center, radius);
     _drawMonthlyBars(canvas, center, radius);
     _drawMonthLabels(canvas, center, radius);
     _drawCenterStats(canvas, center, radius);
   }
 
-  void _drawEggBackground(Canvas canvas, Offset center, double radius) {
-    final eggRadius = radius * 0.85;
-
-    final bgPaint = Paint()
-      ..shader = ui.Gradient.radial(
-        Offset(center.dx - eggRadius * 0.2, center.dy - eggRadius * 0.3),
-        eggRadius * 1.2,
-        [
-          const Color(0xFFFFFBF0),
-          const Color(0xFFFFF8E1),
-          secondaryColor.withValues(alpha: 0.15),
-        ],
-        [0.0, 0.5, 1.0],
-      )
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, eggRadius, bgPaint);
-
-    final borderPaint = Paint()
-      ..color = secondaryColor.withValues(alpha: 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawCircle(center, eggRadius, borderPaint);
-  }
-
-  void _drawDaylightCurve(Canvas canvas, Offset center, double radius) {
+  void _drawDaylightEgg(Canvas canvas, Offset center, double radius) {
     if (daylightCurve.isEmpty) return;
 
     final minDaylight = daylightCurve.reduce(math.min);
     final maxDaylight = daylightCurve.reduce(math.max);
     final range = maxDaylight - minDaylight;
 
-    if (range < 0.1) return;
+    // Inner radius for the center, outer for the daylight boundary
+    final innerBoundary = radius * 0.4;
+    final outerBoundary = radius * 0.85;
 
-    final innerRadius = radius * 0.35;
-    final outerRadius = radius * 0.75;
-
-    // Use 72 points for a smooth curve (6 per month)
+    // Use 72 points for a smooth curve
     const pointsPerMonth = 6;
     const totalPoints = 12 * pointsPerMonth;
 
     final daylightPath = Path();
 
     for (var i = 0; i < totalPoints; i++) {
-      // Interpolate between monthly values using cosine interpolation for smoothness
       final monthFraction = i / pointsPerMonth;
       final monthIndex = monthFraction.floor() % 12;
       final nextMonthIndex = (monthIndex + 1) % 12;
       final t = monthFraction - monthIndex;
 
-      // Cosine interpolation for smoother curve
       final smoothT = (1 - math.cos(t * math.pi)) / 2;
       final interpolatedDaylight = daylightCurve[monthIndex] +
           (daylightCurve[nextMonthIndex] - daylightCurve[monthIndex]) * smoothT;
 
-      final normalized = (interpolatedDaylight - minDaylight) / range;
-      final curveRadius = innerRadius + (outerRadius - innerRadius) * normalized;
+      final normalized = range > 0.1
+          ? (interpolatedDaylight - minDaylight) / range
+          : 0.5;
+      final curveRadius = innerBoundary + (outerBoundary - innerBoundary) * normalized;
 
-      // Calculate angle for this point
       final month = monthFraction + 1;
-      final anglePerMonth = 2 * math.pi / 12;
-      final angle = isNorthernHemisphere
-          ? -math.pi / 2 + (month - 7) * anglePerMonth
-          : -math.pi / 2 + (month - 1) * anglePerMonth;
+      final angle = _angleForMonth(month);
 
       final x = center.dx + curveRadius * math.cos(angle);
       final y = center.dy + curveRadius * math.sin(angle);
@@ -268,37 +257,47 @@ class _YearlyEggPainter extends CustomPainter {
 
     daylightPath.close();
 
-    // Golden radiant fill - like sunshine
+    // Golden radiant fill - the egg shape
     final fillPaint = Paint()
       ..shader = ui.Gradient.radial(
-        center,
-        outerRadius,
+        Offset(center.dx - radius * 0.15, center.dy - radius * 0.2),
+        outerBoundary * 1.2,
         [
-          const Color(0xFFFFF9C4).withValues(alpha: 0.6), // Bright yellow center
-          const Color(0xFFFFD54F).withValues(alpha: 0.4), // Golden
-          const Color(0xFFFFB300).withValues(alpha: 0.2), // Amber edge
+          const Color(0xFFFFFDE7), // Bright warm white
+          const Color(0xFFFFF9C4), // Light yellow
+          const Color(0xFFFFE082), // Golden
+          const Color(0xFFFFCA28), // Amber
         ],
-        [0.0, 0.5, 1.0],
+        [0.0, 0.3, 0.7, 1.0],
       )
       ..style = PaintingStyle.fill;
     canvas.drawPath(daylightPath, fillPaint);
 
-    // Soft golden glow outline
+    // Golden glow outline
     final strokePaint = Paint()
-      ..color = const Color(0xFFFFB300).withValues(alpha: 0.6)
+      ..color = const Color(0xFFFFB300)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 3;
     canvas.drawPath(daylightPath, strokePaint);
+
+    // Add subtle inner glow
+    final innerGlowPaint = Paint()
+      ..color = const Color(0xFFFFD54F).withValues(alpha: 0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawPath(daylightPath, innerGlowPaint);
   }
 
   void _drawMonthlyBars(Canvas canvas, Offset center, double radius) {
     final months = data.monthlyCounts;
     if (months.isEmpty) return;
 
-    final innerRadius = radius * 0.28;
-    final maxBarRadius = radius * 0.7;
+    final innerRadius = radius * 0.22;
+    final innerBoundary = radius * 0.4;
+    final outerBoundary = radius * 0.85;
     final anglePerMonth = 2 * math.pi / 12;
-    final barWidth = anglePerMonth * 0.6;
+    final barWidth = anglePerMonth * 0.5;
 
     final monthMap = <int, MonthlyEggData>{};
     for (final m in months) {
@@ -307,12 +306,16 @@ class _YearlyEggPainter extends CustomPainter {
 
     for (var month = 1; month <= 12; month++) {
       final monthData = monthMap[month];
-      final centerAngle = _angleForMonth(month);
+      final centerAngle = _angleForMonth(month.toDouble());
       final startAngle = centerAngle - barWidth / 2;
 
+      // Get the daylight boundary for this month
+      final daylightRadius = _getDaylightRadius(month.toDouble(), innerBoundary, outerBoundary);
+
       if (monthData == null || monthData.totalCount == 0) {
+        // Draw tick mark for empty months
         final tickPaint = Paint()
-          ..color = onSurfaceVariantColor.withValues(alpha: 0.2)
+          ..color = onSurfaceVariantColor.withValues(alpha: 0.3)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1;
         final tickStart = Offset(
@@ -320,23 +323,24 @@ class _YearlyEggPainter extends CustomPainter {
           center.dy + innerRadius * math.sin(centerAngle),
         );
         final tickEnd = Offset(
-          center.dx + (innerRadius + 5) * math.cos(centerAngle),
-          center.dy + (innerRadius + 5) * math.sin(centerAngle),
+          center.dx + (innerRadius + 8) * math.cos(centerAngle),
+          center.dy + (innerRadius + 8) * math.sin(centerAngle),
         );
         canvas.drawLine(tickStart, tickEnd, tickPaint);
         continue;
       }
 
+      // Bar extends from inner radius toward the daylight boundary
       final normalizedCount =
           data.maxDailyCount > 0 ? monthData.totalCount / data.maxDailyCount : 0.0;
-      final barEndRadius = innerRadius + (maxBarRadius - innerRadius) * normalizedCount;
+      final barEndRadius = innerRadius + (daylightRadius - innerRadius - 8) * normalizedCount;
 
       final isSelected = selectedMonth?.month == month;
 
       final barPaint = Paint()
         ..color = isSelected
             ? secondaryColor
-            : primaryColor.withValues(alpha: 0.6 + normalizedCount * 0.4)
+            : primaryColor.withValues(alpha: 0.7 + normalizedCount * 0.3)
         ..style = PaintingStyle.fill;
 
       final barPath = Path();
@@ -364,13 +368,13 @@ class _YearlyEggPainter extends CustomPainter {
 
   void _drawMonthLabels(Canvas canvas, Offset center, double radius) {
     final labelPainter = TextPainter(textDirection: ui.TextDirection.ltr);
-    final labelRadius = radius * 0.88;
+    final labelRadius = radius * 0.95;
 
     final monthNames = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 
     for (var i = 0; i < 12; i++) {
       final month = i + 1;
-      final angle = _angleForMonth(month);
+      final angle = _angleForMonth(month.toDouble());
       final isSelected = selectedMonth?.month == month;
 
       final labelX = center.dx + labelRadius * math.cos(angle);
@@ -393,8 +397,9 @@ class _YearlyEggPainter extends CustomPainter {
   }
 
   void _drawCenterStats(Canvas canvas, Offset center, double radius) {
-    final innerRadius = radius * 0.22;
+    final innerRadius = radius * 0.18;
 
+    // Draw center circle
     final centerPaint = Paint()
       ..color = surfaceColor
       ..style = PaintingStyle.fill;
@@ -413,7 +418,7 @@ class _YearlyEggPainter extends CustomPainter {
             text: '${data.totalEggs}\n',
             style: TextStyle(
               color: onSurfaceColor,
-              fontSize: innerRadius * 0.55,
+              fontSize: innerRadius * 0.6,
               fontWeight: FontWeight.bold,
               height: 1.2,
             ),
@@ -422,7 +427,7 @@ class _YearlyEggPainter extends CustomPainter {
             text: 'eggs',
             style: TextStyle(
               color: onSurfaceVariantColor,
-              fontSize: innerRadius * 0.3,
+              fontSize: innerRadius * 0.35,
               height: 1.0,
             ),
           ),
