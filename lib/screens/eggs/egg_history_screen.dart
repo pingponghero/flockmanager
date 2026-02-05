@@ -353,14 +353,17 @@ class _DayCell extends StatelessWidget {
       backgroundColor = colorScheme.surfaceContainerHighest;
       textColor = colorScheme.onSurfaceVariant;
     } else if (count <= 2) {
-      backgroundColor = Colors.amber.shade100;
-      textColor = Colors.amber.shade900;
+      // Low: light secondary
+      backgroundColor = colorScheme.secondary.withValues(alpha: 0.15);
+      textColor = colorScheme.secondary;
     } else if (count <= 5) {
-      backgroundColor = Colors.green.shade100;
-      textColor = Colors.green.shade900;
+      // Medium: medium secondary
+      backgroundColor = colorScheme.secondary.withValues(alpha: 0.35);
+      textColor = colorScheme.onSecondaryContainer;
     } else {
-      backgroundColor = Colors.blue.shade100;
-      textColor = Colors.blue.shade900;
+      // High: strong secondary
+      backgroundColor = colorScheme.secondary.withValues(alpha: 0.6);
+      textColor = colorScheme.onSecondary;
     }
 
     return GestureDetector(
@@ -384,7 +387,7 @@ class _DayCell extends StatelessWidget {
                 color: textColor,
               ),
             ),
-            if (!isFuture && count > 0)
+            if (!isFuture)
               Text(
                 '$count',
                 style: TextStyle(

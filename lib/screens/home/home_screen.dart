@@ -33,7 +33,7 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('Flock Manager'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.history),
+            icon: const Icon(Icons.calendar_month),
             onPressed: () => context.push('/eggs'),
             tooltip: 'Egg History',
           ),
