@@ -45,6 +45,12 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
       appBar: AppBar(
         title: const Text('Birds'),
         actions: [
+          // Flock history
+          IconButton(
+            icon: const Icon(Icons.calendar_month),
+            tooltip: 'Flock History',
+            onPressed: () => context.push('/birds/events'),
+          ),
           // Sort menu
           PopupMenuButton<BirdSortOption>(
             icon: const Icon(Icons.sort),

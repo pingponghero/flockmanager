@@ -7,6 +7,7 @@ import '../screens/flocks/flock_form_screen.dart';
 import '../screens/birds/bird_list_screen.dart';
 import '../screens/birds/bird_form_screen.dart';
 import '../screens/birds/bird_detail_screen.dart';
+import '../screens/birds/bird_events_screen.dart';
 import '../screens/birds/health_note_form_screen.dart';
 import '../screens/eggs/egg_history_screen.dart';
 import '../screens/eggs/egg_log_screen.dart';
@@ -86,6 +87,11 @@ final router = GoRouter(
               name: 'birds',
               builder: (context, state) => const BirdListScreen(),
               routes: [
+                GoRoute(
+                  path: 'events',
+                  name: 'bird-events',
+                  builder: (context, state) => const BirdEventsScreen(),
+                ),
                 GoRoute(
                   path: 'new',
                   name: 'bird-new',
