@@ -2,12 +2,17 @@ import 'dart:math' as math;
 
 /// Utility class for calculating daylight hours based on latitude and day of year.
 /// Uses precalculated fixtures for common latitudes to avoid runtime computation.
+/// Supports Northern Hemisphere, Southern Hemisphere, and Equator.
 class DaylightCalculator {
   DaylightCalculator._();
 
   // ==================== Precalculated Monthly Averages ====================
-  // Monthly daylight hours (index 0 = January, 11 = December) for common latitudes.
+  // Monthly daylight hours (index 0 = January, 11 = December) for Northern latitudes.
   // Precalculated using the solar declination formula for mid-month dates.
+  // Southern Hemisphere uses the same values but shifted by 6 months.
+
+  /// Equator (0°) - constant ~12 hours year-round
+  static const _lat0 = [12.1, 12.1, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.1, 12.1, 12.1];
 
   /// 25°N (Miami, FL area) - nearly round egg shape
   static const _lat25 = [10.8, 11.3, 11.9, 12.6, 13.2, 13.5, 13.4, 12.9, 12.2, 11.5, 10.9, 10.6];
@@ -33,8 +38,9 @@ class DaylightCalculator {
   /// 55°N (Edmonton, AB area) - very elongated
   static const _lat55 = [7.6, 9.1, 11.2, 13.5, 15.6, 17.0, 16.5, 14.8, 12.7, 10.4, 8.2, 7.2];
 
-  /// Map of precalculated monthly averages by latitude.
+  /// Map of precalculated monthly averages by absolute latitude.
   static const Map<int, List<double>> _monthlyByLatitude = {
+    0: _lat0,
     25: _lat25,
     30: _lat30,
     35: _lat35,
@@ -47,12 +53,27 @@ class DaylightCalculator {
 
   /// Get monthly daylight averages for a latitude.
   /// Uses precalculated fixtures when available, interpolates for in-between values.
+  /// For Southern Hemisphere (negative latitudes), shifts the curve by 6 months.
   static List<double> getMonthlyDaylightCurve(int latitude) {
-    final lat = latitude.clamp(20, 60);
+    final isSouthern = latitude < 0;
+    final absLat = latitude.abs().clamp(0, 60);
 
+    // Get the curve for the absolute latitude
+    final curve = _getCurveForAbsoluteLatitude(absLat);
+
+    // For Southern Hemisphere, shift by 6 months (swap summer/winter)
+    if (isSouthern && absLat > 0) {
+      return List.generate(12, (i) => curve[(i + 6) % 12]);
+    }
+
+    return curve;
+  }
+
+  /// Get curve for absolute latitude value (Northern Hemisphere perspective).
+  static List<double> _getCurveForAbsoluteLatitude(int absLat) {
     // Direct lookup if we have precalculated data
-    if (_monthlyByLatitude.containsKey(lat)) {
-      return _monthlyByLatitude[lat]!;
+    if (_monthlyByLatitude.containsKey(absLat)) {
+      return _monthlyByLatitude[absLat]!;
     }
 
     // Find bracketing latitudes and interpolate
@@ -61,8 +82,8 @@ class DaylightCalculator {
     int? upperLat;
 
     for (final l in latitudes) {
-      if (l <= lat) lowerLat = l;
-      if (l >= lat && upperLat == null) upperLat = l;
+      if (l <= absLat) lowerLat = l;
+      if (l >= absLat && upperLat == null) upperLat = l;
     }
 
     // Edge cases
@@ -73,7 +94,7 @@ class DaylightCalculator {
     // Interpolate between the two
     final lowerCurve = _monthlyByLatitude[lowerLat]!;
     final upperCurve = _monthlyByLatitude[upperLat]!;
-    final t = (lat - lowerLat) / (upperLat - lowerLat);
+    final t = (absLat - lowerLat) / (upperLat - lowerLat);
 
     return List.generate(12, (i) {
       return lowerCurve[i] + (upperCurve[i] - lowerCurve[i]) * t;
@@ -98,14 +119,18 @@ class DaylightCalculator {
     return date.difference(startOfYear).inDays + 1;
   }
 
-  /// Get the maximum daylight hours for a latitude (June).
+  /// Get the maximum daylight hours for a latitude.
+  /// June for Northern Hemisphere, December for Southern.
   static double getMaxDaylight(int latitude) {
-    return getMonthAverageDaylight(6, latitude);
+    final month = latitude >= 0 ? 6 : 12;
+    return getMonthAverageDaylight(month, latitude);
   }
 
-  /// Get the minimum daylight hours for a latitude (December).
+  /// Get the minimum daylight hours for a latitude.
+  /// December for Northern Hemisphere, June for Southern.
   static double getMinDaylight(int latitude) {
-    return getMonthAverageDaylight(12, latitude);
+    final month = latitude >= 0 ? 12 : 6;
+    return getMonthAverageDaylight(month, latitude);
   }
 
   // ==================== Runtime Calculation (for edge cases) ====================

@@ -1121,6 +1121,12 @@ class _AccountSection extends ConsumerWidget {
 class _LatitudeSettingCard extends ConsumerWidget {
   const _LatitudeSettingCard();
 
+  static String _formatLatitude(int latitude) {
+    if (latitude == 0) return 'Equator';
+    if (latitude > 0) return '$latitude°N';
+    return '${latitude.abs()}°S';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final latitude = ref.watch(userLatitudeProvider);
@@ -1131,7 +1137,7 @@ class _LatitudeSettingCard extends ConsumerWidget {
         title: const Text('Your Latitude'),
         subtitle: const Text('Adjusts daylight curve on egg chart'),
         trailing: Text(
-          '$latitude°N',
+          _formatLatitude(latitude),
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w600,
@@ -1159,17 +1165,34 @@ class _LatitudeSettingCard extends ConsumerWidget {
                   style: TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 24),
+                // Hemisphere quick pick
+                SegmentedButton<int>(
+                  segments: const [
+                    ButtonSegment(value: -35, label: Text('South')),
+                    ButtonSegment(value: 0, label: Text('Equator')),
+                    ButtonSegment(value: 39, label: Text('North')),
+                  ],
+                  selected: {
+                    if (selectedLatitude < -10) -35
+                    else if (selectedLatitude > 10) 39
+                    else 0
+                  },
+                  onSelectionChanged: (values) {
+                    setState(() => selectedLatitude = values.first);
+                  },
+                ),
+                const SizedBox(height: 16),
                 // Latitude slider
                 Row(
                   children: [
-                    const Text('20°N'),
+                    const Text('60°S'),
                     Expanded(
                       child: Slider(
                         value: selectedLatitude.toDouble(),
-                        min: 20,
+                        min: -60,
                         max: 60,
-                        divisions: 40,
-                        label: '$selectedLatitude°N',
+                        divisions: 120,
+                        label: _formatLatitude(selectedLatitude),
                         onChanged: (value) {
                           setState(() => selectedLatitude = value.round());
                         },
@@ -1179,48 +1202,11 @@ class _LatitudeSettingCard extends ConsumerWidget {
                   ],
                 ),
                 Text(
-                  '$selectedLatitude°N',
+                  _formatLatitude(selectedLatitude),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.primary,
                       ),
-                ),
-                const SizedBox(height: 16),
-                // Quick pick buttons
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _QuickPickButton(
-                      label: 'Southern',
-                      range: '25-32°',
-                      value: 28,
-                      selected: selectedLatitude >= 25 && selectedLatitude <= 32,
-                      onTap: () => setState(() => selectedLatitude = 28),
-                    ),
-                    _QuickPickButton(
-                      label: 'Central',
-                      range: '33-40°',
-                      value: 37,
-                      selected: selectedLatitude >= 33 && selectedLatitude <= 40,
-                      onTap: () => setState(() => selectedLatitude = 37),
-                    ),
-                    _QuickPickButton(
-                      label: 'Northern',
-                      range: '41-48°',
-                      value: 45,
-                      selected: selectedLatitude >= 41 && selectedLatitude <= 48,
-                      onTap: () => setState(() => selectedLatitude = 45),
-                    ),
-                    _QuickPickButton(
-                      label: 'Far North',
-                      range: '49-58°',
-                      value: 53,
-                      selected: selectedLatitude >= 49 && selectedLatitude <= 58,
-                      onTap: () => setState(() => selectedLatitude = 53),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -1239,68 +1225,6 @@ class _LatitudeSettingCard extends ConsumerWidget {
             ],
           );
         },
-      ),
-    );
-  }
-}
-
-class _QuickPickButton extends StatelessWidget {
-  final String label;
-  final String range;
-  final int value;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _QuickPickButton({
-    required this.label,
-    required this.range,
-    required this.value,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected
-              ? theme.colorScheme.primaryContainer
-              : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: selected
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outline.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                color: selected
-                    ? theme.colorScheme.onPrimaryContainer
-                    : theme.colorScheme.onSurface,
-              ),
-            ),
-            Text(
-              range,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: selected
-                    ? theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7)
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
