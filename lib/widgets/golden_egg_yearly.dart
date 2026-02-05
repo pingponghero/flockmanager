@@ -228,13 +228,33 @@ class _YearlyEggPainter extends CustomPainter {
     final innerRadius = radius * 0.35;
     final outerRadius = radius * 0.75;
 
+    // Use 72 points for a smooth curve (6 per month)
+    const pointsPerMonth = 6;
+    const totalPoints = 12 * pointsPerMonth;
+
     final daylightPath = Path();
 
-    for (var i = 0; i < 12; i++) {
-      final month = i + 1;
-      final normalized = (daylightCurve[i] - minDaylight) / range;
+    for (var i = 0; i < totalPoints; i++) {
+      // Interpolate between monthly values using cosine interpolation for smoothness
+      final monthFraction = i / pointsPerMonth;
+      final monthIndex = monthFraction.floor() % 12;
+      final nextMonthIndex = (monthIndex + 1) % 12;
+      final t = monthFraction - monthIndex;
+
+      // Cosine interpolation for smoother curve
+      final smoothT = (1 - math.cos(t * math.pi)) / 2;
+      final interpolatedDaylight = daylightCurve[monthIndex] +
+          (daylightCurve[nextMonthIndex] - daylightCurve[monthIndex]) * smoothT;
+
+      final normalized = (interpolatedDaylight - minDaylight) / range;
       final curveRadius = innerRadius + (outerRadius - innerRadius) * normalized;
-      final angle = _angleForMonth(month);
+
+      // Calculate angle for this point
+      final month = monthFraction + 1;
+      final anglePerMonth = 2 * math.pi / 12;
+      final angle = isNorthernHemisphere
+          ? -math.pi / 2 + (month - 7) * anglePerMonth
+          : -math.pi / 2 + (month - 1) * anglePerMonth;
 
       final x = center.dx + curveRadius * math.cos(angle);
       final y = center.dy + curveRadius * math.sin(angle);
@@ -242,37 +262,10 @@ class _YearlyEggPainter extends CustomPainter {
       if (i == 0) {
         daylightPath.moveTo(x, y);
       } else {
-        final prevMonth = i;
-        final prevNormalized = (daylightCurve[i - 1] - minDaylight) / range;
-        final prevAngle = _angleForMonth(prevMonth);
-
-        final midAngle = (prevAngle + angle) / 2;
-        final midNormalized = (prevNormalized + normalized) / 2;
-        final midRadius = innerRadius + (outerRadius - innerRadius) * midNormalized;
-
-        final midX = center.dx + midRadius * math.cos(midAngle);
-        final midY = center.dy + midRadius * math.sin(midAngle);
-
-        daylightPath.quadraticBezierTo(midX, midY, x, y);
+        daylightPath.lineTo(x, y);
       }
     }
 
-    // Close path
-    final firstNormalized = (daylightCurve[0] - minDaylight) / range;
-    final firstRadius = innerRadius + (outerRadius - innerRadius) * firstNormalized;
-    final firstAngle = _angleForMonth(1);
-    final firstX = center.dx + firstRadius * math.cos(firstAngle);
-    final firstY = center.dy + firstRadius * math.sin(firstAngle);
-
-    final lastNormalized = (daylightCurve[11] - minDaylight) / range;
-    final lastAngle = _angleForMonth(12);
-    final midAngle = (lastAngle + firstAngle + 2 * math.pi) / 2;
-    final midNormalized = (lastNormalized + firstNormalized) / 2;
-    final midRadius = innerRadius + (outerRadius - innerRadius) * midNormalized;
-    final midX = center.dx + midRadius * math.cos(midAngle);
-    final midY = center.dy + midRadius * math.sin(midAngle);
-
-    daylightPath.quadraticBezierTo(midX, midY, firstX, firstY);
     daylightPath.close();
 
     // Golden radiant fill - like sunshine
