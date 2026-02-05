@@ -15,7 +15,7 @@ enum AnalyticsPeriod {
   allTime;
 
   String get displayName => switch (this) {
-        AnalyticsPeriod.week => 'This Week',
+        AnalyticsPeriod.week => 'Last 7 Days',
         AnalyticsPeriod.month => 'This Month',
         AnalyticsPeriod.year => 'This Year',
         AnalyticsPeriod.allTime => 'All Time',
@@ -27,9 +27,9 @@ enum AnalyticsPeriod {
 
     switch (this) {
       case AnalyticsPeriod.week:
-        // Start from Sunday
-        final startOfWeek = today.subtract(Duration(days: today.weekday % 7));
-        return DateRange(startOfWeek, today);
+        // Last 7 days (today is day 7)
+        final start = today.subtract(const Duration(days: 6));
+        return DateRange(start, today);
       case AnalyticsPeriod.month:
         final startOfMonth = DateTime(now.year, now.month, 1);
         return DateRange(startOfMonth, today);
@@ -349,11 +349,11 @@ Future<PeriodChangeResult> _calculatePeriodChange(
 
   switch (period) {
     case AnalyticsPeriod.week:
-      // Current week (from Sunday) to today
-      currentStart = today.subtract(Duration(days: today.weekday % 7));
+      // Last 7 days (today is day 7)
+      currentStart = today.subtract(const Duration(days: 6));
       currentEnd = today;
-      // Compare to same days last week (Sunday to same weekday)
-      previousStart = currentStart.subtract(const Duration(days: 7));
+      // Compare to previous 7 days
+      previousStart = today.subtract(const Duration(days: 13));
       previousEnd = today.subtract(const Duration(days: 7));
 
     case AnalyticsPeriod.month:

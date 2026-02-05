@@ -647,10 +647,15 @@ class _DistributedEggGroupTileState
             ),
             title: Row(
               children: [
-                flockAsync.when(
-                  loading: () => const Text('Loading...'),
-                  error: (_, __) => const Text('Unknown Flock'),
-                  data: (flock) => Text(flock?.name ?? 'Unknown Flock'),
+                Flexible(
+                  child: flockAsync.when(
+                    loading: () => const Text('Loading...'),
+                    error: (_, __) => const Text('Unknown Flock'),
+                    data: (flock) => Text(
+                      flock?.name ?? 'Unknown Flock',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Container(

@@ -6,18 +6,21 @@ import 'package:flock_manager/providers/analytics_provider.dart';
 void main() {
   group('AnalyticsPeriod', () {
     test('displayName returns correct values', () {
-      expect(AnalyticsPeriod.week.displayName, 'This Week');
+      expect(AnalyticsPeriod.week.displayName, 'Last 7 Days');
       expect(AnalyticsPeriod.month.displayName, 'This Month');
       expect(AnalyticsPeriod.year.displayName, 'This Year');
       expect(AnalyticsPeriod.allTime.displayName, 'All Time');
     });
 
-    test('dateRange for week starts from Sunday', () {
+    test('dateRange for week is last 7 days', () {
       final range = AnalyticsPeriod.week.dateRange;
-      // Sunday is weekday 7 in DateTime (1=Mon, 7=Sun)
-      // But we use % 7 to handle it, so Sunday becomes 0
-      expect(range.start.weekday % 7, 0); // Sunday
-      expect(range.end.day, DateTime.now().day);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final expectedStart = today.subtract(const Duration(days: 6));
+      // Last 7 days: start is 6 days ago, end is today
+      expect(range.start, expectedStart);
+      expect(range.end, today);
+      expect(range.dayCount, 7);
     });
 
     test('dateRange for month starts from first day', () {

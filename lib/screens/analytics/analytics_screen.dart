@@ -179,22 +179,24 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Golden egg radial chart
-                        Text(
-                          'Production Overview',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: SizedBox(
-                              height: 380,
-                              child: const GoldenEggChart(),
+                        // Golden egg radial chart (not shown for Last 7 Days)
+                        if (selectedPeriod != AnalyticsPeriod.week) ...[
+                          Text(
+                            'Production Overview',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: SizedBox(
+                                height: 380,
+                                child: const GoldenEggChart(),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
+                          const SizedBox(height: 24),
+                        ],
 
                         // Per-bird breakdown (collapsible)
                         if (analytics.birdStats.isNotEmpty) ...[
@@ -592,7 +594,7 @@ class _TrendCard extends StatelessWidget {
   });
 
   String get _periodLabel => switch (period) {
-        AnalyticsPeriod.week => 'Week over Week',
+        AnalyticsPeriod.week => 'vs Previous 7 Days',
         AnalyticsPeriod.month => 'Month over Month',
         AnalyticsPeriod.year => 'Year over Year',
         AnalyticsPeriod.allTime => 'Week over Week',
@@ -601,7 +603,9 @@ class _TrendCard extends StatelessWidget {
   String? get _comparisonSubtitle {
     if (comparisonEndDate == null) return null;
     return switch (period) {
-      AnalyticsPeriod.week || AnalyticsPeriod.allTime =>
+      AnalyticsPeriod.week =>
+        'vs ${DateFormat.MMMd().format(comparisonEndDate!.subtract(const Duration(days: 6)))} - ${DateFormat.MMMd().format(comparisonEndDate!)}',
+      AnalyticsPeriod.allTime =>
         'vs ${DateFormat.EEEE().format(comparisonEndDate!)} last week',
       AnalyticsPeriod.month =>
         'vs the ${_ordinal(comparisonEndDate!.day)} last month',

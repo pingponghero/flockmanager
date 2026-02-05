@@ -211,6 +211,20 @@ void main() {
       expect(GoldenEggChartData.empty.prevYearMonthlyCounts, isEmpty);
       expect(GoldenEggChartData.empty.allTimeDailyAverage, 0);
       expect(GoldenEggChartData.empty.activeFlockSize, 0);
+      expect(GoldenEggChartData.empty.prevPeriodTotal, 0);
+    });
+
+    test('prevPeriodTotal for week/month comparison', () {
+      final data = GoldenEggChartData(
+        timeScale: ChartTimeScale.daily,
+        totalEggs: 35,
+        dailyAverage: 5.0,
+        daysOfData: 7,
+        maxDailyCount: 8,
+        prevPeriodTotal: 28,
+      );
+
+      expect(data.prevPeriodTotal, 28);
     });
 
     test('prevYearMonthlyCounts for year-over-year comparison', () {

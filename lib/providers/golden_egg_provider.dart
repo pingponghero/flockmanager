@@ -77,6 +77,7 @@ class GoldenEggChartData {
   final int maxDailyCount;
   final double allTimeDailyAverage; // For forecasting based on all historical data
   final int activeFlockSize; // Current active bird count for projecting forward
+  final int prevPeriodTotal; // Previous week/month total for comparison
 
   const GoldenEggChartData({
     required this.timeScale,
@@ -90,6 +91,7 @@ class GoldenEggChartData {
     required this.maxDailyCount,
     this.allTimeDailyAverage = 0,
     this.activeFlockSize = 0,
+    this.prevPeriodTotal = 0,
   });
 
   /// Empty chart data for when there's no data.
@@ -101,6 +103,7 @@ class GoldenEggChartData {
     maxDailyCount: 0,
     allTimeDailyAverage: 0,
     activeFlockSize: 0,
+    prevPeriodTotal: 0,
   );
 }
 
@@ -177,7 +180,7 @@ final goldenEggChartDataProvider =
   }
 });
 
-/// Build chart data for "This Week" - daily view showing 7 days.
+/// Build chart data for "Last 7 Days" - daily view showing last 7 days (today is day 7).
 GoldenEggChartData _buildWeekChartData(
   Map<DateTime, int> dailyMap,
   double allTimeDailyAverage,
@@ -186,14 +189,14 @@ GoldenEggChartData _buildWeekChartData(
   final now = DateTime.now();
   final today = _dateOnly(now);
 
-  // Get start of current week (Sunday)
-  final weekStart = today.subtract(Duration(days: today.weekday % 7));
+  // Last 7 days (today is day 7)
+  final start = today.subtract(const Duration(days: 6));
 
   final dailyCounts = <DailyEggData>[];
   var totalEggs = 0;
 
   for (var i = 0; i < 7; i++) {
-    final date = weekStart.add(Duration(days: i));
+    final date = start.add(Duration(days: i));
     final count = dailyMap[date] ?? 0;
     totalEggs += count;
     dailyCounts.add(DailyEggData(
@@ -201,6 +204,14 @@ GoldenEggChartData _buildWeekChartData(
       count: count,
       dayIndex: i,
     ));
+  }
+
+  // Calculate previous 7 days total for comparison
+  final prevStart = today.subtract(const Duration(days: 13));
+  var prevPeriodTotal = 0;
+  for (var i = 0; i < 7; i++) {
+    final date = prevStart.add(Duration(days: i));
+    prevPeriodTotal += dailyMap[date] ?? 0;
   }
 
   final daysWithData = dailyCounts.where((d) => d.count > 0).length;
@@ -218,6 +229,7 @@ GoldenEggChartData _buildWeekChartData(
     maxDailyCount: maxDailyCount,
     allTimeDailyAverage: allTimeDailyAverage,
     activeFlockSize: activeFlockSize,
+    prevPeriodTotal: prevPeriodTotal,
   );
 }
 
@@ -245,6 +257,17 @@ GoldenEggChartData _buildMonthChartData(
     ));
   }
 
+  // Calculate previous month total for comparison
+  final prevMonthYear = now.month == 1 ? now.year - 1 : now.year;
+  final prevMonth = now.month == 1 ? 12 : now.month - 1;
+  final prevMonthStart = DateTime(prevMonthYear, prevMonth, 1);
+  final daysInPrevMonth = DateTime(prevMonthYear, prevMonth + 1, 0).day;
+  var prevPeriodTotal = 0;
+  for (var i = 0; i < daysInPrevMonth; i++) {
+    final date = prevMonthStart.add(Duration(days: i));
+    prevPeriodTotal += dailyMap[date] ?? 0;
+  }
+
   final daysWithData = dailyCounts.where((d) => d.count > 0).length;
   final dailyAverage = daysWithData > 0 ? totalEggs / daysWithData : 0.0;
   final maxDailyCount = dailyCounts.isEmpty
@@ -260,6 +283,7 @@ GoldenEggChartData _buildMonthChartData(
     maxDailyCount: maxDailyCount,
     allTimeDailyAverage: allTimeDailyAverage,
     activeFlockSize: activeFlockSize,
+    prevPeriodTotal: prevPeriodTotal,
   );
 }
 

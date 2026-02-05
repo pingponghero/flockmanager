@@ -74,17 +74,45 @@ class BirdDetailScreen extends ConsumerWidget {
   }
 }
 
-class _BirdDetailContent extends ConsumerWidget {
+class _BirdDetailContent extends ConsumerStatefulWidget {
   final Bird bird;
 
   const _BirdDetailContent({required this.bird});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        body: NestedScrollView(
+  ConsumerState<_BirdDetailContent> createState() => _BirdDetailContentState();
+}
+
+class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      // Trigger rebuild when tab changes (for FAB visibility)
+      if (!_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Bird get bird => widget.bird;
+
+  @override
+  Widget build(BuildContext context) {
+    final isHealthTab = _tabController.index == 2;
+
+    return Scaffold(
+      body: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               SliverAppBar(
@@ -200,6 +228,7 @@ class _BirdDetailContent extends ConsumerWidget {
                 pinned: true,
                 delegate: _TabBarDelegate(
                   TabBar(
+                    controller: _tabController,
                     labelColor: Theme.of(context).colorScheme.primary,
                     unselectedLabelColor: Colors.grey,
                     indicatorColor: Theme.of(context).colorScheme.primary,
@@ -214,14 +243,20 @@ class _BirdDetailContent extends ConsumerWidget {
             ];
           },
           body: TabBarView(
+            controller: _tabController,
             children: [
               BirdInfoTab(bird: bird),
               BirdEggsTab(bird: bird),
               BirdHealthTab(bird: bird),
             ],
           ),
-        ),
       ),
+      floatingActionButton: isHealthTab
+          ? FloatingActionButton(
+              onPressed: () => context.push('/birds/${bird.id}/health/new'),
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 
