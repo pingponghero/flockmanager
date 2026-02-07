@@ -23,6 +23,13 @@ final birdStatusEventsProvider =
   }
 });
 
+/// Provider for all events (ignores flock filter)
+final allBirdStatusEventsProvider =
+    FutureProvider<List<BirdStatusEvent>>((ref) async {
+  final repository = ref.read(birdStatusEventRepositoryProvider);
+  return repository.getAllEvents();
+});
+
 /// Provider for events of a specific bird
 final birdStatusEventsByBirdProvider =
     FutureProvider.family<List<BirdStatusEvent>, String>((ref, birdId) async {
