@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../providers/achievements_provider.dart';
+import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../providers/medication_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/egg_quick_log.dart';
@@ -38,12 +41,23 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          // Egg stats
           ref.invalidate(todayEggCountByFlockProvider);
           ref.invalidate(yesterdayEggCountByFlockProvider);
           ref.invalidate(weekEggCountByFlockProvider);
           ref.invalidate(monthEggCountByFlockProvider);
+          ref.invalidate(weeklyAverageEggCountProvider);
           ref.invalidate(recentEggLogsProvider);
           ref.invalidate(last7DaysEggCountsProvider);
+          // Birds
+          ref.invalidate(activeBirdsProvider);
+          ref.invalidate(chickenOfTheWeekProvider);
+          ref.invalidate(upcomingBirthdaysProvider);
+          // Medications
+          ref.invalidate(activeWithdrawalsProvider);
+          // Achievements
+          ref.invalidate(latestAchievementProvider);
+          ref.invalidate(achievementSummaryProvider);
         },
         child: ListView(
           padding: pagePadding(context),
