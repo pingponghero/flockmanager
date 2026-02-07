@@ -294,10 +294,11 @@ final dailyEggCountsProvider =
 final last7DaysEggCountsProvider =
     FutureProvider<Map<DateTime, int>>((ref) async {
   final repository = ref.read(eggRepositoryProvider);
+  final selectedFlockId = ref.watch(selectedFlockIdProvider);
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final sevenDaysAgo = today.subtract(const Duration(days: 6));
-  return repository.getDailyEggCounts(sevenDaysAgo, today);
+  return repository.getDailyEggCounts(sevenDaysAgo, today, flockId: selectedFlockId);
 });
 
 /// Provider for 7-day rolling average (excludes today)

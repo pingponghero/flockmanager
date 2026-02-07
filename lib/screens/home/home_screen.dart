@@ -58,6 +58,14 @@ class HomeScreen extends ConsumerWidget {
           // Achievements
           ref.invalidate(latestAchievementProvider);
           ref.invalidate(achievementSummaryProvider);
+          // Wait for data to actually refresh
+          await Future.wait([
+            ref.read(todayEggCountByFlockProvider.future),
+            ref.read(last7DaysEggCountsProvider.future),
+            ref.read(weekEggCountByFlockProvider.future),
+            ref.read(monthEggCountByFlockProvider.future),
+            ref.read(activeBirdsProvider.future),
+          ]);
         },
         child: ListView(
           padding: pagePadding(context),

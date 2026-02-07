@@ -122,7 +122,7 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: _DateIndicator(
                           date: _date,
-                          onTap: _showAdvanced ? () => _selectDate() : null,
+                          onTap: _selectDate,
                         ),
                       ),
                     ],
@@ -144,25 +144,6 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Date picker
-                            InkWell(
-                              onTap: _selectDate,
-                              borderRadius: BorderRadius.circular(8),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.calendar_today, size: 20),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      DateFormat.yMMMd().format(_date),
-                                      style: Theme.of(context).textTheme.bodyLarge,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
                             // Bird selector (optional - attribute to specific bird)
                             _BirdSelector(
                               flockId: _selectedFlockId,
@@ -693,28 +674,31 @@ class _DateIndicator extends StatelessWidget {
     }
 
     return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.calendar_today,
-              size: 16,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
-          ],
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.calendar_today,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ),
         ),
       ),
     );
