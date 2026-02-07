@@ -90,6 +90,7 @@ class _BirdDetailContent extends ConsumerWidget {
               SliverAppBar(
                 expandedHeight: 350,
                 pinned: true,
+                foregroundColor: Colors.white,
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.edit),
