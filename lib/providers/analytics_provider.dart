@@ -185,13 +185,14 @@ final analyticsProvider = FutureProvider<AnalyticsSummary>((ref) async {
     logs = logs.where((log) => log.flockId == selectedFlockId).toList();
   }
 
-  // Get active birds
+  // Get active hens (exclude males from egg production stats)
   List<Bird> birds;
   if (selectedFlockId != null) {
     birds = await birdRepo.getActiveBirdsByFlock(selectedFlockId);
   } else {
     birds = await birdRepo.getActiveBirds();
   }
+  birds = birds.where((b) => !b.isRooster).toList();
 
   // Calculate total eggs
   final totalEggs = logs.fold<int>(0, (sum, log) => sum + log.count);
