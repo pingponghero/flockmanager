@@ -15,7 +15,14 @@ class ScaffoldWithNavBar extends StatelessWidget {
     final iconColor = Theme.of(context).colorScheme.onSurfaceVariant;
     final selectedIconColor = Theme.of(context).colorScheme.onSecondaryContainer;
 
-    return Scaffold(
+    return PopScope(
+      canPop: navigationShell.currentIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          navigationShell.goBranch(0);
+        }
+      },
+      child: Scaffold(
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
@@ -63,6 +70,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
           );
         },
       ),
+    ),
     );
   }
 }

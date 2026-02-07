@@ -322,9 +322,10 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
     try {
       // Check if distribution should be offered (only if no specific bird selected)
       if (_selectedBirdId == null && _count > 0) {
-        final activeBirds = await ref.read(
+        final allActiveBirds = await ref.read(
           activeBirdsByFlockProvider(_selectedFlockId!).future,
         );
+        final activeBirds = allActiveBirds.where((b) => b.sex != BirdSex.male).toList();
 
         if (shouldOfferDistribution(
           eggCount: _count,
@@ -744,8 +745,8 @@ class _BirdSelector extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (birds) {
-        // Filter to only active birds
-        final activeBirds = birds.where((b) => b.status.name == 'active').toList();
+        // Filter to only active female birds (males can't lay eggs)
+        final activeBirds = birds.where((b) => b.status.name == 'active' && b.sex != BirdSex.male).toList();
 
         if (activeBirds.isEmpty) {
           return const SizedBox.shrink();
