@@ -19,8 +19,9 @@ import '../../widgets/achievement_celebration_dialog.dart';
 
 class BirdFormScreen extends ConsumerStatefulWidget {
   final String? birdId;
+  final bool openPhoto;
 
-  const BirdFormScreen({super.key, this.birdId});
+  const BirdFormScreen({super.key, this.birdId, this.openPhoto = false});
 
   bool get isEditing => birdId != null;
 
@@ -313,6 +314,9 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
           // Schedule a rebuild to show the form
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) setState(() {});
+            if (mounted && widget.openPhoto) {
+              _selectPhoto();
+            }
           });
         }
 

@@ -88,7 +88,7 @@ class _BirdDetailContent extends ConsumerWidget {
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               SliverAppBar(
-                expandedHeight: 280,
+                expandedHeight: 350,
                 pinned: true,
                 actions: [
                   IconButton(

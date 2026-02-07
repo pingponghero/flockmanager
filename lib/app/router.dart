@@ -103,7 +103,8 @@ final router = GoRouter(
                       name: 'bird-edit',
                       builder: (context, state) {
                         final birdId = state.pathParameters['id']!;
-                        return BirdFormScreen(birdId: birdId);
+                        final openPhoto = state.uri.queryParameters['openPhoto'] == 'true';
+                        return BirdFormScreen(birdId: birdId, openPhoto: openPhoto);
                       },
                     ),
                   ],

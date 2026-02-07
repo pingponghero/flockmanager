@@ -249,6 +249,128 @@ void main() {
       expect(find.byIcon(Icons.sell), findsOneWidget);
     });
 
+    group('egg color tinting', () {
+      testWidgets('renders with known egg color', (tester) async {
+        final bird = Bird(
+          id: 'tint-1',
+          flockId: 'flock-1',
+          name: 'Blue Layer',
+          eggColor: 'Blue',
+          status: BirdStatus.active,
+          createdAt: DateTime.now(),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: BirdCard(bird: bird)),
+          ),
+        );
+
+        expect(find.text('Blue Layer'), findsOneWidget);
+      });
+
+      testWidgets('renders with all EggColor display names', (tester) async {
+        final colors = [
+          'White', 'Cream', 'Brown', 'Dark Brown', 'Chocolate',
+          'Blue', 'Green', 'Olive', 'Pink', 'Tinted',
+        ];
+
+        for (final color in colors) {
+          final bird = Bird(
+            id: 'tint-$color',
+            flockId: 'flock-1',
+            name: 'Hen',
+            eggColor: color,
+            status: BirdStatus.active,
+            createdAt: DateTime.now(),
+          );
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(body: BirdCard(bird: bird)),
+            ),
+          );
+
+          expect(find.text('Hen'), findsOneWidget);
+        }
+      });
+
+      testWidgets('renders with custom/unknown egg color string', (tester) async {
+        final bird = Bird(
+          id: 'tint-custom',
+          flockId: 'flock-1',
+          name: 'Custom Hen',
+          eggColor: 'Speckled Mauve',
+          status: BirdStatus.active,
+          createdAt: DateTime.now(),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: BirdCard(bird: bird)),
+          ),
+        );
+
+        expect(find.text('Custom Hen'), findsOneWidget);
+      });
+
+      testWidgets('renders with null egg color', (tester) async {
+        final bird = Bird(
+          id: 'tint-null',
+          flockId: 'flock-1',
+          name: 'No Color Hen',
+          status: BirdStatus.active,
+          createdAt: DateTime.now(),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: BirdCard(bird: bird)),
+          ),
+        );
+
+        expect(find.text('No Color Hen'), findsOneWidget);
+      });
+
+      testWidgets('renders with empty egg color string', (tester) async {
+        final bird = Bird(
+          id: 'tint-empty',
+          flockId: 'flock-1',
+          name: 'Empty Color',
+          eggColor: '',
+          status: BirdStatus.active,
+          createdAt: DateTime.now(),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: BirdCard(bird: bird)),
+          ),
+        );
+
+        expect(find.text('Empty Color'), findsOneWidget);
+      });
+
+      testWidgets('handles case-insensitive egg color matching', (tester) async {
+        final bird = Bird(
+          id: 'tint-case',
+          flockId: 'flock-1',
+          name: 'Case Hen',
+          eggColor: 'bRoWn',
+          status: BirdStatus.active,
+          createdAt: DateTime.now(),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: BirdCard(bird: bird)),
+          ),
+        );
+
+        expect(find.text('Case Hen'), findsOneWidget);
+      });
+    });
+
     testWidgets('shows correct icon for given away status', (tester) async {
       final givenAwayBird = Bird(
         id: 'given-away',

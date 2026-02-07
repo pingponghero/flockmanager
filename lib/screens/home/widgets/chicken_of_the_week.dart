@@ -29,27 +29,22 @@ class ChickenOfTheWeek extends ConsumerWidget {
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: () => context.go('/birds/${bird.id}'),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                height: 100,
                 child: Row(
                   children: [
-                    // Photo or fallback
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(32),
-                      ),
+                    // Photo strip
+                    SizedBox(
+                      width: 120,
                       child: bird.photoPrimary != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(32),
-                              child: Image.file(
-                                File(bird.photoPrimary!),
-                                width: 64,
-                                height: 64,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Center(
+                          ? Image.file(
+                              File(bird.photoPrimary!),
+                              fit: BoxFit.cover,
+                              height: double.infinity,
+                              width: double.infinity,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: Theme.of(context).colorScheme.primaryContainer,
+                                child: Center(
                                   child: Image.asset(
                                     'assets/icons/cute_hen.png',
                                     width: 48,
@@ -59,69 +54,68 @@ class ChickenOfTheWeek extends ConsumerWidget {
                                 ),
                               ),
                             )
-                          : Center(
-                              child: Image.asset(
-                                'assets/icons/cute_hen.png',
-                                width: 48,
-                                height: 48,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          : Container(
+                              color: Theme.of(context).colorScheme.primaryContainer,
+                              child: Center(
+                                child: Image.asset(
+                                  'assets/icons/cute_hen.png',
+                                  width: 48,
+                                  height: 48,
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                ),
                               ),
                             ),
                     ),
-                    const SizedBox(width: 16),
                     // Info
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.star,
-                                size: 16,
-                                color: Colors.amber.shade600,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                title,
-                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                      color: Colors.amber.shade700,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            bird.name,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.star,
+                                  size: 16,
+                                  color: Colors.amber.shade600,
                                 ),
-                          ),
-                          if (bird.breed != null)
-                            Text(
-                              bird.breed!,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  title,
+                                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                        color: Colors.amber.shade700,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                              ],
                             ),
-                          if (bird.notes != null && bird.notes!.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Text(
-                              bird.notes!,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontStyle: FontStyle.italic,
+                              bird.name,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
                                   ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
                             ),
+                            if (bird.breed != null)
+                              Text(
+                                bird.breed!,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                    Icon(
-                      Icons.chevron_right,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(
+                        Icons.chevron_right,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
