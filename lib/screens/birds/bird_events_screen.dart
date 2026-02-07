@@ -16,7 +16,14 @@ class BirdEventsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
-    final eventsAsync = ref.watch(birdStatusEventsProvider);
+    final flocksAsync = ref.watch(flocksProvider);
+
+    // Get events - if only 1 flock, ignore the filter and show all
+    final flocks = flocksAsync.value;
+    final shouldIgnoreFilter = flocks != null && flocks.length == 1;
+    final eventsAsync = shouldIgnoreFilter
+        ? ref.watch(allBirdStatusEventsProvider)
+        : ref.watch(birdStatusEventsProvider);
 
     return Scaffold(
       appBar: AppBar(

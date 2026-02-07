@@ -54,7 +54,8 @@
       "Bash(lib/screens/flocks/flock_list_screen.dart )",
       "Bash(lib/screens/settings/settings_screen.dart)",
       "Bash(flutter doctor:*)",
-      "Bash(flutter pub:*)"
+      "Bash(flutter pub:*)",
+      "Bash(tee:*)"
     ]
   },
   "instructions": [
