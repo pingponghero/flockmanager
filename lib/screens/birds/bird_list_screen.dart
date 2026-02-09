@@ -113,6 +113,11 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
                       ...BirdStatus.values.map((status) => DropdownMenuEntry(
                             value: status,
                             label: status.displayName,
+                            leadingIcon: Icon(
+                              status.icon,
+                              size: 18,
+                              color: status.iconColor,
+                            ),
                           )),
                     ],
                     onSelected: (value) =>
@@ -122,7 +127,6 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
               ],
             ),
           ),
-          const Divider(height: 1),
           // Bird list
           Expanded(
             child: birdsAsync.when(
@@ -170,19 +174,41 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
                   );
                 }
 
-                return RefreshIndicator(
-                  onRefresh: () => ref.read(birdsProvider.notifier).refresh(),
-                  child: ListView.builder(
-                    padding: pagePadding(context),
-                    itemCount: birds.length,
-                    itemBuilder: (context, index) {
-                      final bird = birds[index];
-                      return BirdCard(
-                        bird: bird,
-                        onTap: () => context.push('/birds/${bird.id}'),
-                      );
-                    },
-                  ),
+                final hasFilters = selectedFlockId != null || _statusFilter != null || _sexFilter != null;
+
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      child: Row(
+                        children: [
+                          Text(
+                            hasFilters
+                                ? '${birds.length} of ${allBirds.length} birds'
+                                : '${birds.length} birds',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () => ref.read(birdsProvider.notifier).refresh(),
+                        child: ListView.builder(
+                          padding: pagePadding(context),
+                          itemCount: birds.length,
+                          itemBuilder: (context, index) {
+                            final bird = birds[index];
+                            return BirdCard(
+                              bird: bird,
+                              onTap: () => context.push('/birds/${bird.id}'),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

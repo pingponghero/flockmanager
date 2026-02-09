@@ -22,7 +22,6 @@ class BirdCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = bird.status == BirdStatus.active;
     final hasPhoto =
         bird.photoPrimary != null && File(bird.photoPrimary!).existsSync();
 
@@ -30,9 +29,9 @@ class BirdCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
       child: Opacity(
-        opacity: isActive ? 1.0 : 0.6,
+        opacity: bird.status == BirdStatus.active ? 1.0 : 0.6,
         child: SizedBox(
-          height: 100,
+          height: 116,
           child: Row(
             children: [
               // Photo strip — left ~38% of card
@@ -109,21 +108,12 @@ class BirdCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Name and status
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                bird.name,
-                                style:
-                                    Theme.of(context).textTheme.titleMedium,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (!isActive)
-                              _StatusBadge(status: bird.status),
-                          ],
+                        // Name
+                        Text(
+                          bird.name,
+                          style: Theme.of(context).textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         // Breed
@@ -172,6 +162,25 @@ class BirdCard extends StatelessWidget {
                                     Theme.of(context).textTheme.bodySmall,
                               ),
                             ],
+                          ],
+                        ),
+                        // Status row
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(
+                              bird.status.icon,
+                              size: 14,
+                              color: bird.status.iconColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              bird.status.displayName,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: bird.status.iconColor),
+                            ),
                           ],
                         ),
                       ],
@@ -232,43 +241,3 @@ class BirdCard extends StatelessWidget {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  final BirdStatus status;
-
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final (color, icon) = switch (status) {
-      BirdStatus.active => (Colors.green, Icons.check_circle),
-      BirdStatus.inactive => (Colors.amber, Icons.pause_circle),
-      BirdStatus.deceased => (Colors.grey, Icons.block),
-      BirdStatus.sold => (Colors.blue, Icons.sell),
-      BirdStatus.givenAway => (Colors.orange, Icons.volunteer_activism),
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            status.displayName,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

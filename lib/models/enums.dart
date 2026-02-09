@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 /// Bird status indicating current state
 enum BirdStatus {
   active,
@@ -20,6 +22,22 @@ enum BirdStatus {
         return 'Given Away';
     }
   }
+
+  IconData get icon => switch (this) {
+        BirdStatus.active => Icons.check_circle,
+        BirdStatus.inactive => Icons.bedtime,
+        BirdStatus.deceased => Icons.block,
+        BirdStatus.sold => Icons.sell,
+        BirdStatus.givenAway => Icons.volunteer_activism,
+      };
+
+  Color get iconColor => switch (this) {
+        BirdStatus.active => Colors.green,
+        BirdStatus.inactive => Colors.amber,
+        BirdStatus.deceased => Colors.grey,
+        BirdStatus.sold => Colors.blue,
+        BirdStatus.givenAway => Colors.orange,
+      };
 }
 
 /// Egg size classification
