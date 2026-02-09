@@ -120,6 +120,14 @@ final activeBirdsByFlockProvider =
   return repository.getActiveBirdsByFlock(flockId);
 });
 
+/// Provider for all active hens (female birds with active status).
+/// Used by log-by-hen mode when no specific flock is selected.
+final allActiveHensProvider = FutureProvider<List<Bird>>((ref) async {
+  final repository = ref.read(birdRepositoryProvider);
+  final birds = await repository.getActiveBirds();
+  return birds.where((b) => b.sex != BirdSex.male).toList();
+});
+
 /// Provider for birds filtered by status
 final birdsByStatusProvider =
     FutureProvider.family<List<Bird>, BirdStatus>((ref, status) async {

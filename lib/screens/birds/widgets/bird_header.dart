@@ -47,7 +47,27 @@ class BirdHeader extends StatelessWidget {
             ),
           ),
 
-        // Gradient overlay for text readability
+        // Top gradient overlay for app bar icon readability
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          height: 120,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.5),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Bottom gradient overlay for text readability
         Positioned(
           left: 0,
           right: 0,

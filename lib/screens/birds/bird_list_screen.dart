@@ -33,6 +33,7 @@ class BirdListScreen extends ConsumerStatefulWidget {
 }
 
 class _BirdListScreenState extends ConsumerState<BirdListScreen> {
+  BirdSex? _sexFilter = BirdSex.female;
   BirdStatus? _statusFilter = BirdStatus.active;
   BirdSortOption _sortOption = BirdSortOption.name;
 
@@ -80,44 +81,43 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
               },
             ),
           ),
-          // Status filter chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          // Gender and status filter dropdowns
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: Row(
               children: [
-                _FilterChip(
-                  label: 'All',
-                  selected: _statusFilter == null,
-                  onSelected: () => setState(() => _statusFilter = null),
+                Expanded(
+                  child: DropdownMenu<BirdSex?>(
+                    initialSelection: _sexFilter,
+                    expandedInsets: EdgeInsets.zero,
+                    label: const Text('Gender'),
+                    dropdownMenuEntries: [
+                      const DropdownMenuEntry(value: null, label: 'All'),
+                      ...BirdSex.values.map((sex) => DropdownMenuEntry(
+                            value: sex,
+                            label: sex.displayName,
+                          )),
+                    ],
+                    onSelected: (value) =>
+                        setState(() => _sexFilter = value),
+                  ),
                 ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Active',
-                  selected: _statusFilter == BirdStatus.active,
-                  onSelected: () =>
-                      setState(() => _statusFilter = BirdStatus.active),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Deceased',
-                  selected: _statusFilter == BirdStatus.deceased,
-                  onSelected: () =>
-                      setState(() => _statusFilter = BirdStatus.deceased),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Sold',
-                  selected: _statusFilter == BirdStatus.sold,
-                  onSelected: () =>
-                      setState(() => _statusFilter = BirdStatus.sold),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Given Away',
-                  selected: _statusFilter == BirdStatus.givenAway,
-                  onSelected: () =>
-                      setState(() => _statusFilter = BirdStatus.givenAway),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownMenu<BirdStatus?>(
+                    initialSelection: _statusFilter,
+                    expandedInsets: EdgeInsets.zero,
+                    label: const Text('Status'),
+                    dropdownMenuEntries: [
+                      const DropdownMenuEntry(value: null, label: 'All'),
+                      ...BirdStatus.values.map((status) => DropdownMenuEntry(
+                            value: status,
+                            label: status.displayName,
+                          )),
+                    ],
+                    onSelected: (value) =>
+                        setState(() => _statusFilter = value),
+                  ),
                 ),
               ],
             ),
@@ -139,6 +139,12 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
                         .where((b) => b.flockId == selectedFlockId)
                         .toList();
 
+                // Apply sex filter
+                if (_sexFilter != null) {
+                  birds =
+                      birds.where((b) => b.sex == _sexFilter).toList();
+                }
+
                 // Apply status filter
                 if (_statusFilter != null) {
                   birds =
@@ -151,10 +157,12 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
                 if (birds.isEmpty) {
                   return _EmptyState(
                     hasFilters:
-                        selectedFlockId != null || _statusFilter != null,
-                    onAddBird: () => context.push('/birds/new'),
+                        selectedFlockId != null || _statusFilter != null || _sexFilter != null,
                     onClearFilters: () {
-                      setState(() => _statusFilter = null);
+                      setState(() {
+                        _sexFilter = null;
+                        _statusFilter = null;
+                      });
                       ref
                           .read(selectedFlockIdProvider.notifier)
                           .clearSelection();
@@ -213,36 +221,12 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onSelected;
-
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return FilterChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onSelected(),
-      showCheckmark: false,
-    );
-  }
-}
-
 class _EmptyState extends StatelessWidget {
   final bool hasFilters;
-  final VoidCallback onAddBird;
   final VoidCallback onClearFilters;
 
   const _EmptyState({
     required this.hasFilters,
-    required this.onAddBird,
     required this.onClearFilters,
   });
 
@@ -268,24 +252,18 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               hasFilters
-                  ? 'Try adjusting your filters or add a new bird.'
-                  : 'Add your first bird to start tracking.',
+                  ? 'Try adjusting your filters.'
+                  : 'Tap + to add your first bird.',
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
             if (hasFilters) ...[
+              const SizedBox(height: 24),
               OutlinedButton(
                 onPressed: onClearFilters,
                 child: const Text('Clear Filters'),
               ),
-              const SizedBox(height: 12),
             ],
-            ElevatedButton.icon(
-              onPressed: onAddBird,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Bird'),
-            ),
           ],
         ),
       ),
