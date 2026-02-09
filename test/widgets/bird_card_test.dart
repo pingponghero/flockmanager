@@ -91,7 +91,7 @@ void main() {
       expect(find.text('1 year'), findsOneWidget);
     });
 
-    testWidgets('shows status badge for non-active birds', (tester) async {
+    testWidgets('shows status text for non-active birds', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -101,9 +101,10 @@ void main() {
       );
 
       expect(find.text('Deceased'), findsOneWidget);
+      expect(find.byIcon(Icons.block), findsOneWidget);
     });
 
-    testWidgets('does not show status badge for active birds', (tester) async {
+    testWidgets('shows status text for active birds', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -112,7 +113,29 @@ void main() {
         ),
       );
 
-      expect(find.text('Active'), findsNothing);
+      expect(find.text('Active'), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    });
+
+    testWidgets('shows correct icon for inactive status', (tester) async {
+      final inactiveBird = Bird(
+        id: 'inactive-bird',
+        flockId: 'flock-1',
+        name: 'Lazy Hen',
+        status: BirdStatus.inactive,
+        createdAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BirdCard(bird: inactiveBird),
+          ),
+        ),
+      );
+
+      expect(find.text('Inactive'), findsOneWidget);
+      expect(find.byIcon(Icons.bedtime), findsOneWidget);
     });
 
     testWidgets('displays egg count when provided', (tester) async {
