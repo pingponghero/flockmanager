@@ -50,6 +50,41 @@ void main() {
       });
     });
 
+    group('deleteEvent', () {
+      test('undo: inserts status event then deletes it by ID', () async {
+        // Simulate a status change: insert a "deceased" event
+        final event = BirdStatusEvent.create(
+          birdId: 'bird-1',
+          flockId: 'flock-1',
+          status: 'deceased',
+          eventDate: DateTime(2024, 6, 15),
+          notes: 'Found in coop',
+        );
+
+        when(() => mockDatabase.insert('bird_status_events', any()))
+            .thenAnswer((_) async => 1);
+
+        await repository.insertEvent(event);
+
+        verify(() => mockDatabase.insert('bird_status_events', any())).called(1);
+
+        // Simulate undo: delete the event using the same ID
+        when(() => mockDatabase.delete(
+              'bird_status_events',
+              where: 'id = ?',
+              whereArgs: [event.id],
+            )).thenAnswer((_) async => 1);
+
+        await repository.deleteEvent(event.id);
+
+        verify(() => mockDatabase.delete(
+              'bird_status_events',
+              where: 'id = ?',
+              whereArgs: [event.id],
+            )).called(1);
+      });
+    });
+
     group('getEventsByBird', () {
       test('returns events for specific bird ordered by date descending', () async {
         final eventMaps = [

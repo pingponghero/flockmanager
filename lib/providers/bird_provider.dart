@@ -57,12 +57,13 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
     ref.invalidate(birdByIdProvider(bird.id));
   }
 
-  /// Update a bird's status
-  Future<void> updateBirdStatus(
+  /// Update a bird's status. Returns the event ID if one was created.
+  Future<String?> updateBirdStatus(
     String id,
     BirdStatus status,
     String? notes, {
     DateTime? eventDate,
+    bool recordEvent = true,
   }) async {
     final repository = ref.read(birdRepositoryProvider);
     final eventRepository = ref.read(birdStatusEventRepositoryProvider);
@@ -74,16 +75,17 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
     final date = eventDate ?? DateTime.now();
 
     // Create event for the status change
-    if (bird != null) {
-      await eventRepository.insertEvent(
-        BirdStatusEvent.create(
-          birdId: id,
-          flockId: bird.flockId,
-          status: status.name,
-          eventDate: date,
-          notes: notes,
-        ),
+    String? createdEventId;
+    if (recordEvent && bird != null) {
+      final event = BirdStatusEvent.create(
+        birdId: id,
+        flockId: bird.flockId,
+        status: status.name,
+        eventDate: date,
+        notes: notes,
       );
+      await eventRepository.insertEvent(event);
+      createdEventId = event.id;
     }
 
     await repository.updateBirdStatus(id, status, notes, date);
@@ -107,6 +109,15 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
         }
       }
     }
+
+    return createdEventId;
+  }
+
+  /// Delete a status event (used for undo)
+  Future<void> deleteStatusEvent(String eventId) async {
+    final eventRepository = ref.read(birdStatusEventRepositoryProvider);
+    await eventRepository.deleteEvent(eventId);
+    ref.invalidate(birdStatusEventsProvider);
   }
 
   /// Delete a bird permanently

@@ -14,6 +14,16 @@ class BirdStatusEventRepository {
     await db.insert('bird_status_events', event.toMap());
   }
 
+  /// Delete an event by ID.
+  Future<void> deleteEvent(String id) async {
+    final db = await _db.database;
+    await db.delete(
+      'bird_status_events',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   /// Get all events for a specific bird, ordered by date descending.
   Future<List<BirdStatusEvent>> getEventsByBird(String birdId) async {
     final db = await _db.database;

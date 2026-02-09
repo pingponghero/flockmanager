@@ -336,7 +336,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                 final previousStatus = bird.status;
                 final previousStatusNotes = bird.statusNotes;
                 try {
-                  await ref.read(birdsProvider.notifier).updateBirdStatus(
+                  final eventId = await ref.read(birdsProvider.notifier).updateBirdStatus(
                         bird.id,
                         newStatus,
                         notesController.text.trim().isEmpty
@@ -354,10 +354,14 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                           label: 'Undo',
                           onPressed: () async {
                             try {
+                              if (eventId != null) {
+                                await ref.read(birdsProvider.notifier).deleteStatusEvent(eventId);
+                              }
                               await ref.read(birdsProvider.notifier).updateBirdStatus(
                                     bird.id,
                                     previousStatus,
                                     previousStatusNotes,
+                                    recordEvent: false,
                                   );
                             } catch (_) {
                               // Silently fail - user can manually fix if needed
@@ -403,7 +407,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                 final previousStatus = bird.status;
                 final previousStatusNotes = bird.statusNotes;
                 try {
-                  await ref.read(birdsProvider.notifier).updateBirdStatus(
+                  final eventId = await ref.read(birdsProvider.notifier).updateBirdStatus(
                         bird.id,
                         BirdStatus.active,
                         null,
@@ -416,10 +420,14 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                           label: 'Undo',
                           onPressed: () async {
                             try {
+                              if (eventId != null) {
+                                await ref.read(birdsProvider.notifier).deleteStatusEvent(eventId);
+                              }
                               await ref.read(birdsProvider.notifier).updateBirdStatus(
                                     bird.id,
                                     previousStatus,
                                     previousStatusNotes,
+                                    recordEvent: false,
                                   );
                             } catch (_) {
                               // Silently fail
