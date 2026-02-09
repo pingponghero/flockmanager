@@ -178,8 +178,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
                     loading: () => const LinearProgressIndicator(),
                     error: (error, stack) => const SizedBox.shrink(),
                     data: (allBirds) {
-                      // Filter out male birds (males can't lay eggs)
-                      final birds = allBirds.where((b) => !b.isRooster).toList();
+                      final birds = allBirds.where((b) => b.isEggProducer).toList();
                       if (birds.isEmpty) {
                         return const SizedBox.shrink();
                       }

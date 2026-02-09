@@ -1,6 +1,7 @@
 /// Bird status indicating current state
 enum BirdStatus {
   active,
+  inactive,
   deceased,
   sold,
   givenAway;
@@ -9,6 +10,8 @@ enum BirdStatus {
     switch (this) {
       case BirdStatus.active:
         return 'Active';
+      case BirdStatus.inactive:
+        return 'Inactive';
       case BirdStatus.deceased:
         return 'Deceased';
       case BirdStatus.sold:

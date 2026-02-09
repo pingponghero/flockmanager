@@ -42,6 +42,7 @@ abstract class Bird with _$Bird {
     String? eggColor,
     BirdSex sex = BirdSex.female,
     BirdSpecies species = BirdSpecies.chicken,
+    BirdStatus status = BirdStatus.active,
     String? notes,
   }) {
     return Bird(
@@ -57,6 +58,7 @@ abstract class Bird with _$Bird {
       eggColor: eggColor,
       sex: sex,
       species: species,
+      status: status,
       notes: notes,
       createdAt: DateTime.now(),
     );
@@ -141,6 +143,9 @@ abstract class Bird with _$Bird {
 
   /// Check if this bird is a rooster
   bool get isRooster => sex == BirdSex.male;
+
+  /// Whether this bird should appear in egg production stats and attribution
+  bool get isEggProducer => status == BirdStatus.active && sex == BirdSex.female;
 
   /// Check if this bird is a chicken
   bool get isChicken => species == BirdSpecies.chicken;

@@ -241,6 +241,7 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final (color, icon) = switch (status) {
       BirdStatus.active => (Colors.green, Icons.check_circle),
+      BirdStatus.inactive => (Colors.amber, Icons.pause_circle),
       BirdStatus.deceased => (Colors.grey, Icons.block),
       BirdStatus.sold => (Colors.blue, Icons.sell),
       BirdStatus.givenAway => (Colors.orange, Icons.volunteer_activism),

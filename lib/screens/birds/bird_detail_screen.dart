@@ -100,6 +100,8 @@ class _BirdDetailContent extends ConsumerWidget {
                       icon: const Icon(Icons.more_vert),
                       onSelected: (value) {
                         switch (value) {
+                          case 'inactive':
+                            _showStatusChangeDialog(context, ref, BirdStatus.inactive);
                           case 'deceased':
                             _showStatusChangeDialog(context, ref, BirdStatus.deceased);
                           case 'sold':
@@ -112,12 +114,12 @@ class _BirdDetailContent extends ConsumerWidget {
                       },
                       itemBuilder: (context) => [
                         const PopupMenuItem(
-                          value: 'deceased',
+                          value: 'inactive',
                           child: Row(
                             children: [
-                              Icon(Icons.block, color: Colors.grey),
+                              Icon(Icons.bedtime, color: Colors.amber),
                               SizedBox(width: 8),
-                              Text('Record Death'),
+                              Text('Mark as Inactive'),
                             ],
                           ),
                         ),
@@ -138,6 +140,16 @@ class _BirdDetailContent extends ConsumerWidget {
                               Icon(Icons.volunteer_activism, color: Colors.orange),
                               SizedBox(width: 8),
                               Text('Mark as Given Away'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'deceased',
+                          child: Row(
+                            children: [
+                              Icon(Icons.block, color: Colors.grey),
+                              SizedBox(width: 8),
+                              Text('Record Death'),
                             ],
                           ),
                         ),

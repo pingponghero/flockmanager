@@ -458,6 +458,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
               : _eggColorController.text.trim(),
           sex: _selectedSex,
           species: _selectedSpecies,
+          status: _selectedSex == BirdSex.male ? BirdStatus.inactive : BirdStatus.active,
           notes: _notesController.text.trim().isEmpty
               ? null
               : _notesController.text.trim(),

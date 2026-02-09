@@ -5,13 +5,14 @@ void main() {
   group('BirdStatus', () {
     test('displayName returns correct values', () {
       expect(BirdStatus.active.displayName, 'Active');
+      expect(BirdStatus.inactive.displayName, 'Inactive');
       expect(BirdStatus.deceased.displayName, 'Deceased');
       expect(BirdStatus.sold.displayName, 'Sold');
       expect(BirdStatus.givenAway.displayName, 'Given Away');
     });
 
     test('all values are defined', () {
-      expect(BirdStatus.values.length, 4);
+      expect(BirdStatus.values.length, 5);
     });
   });
 
