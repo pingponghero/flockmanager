@@ -28,6 +28,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Flock Manager needs access to your camera to take photos of your birds.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Flock Manager needs access to your photo library to add photos of your birds.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
