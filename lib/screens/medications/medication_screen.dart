@@ -86,7 +86,13 @@ class _ActiveMedicationsTab extends ConsumerWidget {
     final activeAsync = ref.watch(activeMedicationsProvider);
     final withdrawalsAsync = ref.watch(activeWithdrawalsProvider);
 
-    return ListView(
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(activeMedicationsProvider);
+        ref.invalidate(activeWithdrawalsProvider);
+        await ref.read(activeMedicationsProvider.future);
+      },
+      child: ListView(
       padding: pagePadding(context),
       children: [
         // Withdrawal warning
@@ -169,6 +175,7 @@ class _ActiveMedicationsTab extends ConsumerWidget {
           },
         ),
       ],
+    ),
     );
   }
 }
@@ -315,29 +322,38 @@ class _HistoryTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final medicationsAsync = ref.watch(medicationsProvider);
 
-    return medicationsAsync.when(
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(medicationsProvider);
+        await ref.read(medicationsProvider.future);
+      },
+      child: medicationsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(child: Text('Error: $error')),
       data: (medications) {
         if (medications.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.history,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+          return ListView(
+            children: [
+              const SizedBox(height: 120),
+              Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.history,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No medication history',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'No medication history',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           );
         }
 
@@ -382,6 +398,7 @@ class _HistoryTab extends ConsumerWidget {
           },
         );
       },
+    ),
     );
   }
 }

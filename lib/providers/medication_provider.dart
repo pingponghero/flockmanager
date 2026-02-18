@@ -49,6 +49,9 @@ class MedicationsNotifier extends AsyncNotifier<List<MedicationLog>> {
     ref.invalidate(activeMedicationsProvider);
     ref.invalidate(activeWithdrawalsProvider);
     ref.invalidate(hasActiveWithdrawalProvider);
+    ref.invalidate(medicationsByBirdProvider);
+    ref.invalidate(medicationsByFlockProvider);
+    ref.invalidate(medicationByIdProvider);
   }
 }
 
@@ -123,22 +126,30 @@ class HealthNotesNotifier extends AsyncNotifier<List<HealthNote>> {
     return repository.getAllHealthNotes();
   }
 
+  void _invalidateHealthNoteProviders() {
+    ref.invalidate(healthNotesByBirdProvider);
+    ref.invalidate(healthNoteByIdProvider);
+  }
+
   Future<void> addHealthNote(HealthNote note) async {
     final repository = ref.read(medicationRepositoryProvider);
     await repository.insertHealthNote(note);
     ref.invalidateSelf();
+    _invalidateHealthNoteProviders();
   }
 
   Future<void> updateHealthNote(HealthNote note) async {
     final repository = ref.read(medicationRepositoryProvider);
     await repository.updateHealthNote(note);
     ref.invalidateSelf();
+    _invalidateHealthNoteProviders();
   }
 
   Future<void> deleteHealthNote(String id) async {
     final repository = ref.read(medicationRepositoryProvider);
     await repository.deleteHealthNote(id);
     ref.invalidateSelf();
+    _invalidateHealthNoteProviders();
   }
 }
 

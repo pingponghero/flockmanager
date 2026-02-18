@@ -5,7 +5,9 @@ import '../models/bird_status_event.dart';
 import '../models/enums.dart';
 import '../repositories/bird_repository.dart';
 import 'bird_status_event_provider.dart';
+import 'egg_provider.dart';
 import 'flock_provider.dart';
+import 'medication_provider.dart';
 
 /// Repository provider
 final birdRepositoryProvider = Provider<BirdRepository>((ref) {
@@ -22,6 +24,20 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
   Future<List<Bird>> _fetchBirds() async {
     final repository = ref.read(birdRepositoryProvider);
     return repository.getAllBirds();
+  }
+
+  /// Invalidate all bird-related providers
+  void _invalidateBirdProviders() {
+    ref.invalidate(filteredBirdsProvider);
+    ref.invalidate(activeBirdsProvider);
+    ref.invalidate(activeBirdsByFlockProvider);
+    ref.invalidate(allActiveHensProvider);
+    ref.invalidate(birdsByFlockProvider);
+    ref.invalidate(birdsByStatusProvider);
+    ref.invalidate(birdCountsByStatusProvider);
+    ref.invalidate(birdStatusEventsProvider);
+    // chickenOfTheWeekProvider and upcomingBirthdaysProvider
+    // watch activeBirdsProvider so they cascade automatically
   }
 
   /// Add a new bird
@@ -42,10 +58,8 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
     );
 
     ref.invalidateSelf();
-    // Also invalidate the flock bird count
     ref.invalidate(flockBirdCountProvider(bird.flockId));
-    // Invalidate events
-    ref.invalidate(birdStatusEventsProvider);
+    _invalidateBirdProviders();
   }
 
   /// Update an existing bird
@@ -53,8 +67,8 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
     final repository = ref.read(birdRepositoryProvider);
     await repository.updateBird(bird);
     ref.invalidateSelf();
-    // Also invalidate the single bird provider so detail screens refresh
     ref.invalidate(birdByIdProvider(bird.id));
+    _invalidateBirdProviders();
   }
 
   /// Update a bird's status. Returns the event ID if one was created.
@@ -90,12 +104,9 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
 
     await repository.updateBirdStatus(id, status, notes, date);
     ref.invalidateSelf();
-    // Also invalidate the single bird provider so detail screens refresh
     ref.invalidate(birdByIdProvider(id));
-    // Invalidate events
-    ref.invalidate(birdStatusEventsProvider);
+    _invalidateBirdProviders();
 
-    // Also invalidate the flock bird count if status changed to/from active
     if (bird != null) {
       ref.invalidate(flockBirdCountProvider(bird.flockId));
 
@@ -117,7 +128,7 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
   Future<void> deleteStatusEvent(String eventId) async {
     final eventRepository = ref.read(birdStatusEventRepositoryProvider);
     await eventRepository.deleteEvent(eventId);
-    ref.invalidate(birdStatusEventsProvider);
+    _invalidateBirdProviders();
   }
 
   /// Delete a bird permanently
@@ -142,18 +153,26 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
 
     await repository.deleteBird(id);
     ref.invalidateSelf();
-    // Invalidate events
-    ref.invalidate(birdStatusEventsProvider);
+    _invalidateBirdProviders();
 
-    // Also invalidate the flock bird count
     if (bird != null) {
       ref.invalidate(flockBirdCountProvider(bird.flockId));
     }
+
+    // Egg logs and medication logs were reassigned — invalidate those providers
+    ref.invalidate(eggLogsProvider);
+    ref.invalidate(totalEggCountByBirdProvider);
+    ref.invalidate(eggLogsByBirdProvider);
+    ref.invalidate(medicationsProvider);
+    ref.invalidate(medicationsByBirdProvider);
+    ref.invalidate(healthNotesProvider);
+    ref.invalidate(healthNotesByBirdProvider);
   }
 
   /// Refresh the birds list
   Future<void> refresh() async {
     ref.invalidateSelf();
+    _invalidateBirdProviders();
   }
 }
 

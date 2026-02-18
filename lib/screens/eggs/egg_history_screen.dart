@@ -51,7 +51,13 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
           ),
         ],
       ),
-      body: dailyCountsAsync.when(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(dailyEggCountsProvider(dateRange));
+          ref.invalidate(eggLogsByDateProvider);
+          await ref.read(dailyEggCountsProvider(dateRange).future);
+        },
+        child: dailyCountsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
           child: Column(
@@ -150,6 +156,7 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
               ),
           ],
         ),
+      ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {

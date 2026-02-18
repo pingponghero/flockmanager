@@ -49,9 +49,17 @@ class ExpensesNotifier extends AsyncNotifier<List<Expense>> {
   void _invalidateFinancialProviders() {
     ref.invalidate(monthExpensesProvider);
     ref.invalidate(monthIncomeProvider);
+    ref.invalidate(totalExpensesProvider);
+    ref.invalidate(totalIncomeProvider);
     ref.invalidate(costPerEggProvider);
     ref.invalidate(profitLossProvider);
+    ref.invalidate(monthProfitLossProvider);
     ref.invalidate(expensesByCategoryProvider);
+    ref.invalidate(allTimeExpensesByCategoryProvider);
+    ref.invalidate(breakEvenPriceProvider);
+    ref.invalidate(selectedRangeExpensesProvider);
+    ref.invalidate(selectedRangeIncomeProvider);
+    ref.invalidate(selectedRangeCostPerEggProvider);
   }
 }
 
@@ -98,8 +106,15 @@ class IncomeNotifier extends AsyncNotifier<List<Income>> {
   void _invalidateFinancialProviders() {
     ref.invalidate(monthExpensesProvider);
     ref.invalidate(monthIncomeProvider);
+    ref.invalidate(totalExpensesProvider);
+    ref.invalidate(totalIncomeProvider);
     ref.invalidate(costPerEggProvider);
     ref.invalidate(profitLossProvider);
+    ref.invalidate(monthProfitLossProvider);
+    ref.invalidate(breakEvenPriceProvider);
+    ref.invalidate(selectedRangeExpensesProvider);
+    ref.invalidate(selectedRangeIncomeProvider);
+    ref.invalidate(selectedRangeCostPerEggProvider);
   }
 }
 

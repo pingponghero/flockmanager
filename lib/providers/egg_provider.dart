@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/egg_log.dart';
 import '../models/enums.dart';
 import '../repositories/egg_repository.dart';
+import 'analytics_provider.dart';
+import 'expense_provider.dart';
 import 'flock_provider.dart';
 import 'notification_provider.dart';
 
@@ -94,24 +96,38 @@ class EggLogsNotifier extends AsyncNotifier<List<EggLog>> {
   }
 
   void _invalidateEggCountProviders() {
-    // Base providers
+    // Base count providers
     ref.invalidate(todayEggCountProvider);
+    ref.invalidate(yesterdayEggCountProvider);
     ref.invalidate(weekEggCountProvider);
     ref.invalidate(monthEggCountProvider);
     ref.invalidate(totalEggCountProvider);
+    ref.invalidate(totalEggCountByFlockProvider);
+    ref.invalidate(totalEggCountByBirdProvider);
     // Flock-filtered providers (used by home screen)
     ref.invalidate(todayEggCountByFlockProvider);
     ref.invalidate(yesterdayEggCountByFlockProvider);
     ref.invalidate(weekEggCountByFlockProvider);
     ref.invalidate(monthEggCountByFlockProvider);
+    ref.invalidate(weeklyAverageEggCountProvider);
     // Activity feed and charts
     ref.invalidate(recentEggLogsProvider);
     ref.invalidate(last7DaysEggCountsProvider);
     ref.invalidate(checkInStreakProvider);
+    ref.invalidate(longestStreakProvider);
+    ref.invalidate(totalLoggedDaysProvider);
+    ref.invalidate(lastLoggedFlockIdProvider);
     // History screen providers (family providers - invalidates all instances)
     ref.invalidate(eggLogsByDateProvider);
+    ref.invalidate(eggLogsByFlockProvider);
+    ref.invalidate(eggLogsByBirdProvider);
     ref.invalidate(dailyEggCountsProvider);
     ref.invalidate(eggHistoryProvider);
+    // Cross-domain: analytics and finance
+    ref.invalidate(analyticsProvider);
+    ref.invalidate(costPerEggProvider);
+    ref.invalidate(selectedRangeCostPerEggProvider);
+    ref.invalidate(breakEvenPriceProvider);
   }
 }
 

@@ -33,6 +33,8 @@ class FlocksNotifier extends AsyncNotifier<List<Flock>> {
     final repository = ref.read(flockRepositoryProvider);
     await repository.updateFlock(flock);
     ref.invalidateSelf();
+    ref.invalidate(flockByIdProvider(flock.id));
+    ref.invalidate(selectedFlockProvider);
   }
 
   /// Archive a flock
@@ -47,6 +49,8 @@ class FlocksNotifier extends AsyncNotifier<List<Flock>> {
     }
 
     ref.invalidateSelf();
+    ref.invalidate(archivedFlocksProvider);
+    ref.invalidate(flockByIdProvider(id));
   }
 
   /// Unarchive a flock
@@ -54,6 +58,8 @@ class FlocksNotifier extends AsyncNotifier<List<Flock>> {
     final repository = ref.read(flockRepositoryProvider);
     await repository.unarchiveFlock(id);
     ref.invalidateSelf();
+    ref.invalidate(archivedFlocksProvider);
+    ref.invalidate(flockByIdProvider(id));
   }
 
   /// Delete a flock permanently
@@ -68,6 +74,8 @@ class FlocksNotifier extends AsyncNotifier<List<Flock>> {
     }
 
     ref.invalidateSelf();
+    ref.invalidate(archivedFlocksProvider);
+    ref.invalidate(flockBirdCountProvider(id));
   }
 
   /// Refresh the flocks list
