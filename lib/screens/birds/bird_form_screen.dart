@@ -46,6 +46,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
   String? _photoPath;
   bool _isLoading = false;
   bool _isInitialized = false;
+  String? _lastGeneratedName;
 
   @override
   void dispose() {
@@ -116,7 +117,10 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
             // Flock dropdown (required)
             _FlockDropdown(
               selectedFlockId: _selectedFlockId,
-              onChanged: (value) => setState(() => _selectedFlockId = value),
+              onChanged: (value) {
+                setState(() => _selectedFlockId = value);
+                _generateDefaultName(flockId: value);
+              },
             ),
             const SizedBox(height: 16),
 
@@ -135,6 +139,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
               onChanged: (value) {
                 if (value != null) {
                   setState(() => _selectedSpecies = value);
+                  _generateDefaultName();
                 }
               },
             ),
@@ -155,6 +160,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
               onChanged: (value) {
                 if (value != null) {
                   setState(() => _selectedSex = value);
+                  _generateDefaultName();
                 }
               },
             ),
@@ -323,6 +329,39 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
         return build(context);
       },
     );
+  }
+
+  Future<void> _generateDefaultName({String? flockId}) async {
+    if (widget.isEditing) return;
+
+    final effectiveFlockId = flockId ?? _selectedFlockId;
+    if (effectiveFlockId == null) return;
+
+    // Only overwrite if empty or matches our last generated name
+    final currentName = _nameController.text.trim();
+    if (currentName.isNotEmpty && currentName != _lastGeneratedName) return;
+
+    final birds =
+        await ref.read(birdsByFlockProvider(effectiveFlockId).future);
+    final number = birds.length + 1;
+
+    String name;
+    if (_selectedSpecies == BirdSpecies.chicken) {
+      name = switch (_selectedSex) {
+        BirdSex.male => 'Rooster $number',
+        BirdSex.unknown => 'Chicken $number',
+        _ => 'Hen $number',
+      };
+    } else if (_selectedSpecies == BirdSpecies.duck) {
+      name = 'Duck $number';
+    } else if (_selectedSpecies == BirdSpecies.turkey) {
+      name = 'Turkey $number';
+    } else {
+      name = 'Bird $number';
+    }
+
+    _nameController.text = name;
+    _lastGeneratedName = name;
   }
 
   Future<void> _selectPhoto() async {
