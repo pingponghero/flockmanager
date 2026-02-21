@@ -47,7 +47,8 @@ class TodayEggCard extends ConsumerWidget {
           } else if (todayCount == 0 && !canEdit) {
             showTrialExpiredDialog(context, ref);
           } else {
-            context.push('/eggs');
+            final today = DateTime.now();
+            context.push('/eggs', extra: DateTime(today.year, today.month, today.day));
           }
         },
         child: Padding(
@@ -87,6 +88,25 @@ class TodayEggCard extends ConsumerWidget {
                 data: (avg) {
                   if (avg == 0) {
                     return const SizedBox.shrink();
+                  }
+
+                  // When today is 0, assume eggs haven't been logged yet
+                  // Show average in gray with no arrow
+                  if (todayCount == 0) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'avg ${avg.toStringAsFixed(1)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    );
                   }
 
                   // Only colorize for significant deviations (25%+ from average)

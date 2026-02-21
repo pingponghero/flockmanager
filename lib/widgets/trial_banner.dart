@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/trial_provider.dart';
 import '../services/iap_service.dart';
@@ -51,29 +52,32 @@ class _TrialActiveBanner extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Row(
-        children: [
-          Icon(
-            Icons.timer_outlined,
-            size: 18,
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              daysRemaining == 1
-                  ? '1 day left in trial'
-                  : '$daysRemaining days left in trial',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
+    return GestureDetector(
+      onTap: () => context.go('/settings'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        color: Theme.of(context).colorScheme.primaryContainer,
+        child: Row(
+          children: [
+            Icon(
+              Icons.timer_outlined,
+              size: 18,
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                daysRemaining == 1
+                    ? '1 day left in trial'
+                    : '$daysRemaining days left in trial',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

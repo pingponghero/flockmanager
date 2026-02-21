@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../providers/egg_provider.dart';
@@ -13,7 +14,10 @@ class SparkLineCard extends ConsumerWidget {
     final countsAsync = ref.watch(last7DaysEggCountsProvider);
 
     return Card(
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/eggs'),
+        child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,6 +113,7 @@ class SparkLineCard extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

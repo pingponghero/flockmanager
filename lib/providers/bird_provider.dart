@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/bird.dart';
 import '../models/bird_status_event.dart';
@@ -36,8 +37,7 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
     ref.invalidate(birdsByStatusProvider);
     ref.invalidate(birdCountsByStatusProvider);
     ref.invalidate(birdStatusEventsProvider);
-    // chickenOfTheWeekProvider and upcomingBirthdaysProvider
-    // watch activeBirdsProvider so they cascade automatically
+    ref.invalidate(livingBirdsProvider);
   }
 
   /// Add a new bird
@@ -243,42 +243,39 @@ final birdCountsByStatusProvider =
   return repository.getBirdCountsByStatus(flockId);
 });
 
-// ==================== FUN FEATURES ====================
+// ==================== FLOCK SPOTLIGHT ====================
 
-/// Fun titles for Chicken of the Week (rotates with the bird)
-const _chickenOfTheWeekTitles = [
-  'Flock Favorite',
-  'Coop Celebrity',
-  'Featured Friend',
-  "This Week's Star",
-  'Feathered VIP',
-  'Top Hen',
-  'Clucky Champion',
-];
+/// All birds that are alive and in the flock (active + inactive).
+/// Includes roosters (inactive by default) unlike activeBirdsProvider.
+final livingBirdsProvider = FutureProvider<List<Bird>>((ref) async {
+  final repository = ref.read(birdRepositoryProvider);
+  final allBirds = await repository.getAllBirds();
+  return allBirds
+      .where((b) => b.status == BirdStatus.active || b.status == BirdStatus.inactive)
+      .toList();
+});
 
-/// Chicken of the Week - cycles through active birds by ID (fair rotation)
-final chickenOfTheWeekProvider = FutureProvider<({Bird bird, String title})?>(
-  (ref) async {
-    final birds = await ref.watch(activeBirdsProvider.future);
-    if (birds.isEmpty) return null;
+/// Persists which bird the user last viewed in the spotlight.
+class FlockSpotlightNotifier extends AsyncNotifier<String?> {
+  static const _key = 'flock_spotlight_bird_id';
 
-    // Sort by ID for consistent, fair rotation
-    final sortedBirds = [...birds]..sort((a, b) => a.id.compareTo(b.id));
+  @override
+  Future<String?> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_key);
+  }
 
-    // Use week number to cycle through birds
-    final now = DateTime.now();
-    final weekOfYear = ((now.difference(DateTime(now.year, 1, 1)).inDays) / 7).floor();
+  Future<void> saveBird(String birdId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key, birdId);
+    state = AsyncData(birdId);
+  }
+}
 
-    // Pick bird based on week (cycles through all birds)
-    final birdIndex = weekOfYear % sortedBirds.length;
-    final titleIndex = weekOfYear % _chickenOfTheWeekTitles.length;
-
-    return (
-      bird: sortedBirds[birdIndex],
-      title: _chickenOfTheWeekTitles[titleIndex],
-    );
-  },
-);
+final flockSpotlightBirdIdProvider =
+    AsyncNotifierProvider<FlockSpotlightNotifier, String?>(() {
+  return FlockSpotlightNotifier();
+});
 
 /// Birds with birthdays coming up (within next 7 days) or today
 final upcomingBirthdaysProvider = FutureProvider<List<({Bird bird, int daysUntil, int age})>>(

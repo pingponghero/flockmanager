@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../providers/analytics_provider.dart';
 import '../../../providers/bird_provider.dart';
 import '../../../providers/egg_provider.dart';
 
@@ -32,6 +33,10 @@ class HomeStatsRow extends ConsumerWidget {
               size: 20,
               color: Theme.of(context).colorScheme.primary,
             ),
+            onTap: () {
+              ref.read(analyticsPeriodProvider.notifier).setPeriod(AnalyticsPeriod.week);
+              context.go('/analytics');
+            },
           ),
         ),
         const SizedBox(width: 8),
@@ -48,6 +53,10 @@ class HomeStatsRow extends ConsumerWidget {
               size: 20,
               color: Theme.of(context).colorScheme.primary,
             ),
+            onTap: () {
+              ref.read(analyticsPeriodProvider.notifier).setPeriod(AnalyticsPeriod.month);
+              context.go('/analytics');
+            },
           ),
         ),
         const SizedBox(width: 8),

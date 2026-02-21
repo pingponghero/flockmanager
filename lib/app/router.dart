@@ -62,7 +62,9 @@ final router = GoRouter(
                 GoRoute(
                   path: 'eggs',
                   name: 'eggs',
-                  builder: (context, state) => const EggHistoryScreen(),
+                  builder: (context, state) => EggHistoryScreen(
+                    initialDate: state.extra as DateTime?,
+                  ),
                   routes: [
                     GoRoute(
                       path: 'log',

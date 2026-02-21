@@ -12,7 +12,7 @@ import '../../utils/edge_insets.dart';
 import '../../widgets/egg_quick_log.dart';
 import '../../widgets/trial_banner.dart' show TrialBanner, showTrialExpiredDialog;
 import 'widgets/birthday_callouts.dart';
-import 'widgets/chicken_of_the_week.dart';
+import 'widgets/chicken_of_the_week.dart' show FlockSpotlight;
 import 'widgets/greeting_header.dart';
 import 'widgets/home_stats_row.dart';
 import 'widgets/latest_achievement.dart';
@@ -51,7 +51,7 @@ class HomeScreen extends ConsumerWidget {
           ref.invalidate(last7DaysEggCountsProvider);
           // Birds
           ref.invalidate(activeBirdsProvider);
-          ref.invalidate(chickenOfTheWeekProvider);
+          ref.invalidate(livingBirdsProvider);
           ref.invalidate(upcomingBirthdaysProvider);
           // Medications
           ref.invalidate(activeWithdrawalsProvider);
@@ -77,8 +77,8 @@ class HomeScreen extends ConsumerWidget {
             const TrialBanner(),
             const SizedBox(height: 16),
 
-            // Chicken of the Week
-            const ChickenOfTheWeek(),
+            // Flock Spotlight (swipable bird gallery)
+            const FlockSpotlight(),
 
             // Birthday callouts
             const BirthdayCallouts(),

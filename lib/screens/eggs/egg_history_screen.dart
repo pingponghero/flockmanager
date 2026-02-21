@@ -11,7 +11,9 @@ import '../../utils/egg_log_grouper.dart';
 import '../../widgets/egg_quick_log.dart';
 
 class EggHistoryScreen extends ConsumerStatefulWidget {
-  const EggHistoryScreen({super.key});
+  final DateTime? initialDate;
+
+  const EggHistoryScreen({super.key, this.initialDate});
 
   @override
   ConsumerState<EggHistoryScreen> createState() => _EggHistoryScreenState();
@@ -24,8 +26,14 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _currentMonth = DateTime(now.year, now.month, 1);
+    final initial = widget.initialDate;
+    if (initial != null) {
+      _currentMonth = DateTime(initial.year, initial.month, 1);
+      _selectedDate = DateTime(initial.year, initial.month, initial.day);
+    } else {
+      final now = DateTime.now();
+      _currentMonth = DateTime(now.year, now.month, 1);
+    }
   }
 
   @override
@@ -145,14 +153,9 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
                 },
               )
             else
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(
-                  child: Text(
-                    'Select a day to view details',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
+              _MonthSummary(
+                currentMonth: _currentMonth,
+                dailyCounts: dailyCounts,
               ),
           ],
         ),
@@ -405,6 +408,88 @@ class _DayCell extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MonthSummary extends StatelessWidget {
+  final DateTime currentMonth;
+  final Map<DateTime, int> dailyCounts;
+
+  const _MonthSummary({
+    required this.currentMonth,
+    required this.dailyCounts,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isCurrentMonth =
+        currentMonth.year == now.year && currentMonth.month == now.month;
+
+    // Days elapsed in this month (up to today, not future days)
+    final daysInMonth =
+        DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
+    final daysElapsed = isCurrentMonth ? now.day : daysInMonth;
+
+    // Sum all eggs this month
+    final totalEggs = dailyCounts.values.fold<int>(0, (sum, c) => sum + c);
+
+    if (totalEggs == 0) {
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Center(
+          child: Text(
+            'No eggs logged in ${DateFormat.yMMMM().format(currentMonth)}',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Average per day
+    final avg = totalEggs / daysElapsed;
+
+    // Best day
+    MapEntry<DateTime, int>? bestDay;
+    for (final entry in dailyCounts.entries) {
+      if (bestDay == null || entry.value > bestDay.value) {
+        bestDay = entry;
+      }
+    }
+
+    final theme = Theme.of(context);
+    final detailStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            DateFormat.yMMMM().format(currentMonth),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$totalEggs egg${totalEggs == 1 ? '' : 's'} · avg ${avg.toStringAsFixed(1)}/day',
+            style: detailStyle,
+          ),
+          if (bestDay != null && bestDay.value > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Best day: ${DateFormat.MMMEd().format(bestDay.key)} (${bestDay.value} egg${bestDay.value == 1 ? '' : 's'})',
+              style: detailStyle,
+            ),
+          ],
+        ],
       ),
     );
   }
