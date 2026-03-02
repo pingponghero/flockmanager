@@ -129,12 +129,6 @@ class AnalyticsScreen extends ConsumerWidget {
                     const SizedBox(height: 24),
                   ],
 
-                  // Freeloaders
-                  if (analytics.freeloaders.isNotEmpty) ...[
-                    _FreeloardersCard(freeloaders: analytics.freeloaders),
-                    const SizedBox(height: 24),
-                  ],
-
                   // Recent Activity
                   const _RecentActivity(),
                 ],
@@ -639,77 +633,19 @@ class _BirdBreakdown extends StatelessWidget {
                   backgroundColor:
                       Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${stats.percentage.toStringAsFixed(1)}% • ${stats.layingRate.toStringAsFixed(1)} eggs/week',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
+                if (stats.eggCount > 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${stats.percentage.toStringAsFixed(0)}% - ${stats.eggCount} eggs / ${stats.activeDays} active days',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
               ],
             ),
           );
         }).toList(),
-      ),
-    );
-  }
-}
-
-class _FreeloardersCard extends StatelessWidget {
-  final List<BirdEggStats> freeloaders;
-
-  const _FreeloardersCard({required this.freeloaders});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: Colors.orange.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.warning_amber, color: Colors.orange.shade700),
-                const SizedBox(width: 8),
-                Text(
-                  'Freeloaders',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.orange.shade700,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${freeloaders.length} bird${freeloaders.length == 1 ? '' : 's'} with no eggs this period:',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: freeloaders.map((stats) {
-                return Chip(
-                  avatar: CircleAvatar(
-                    backgroundImage: stats.bird.photoPrimary != null
-                        ? FileImage(File(stats.bird.photoPrimary!))
-                        : null,
-                    child: stats.bird.photoPrimary == null
-                        ? Image.asset(
-                            'assets/icons/cute_hen.png',
-                            width: 16,
-                            height: 16,
-                          )
-                        : null,
-                  ),
-                  label: Text(stats.bird.name),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
       ),
     );
   }

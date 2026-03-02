@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/bird.dart';
+import '../models/bird_status_event.dart';
 import '../models/egg_log.dart';
 import '../repositories/bird_repository.dart';
 import '../repositories/egg_repository.dart';
+import '../utils/laying_rate_utils.dart';
+import 'bird_status_event_provider.dart';
 import 'flock_provider.dart';
 
 /// Analytics period for filtering data
@@ -65,16 +68,17 @@ class BirdEggStats {
   final Bird bird;
   final int eggCount;
   final double percentage;
-  final double layingRate; // eggs per 7 days average
+  final int activeDays;
 
   const BirdEggStats({
     required this.bird,
     required this.eggCount,
     required this.percentage,
-    required this.layingRate,
+    required this.activeDays,
   });
 
   bool get isFreeloader => eggCount == 0;
+  double get layingRate => activeDays > 0 ? eggCount / (activeDays / 7) : 0.0;
   bool get isTopLayer => layingRate >= 5; // 5+ eggs per week is good
 }
 
@@ -248,11 +252,16 @@ final analyticsProvider = FutureProvider<AnalyticsSummary>((ref) async {
     period,
   );
 
+  // Fetch bird status events for per-bird active day calculations
+  final eventRepo = ref.read(birdStatusEventRepositoryProvider);
+  final allEvents = await eventRepo.getAllEvents();
+
   // Calculate per-bird stats
   final birdStats = await _calculateBirdStats(
     birds,
     logs,
-    dateRange.dayCount,
+    dateRange,
+    allEvents,
   );
 
   return AnalyticsSummary(
@@ -367,7 +376,8 @@ Future<PeriodChangeResult> _calculatePeriodChange(
 Future<List<BirdEggStats>> _calculateBirdStats(
   List<Bird> birds,
   List<EggLog> logs,
-  int dayCount,
+  DateRange dateRange,
+  List<BirdStatusEvent> allEvents,
 ) async {
   // Count eggs per bird
   final eggsByBird = <String, int>{};
@@ -380,6 +390,12 @@ Future<List<BirdEggStats>> _calculateBirdStats(
     }
   }
 
+  // Group events by bird for active-day lookups
+  final eventsByBird = <String, List<BirdStatusEvent>>{};
+  for (final event in allEvents) {
+    eventsByBird.putIfAbsent(event.birdId, () => []).add(event);
+  }
+
   // Calculate stats for each bird
   final stats = <BirdEggStats>[];
   for (final bird in birds) {
@@ -388,15 +404,17 @@ Future<List<BirdEggStats>> _calculateBirdStats(
         ? (eggCount / totalAttributedEggs) * 100
         : 0.0;
 
-    // Laying rate: eggs per 7 days
-    final weeks = dayCount / 7;
-    final layingRate = weeks > 0 ? eggCount / weeks : 0.0;
+    // Active days for laying rate display
+    final birdEvents = eventsByBird[bird.id] ?? [];
+    final activeDays = birdEvents.isNotEmpty
+        ? calculateActiveDays(birdEvents, dateRange.start, dateRange.end)
+        : dateRange.dayCount;
 
     stats.add(BirdEggStats(
       bird: bird,
       eggCount: eggCount,
       percentage: percentage,
-      layingRate: layingRate,
+      activeDays: activeDays,
     ));
   }
 

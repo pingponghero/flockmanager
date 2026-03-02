@@ -109,7 +109,7 @@ void main() {
         bird: testBird,
         eggCount: 0,
         percentage: 0,
-        layingRate: 0,
+        activeDays: 7,
       );
 
       expect(stats.isFreeloader, isTrue);
@@ -120,40 +120,43 @@ void main() {
         bird: testBird,
         eggCount: 5,
         percentage: 25,
-        layingRate: 3.5,
+        activeDays: 10,
       );
 
       expect(stats.isFreeloader, isFalse);
     });
 
     test('isTopLayer returns true when layingRate >= 5', () {
+      // 5 eggs / 7 days = 5.0 eggs/week
       final stats = BirdEggStats(
         bird: testBird,
-        eggCount: 10,
+        eggCount: 5,
         percentage: 50,
-        layingRate: 5.0,
+        activeDays: 7,
       );
 
       expect(stats.isTopLayer, isTrue);
     });
 
     test('isTopLayer returns true when layingRate > 5', () {
+      // 14 eggs / 14 days = 7.0 eggs/week
       final stats = BirdEggStats(
         bird: testBird,
         eggCount: 14,
         percentage: 70,
-        layingRate: 7.0,
+        activeDays: 14,
       );
 
       expect(stats.isTopLayer, isTrue);
     });
 
     test('isTopLayer returns false when layingRate < 5', () {
+      // 6 eggs / 14 days = 3.0 eggs/week
       final stats = BirdEggStats(
         bird: testBird,
         eggCount: 6,
         percentage: 30,
-        layingRate: 4.9,
+        activeDays: 14,
       );
 
       expect(stats.isTopLayer, isFalse);
@@ -206,19 +209,19 @@ void main() {
           bird: topBird,
           eggCount: 14,
           percentage: 70,
-          layingRate: 7.0,
+          activeDays: 14,
         ),
         BirdEggStats(
           bird: averageBird,
           eggCount: 6,
           percentage: 30,
-          layingRate: 3.0,
+          activeDays: 14,
         ),
         BirdEggStats(
           bird: freeloaderBird,
           eggCount: 0,
           percentage: 0,
-          layingRate: 0,
+          activeDays: 14,
         ),
       ];
     });
@@ -295,8 +298,8 @@ void main() {
       );
 
       final multipleTopLayers = [
-        BirdEggStats(bird: bird1, eggCount: 10, percentage: 40, layingRate: 5.0),
-        BirdEggStats(bird: bird2, eggCount: 15, percentage: 60, layingRate: 7.5),
+        BirdEggStats(bird: bird1, eggCount: 10, percentage: 40, activeDays: 14),
+        BirdEggStats(bird: bird2, eggCount: 15, percentage: 60, activeDays: 14),
       ];
 
       final summary = AnalyticsSummary(
