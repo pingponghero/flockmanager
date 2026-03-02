@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../providers/egg_provider.dart';
 import '../../../providers/trial_provider.dart';
-import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/egg_quick_log.dart';
 import '../../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 
@@ -27,17 +26,7 @@ class TodayEggCard extends ConsumerWidget {
       child: InkWell(
         onTap: () async {
           if (todayCount == 0 && canEdit) {
-            final log = await showEggQuickLog(context);
-            if (log != null && context.mounted) {
-              showAppSnackBar(
-                context,
-                log.count == 0
-                    ? 'No eggs logged'
-                    : '${log.count} ${log.count == 1 ? 'egg' : 'eggs'} logged',
-                actionLabel: 'Edit',
-                onAction: () => context.push('/eggs/log', extra: log),
-              );
-            }
+            await showEggQuickLog(context);
           } else if (todayCount == 0 && !canEdit) {
             showTrialExpiredDialog(context, ref);
           } else {

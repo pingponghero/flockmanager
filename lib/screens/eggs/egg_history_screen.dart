@@ -164,19 +164,7 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
       ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final log = await showEggQuickLog(context, initialDate: _selectedDate);
-          if (log != null && context.mounted) {
-            showAppSnackBar(
-              context,
-              log.count == 0
-                  ? 'No eggs logged'
-                  : '${log.count} ${log.count == 1 ? 'egg' : 'eggs'} logged',
-              actionLabel: 'Edit',
-              onAction: () => context.push('/eggs/log', extra: log),
-            );
-          }
-        },
+        onPressed: () => showEggQuickLog(context, initialDate: _selectedDate),
         child: const Icon(Icons.add),
       ),
     );

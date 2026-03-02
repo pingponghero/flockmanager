@@ -383,7 +383,7 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
               if (mounted) {
                 showAppSnackBar(
                   context,
-                  '$_count ${_count == 1 ? 'egg' : 'eggs'} logged',
+                  '$_count ${_count == 1 ? 'egg' : 'eggs'} distributed',
                 );
                 Navigator.pop(context, null); // Return null since we handled the snackbar
               }
@@ -421,8 +421,16 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
           await markAchievementsAsShown(newAchievements);
         }
 
-        // Close sheet and return the created log (caller will show snackbar)
-        if (mounted) Navigator.pop(context, log);
+        // Show snackbar before closing (post-modal snackbars don't auto-dismiss)
+        if (mounted) {
+          if (_count > 0) {
+            showAppSnackBar(
+              context,
+              '$_count ${_count == 1 ? 'egg' : 'eggs'} logged',
+            );
+          }
+          Navigator.pop(context, null);
+        }
       }
     } catch (e) {
       if (mounted) {
