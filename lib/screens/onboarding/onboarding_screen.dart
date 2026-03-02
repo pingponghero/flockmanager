@@ -11,6 +11,7 @@ import '../../providers/onboarding_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/achievements_provider.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -90,9 +91,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _createFlock() async {
     if (_flockNameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a flock name')),
-      );
+      showAppSnackBar(context, 'Please enter a flock name');
       return;
     }
 
@@ -115,26 +114,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       setState(() => _isCreatingFlock = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating flock: $e')),
-        );
+        showAppSnackBar(context, 'Error creating flock: $e');
       }
     }
   }
 
   Future<void> _createBird() async {
     if (_birdNameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a bird name')),
-      );
+      showAppSnackBar(context, 'Please enter a bird name');
       return;
     }
 
     final createdFlockId = ref.read(onboardingProvider).createdFlockId;
     if (createdFlockId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No flock created yet')),
-      );
+      showAppSnackBar(context, 'No flock created yet');
       return;
     }
 
@@ -159,9 +152,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       setState(() => _isCreatingBird = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error adding bird: $e')),
-        );
+        showAppSnackBar(context, 'Error adding bird: $e');
       }
     }
   }

@@ -10,6 +10,7 @@ import '../../providers/expense_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 
@@ -332,9 +333,7 @@ class _ExpenseTile extends ConsumerWidget {
       },
       onDismissed: (_) {
         ref.read(expensesProvider.notifier).deleteExpense(expense.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Expense deleted')),
-        );
+        showAppSnackBar(context, 'Expense deleted');
       },
       child: ListTile(
         leading: CircleAvatar(
@@ -572,9 +571,7 @@ class _IncomeTile extends ConsumerWidget {
       },
       onDismissed: (_) {
         ref.read(incomeProvider.notifier).deleteIncome(income.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Income deleted')),
-        );
+        showAppSnackBar(context, 'Income deleted');
       },
       child: ListTile(
         leading: CircleAvatar(

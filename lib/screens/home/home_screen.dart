@@ -41,6 +41,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          ScaffoldMessenger.of(context).clearSnackBars();
           // Egg stats
           ref.invalidate(todayEggCountByFlockProvider);
           ref.invalidate(yesterdayEggCountByFlockProvider);

@@ -200,7 +200,10 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
                     const Divider(height: 1),
                     Expanded(
                       child: RefreshIndicator(
-                        onRefresh: () => ref.read(birdsProvider.notifier).refresh(),
+                        onRefresh: () {
+                          ScaffoldMessenger.of(context).clearSnackBars();
+                          return ref.read(birdsProvider.notifier).refresh();
+                        },
                         child: ListView.builder(
                           padding: pagePadding(context),
                           itemCount: birds.length,

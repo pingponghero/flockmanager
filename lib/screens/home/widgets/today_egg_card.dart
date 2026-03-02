@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../providers/egg_provider.dart';
 import '../../../providers/trial_provider.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/egg_quick_log.dart';
 import '../../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 
@@ -28,20 +29,13 @@ class TodayEggCard extends ConsumerWidget {
           if (todayCount == 0 && canEdit) {
             final log = await showEggQuickLog(context);
             if (log != null && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    log.count == 0
-                        ? 'Logged: No eggs collected'
-                        : 'Logged: ${log.count} egg${log.count == 1 ? '' : 's'}',
-                  ),
-                  behavior: SnackBarBehavior.floating,
-                  duration: const Duration(seconds: 4),
-                  action: SnackBarAction(
-                    label: 'Edit',
-                    onPressed: () => context.push('/eggs/log', extra: log),
-                  ),
-                ),
+              showAppSnackBar(
+                context,
+                log.count == 0
+                    ? 'No eggs logged'
+                    : '${log.count} ${log.count == 1 ? 'egg' : 'eggs'} logged',
+                actionLabel: 'Edit',
+                onAction: () => context.push('/eggs/log', extra: log),
               );
             }
           } else if (todayCount == 0 && !canEdit) {

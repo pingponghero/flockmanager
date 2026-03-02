@@ -12,6 +12,7 @@ import '../providers/achievements_provider.dart';
 import '../providers/bird_provider.dart';
 import '../providers/egg_provider.dart';
 import '../providers/flock_provider.dart';
+import '../utils/snackbar_utils.dart';
 import 'achievement_celebration_dialog.dart';
 
 /// Per-hen egg logging UI.
@@ -189,24 +190,19 @@ class _EggLogByHenContentState extends ConsumerState<EggLogByHenContent> {
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Logged $_totalEggs ${_totalEggs == 1 ? 'egg' : 'eggs'} from $_hensWithEggs ${_hensWithEggs == 1 ? 'hen' : 'hens'}',
-              ),
-              behavior: SnackBarBehavior.floating,
-            ),
+          showAppSnackBar(
+            context,
+            '$_totalEggs ${_totalEggs == 1 ? 'egg' : 'eggs'} logged',
           );
           Navigator.pop(context, null);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        showAppSnackBar(
+          context,
+          'Error: $e',
+          backgroundColor: Theme.of(context).colorScheme.error,
         );
         setState(() => _isSaving = false);
       }

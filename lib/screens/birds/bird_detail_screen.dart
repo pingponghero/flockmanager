@@ -8,6 +8,7 @@ import '../../models/enums.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/medication_provider.dart';
+import '../../utils/snackbar_utils.dart';
 import 'widgets/bird_eggs_tab.dart';
 import 'widgets/bird_header.dart';
 import 'widgets/bird_health_tab.dart';
@@ -345,39 +346,33 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                         eventDate: selectedDate,
                       );
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '${bird.name} marked as ${newStatus.displayName.toLowerCase()}',
-                        ),
-                        action: SnackBarAction(
-                          label: 'Undo',
-                          onPressed: () async {
-                            try {
-                              if (eventId != null) {
-                                await ref.read(birdsProvider.notifier).deleteStatusEvent(eventId);
-                              }
-                              await ref.read(birdsProvider.notifier).updateBirdStatus(
-                                    bird.id,
-                                    previousStatus,
-                                    previousStatusNotes,
-                                    recordEvent: false,
-                                  );
-                            } catch (_) {
-                              // Silently fail - user can manually fix if needed
-                            }
-                          },
-                        ),
-                      ),
+                    showAppSnackBar(
+                      context,
+                      '${bird.name} marked as ${newStatus.displayName.toLowerCase()}',
+                      actionLabel: 'Undo',
+                      onAction: () async {
+                        try {
+                          if (eventId != null) {
+                            await ref.read(birdsProvider.notifier).deleteStatusEvent(eventId);
+                          }
+                          await ref.read(birdsProvider.notifier).updateBirdStatus(
+                                bird.id,
+                                previousStatus,
+                                previousStatusNotes,
+                                recordEvent: false,
+                              );
+                        } catch (_) {
+                          // Silently fail - user can manually fix if needed
+                        }
+                      },
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
+                    showAppSnackBar(
+                      context,
+                      'Error: $e',
+                      backgroundColor: Theme.of(context).colorScheme.error,
                     );
                   }
                 }
@@ -413,37 +408,33 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                         null,
                       );
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${bird.name} is now active'),
-                        action: SnackBarAction(
-                          label: 'Undo',
-                          onPressed: () async {
-                            try {
-                              if (eventId != null) {
-                                await ref.read(birdsProvider.notifier).deleteStatusEvent(eventId);
-                              }
-                              await ref.read(birdsProvider.notifier).updateBirdStatus(
-                                    bird.id,
-                                    previousStatus,
-                                    previousStatusNotes,
-                                    recordEvent: false,
-                                  );
-                            } catch (_) {
-                              // Silently fail
-                            }
-                          },
-                        ),
-                      ),
+                    showAppSnackBar(
+                      context,
+                      '${bird.name} is now active',
+                      actionLabel: 'Undo',
+                      onAction: () async {
+                        try {
+                          if (eventId != null) {
+                            await ref.read(birdsProvider.notifier).deleteStatusEvent(eventId);
+                          }
+                          await ref.read(birdsProvider.notifier).updateBirdStatus(
+                                bird.id,
+                                previousStatus,
+                                previousStatusNotes,
+                                recordEvent: false,
+                              );
+                        } catch (_) {
+                          // Silently fail
+                        }
+                      },
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
+                    showAppSnackBar(
+                      context,
+                      'Error: $e',
+                      backgroundColor: Theme.of(context).colorScheme.error,
                     );
                   }
                 }
@@ -559,25 +550,21 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
 
                 if (context.mounted) {
                   context.pop(); // Go back to bird list
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${bird.name} deleted'),
-                      action: SnackBarAction(
-                        label: 'Undo',
-                        onPressed: () {
-                          ref.read(birdsProvider.notifier).addBird(bird);
-                        },
-                      ),
-                    ),
+                  showAppSnackBar(
+                    context,
+                    '${bird.name} deleted',
+                    actionLabel: 'Undo',
+                    onAction: () {
+                      ref.read(birdsProvider.notifier).addBird(bird);
+                    },
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error deleting bird: $e'),
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                    ),
+                  showAppSnackBar(
+                    context,
+                    'Error deleting bird: $e',
+                    backgroundColor: Theme.of(context).colorScheme.error,
                   );
                 }
               }

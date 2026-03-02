@@ -88,6 +88,7 @@ class _ActiveMedicationsTab extends ConsumerWidget {
 
     return RefreshIndicator(
       onRefresh: () async {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ref.invalidate(activeMedicationsProvider);
         ref.invalidate(activeWithdrawalsProvider);
         await ref.read(activeMedicationsProvider.future);
@@ -324,6 +325,7 @@ class _HistoryTab extends ConsumerWidget {
 
     return RefreshIndicator(
       onRefresh: () async {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ref.invalidate(medicationsProvider);
         await ref.read(medicationsProvider.future);
       },
