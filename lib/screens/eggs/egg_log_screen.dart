@@ -11,6 +11,7 @@ import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
 
 class EggLogScreen extends ConsumerStatefulWidget {
@@ -344,9 +345,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
     }
 
     if (_selectedFlockId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a flock')),
-      );
+      showAppSnackBar(context, 'Please select a flock');
       return;
     }
 
@@ -385,11 +384,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
       HapticFeedback.mediumImpact();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isEditing ? 'Entry updated' : 'Entry saved'),
-          ),
-        );
+        showAppSnackBar(context, isEditing ? 'Entry updated' : 'Entry saved');
 
         // Check for new achievements
         final newAchievements = await checkAndCelebrateAchievements(ref, context);
@@ -402,11 +397,10 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        showAppSnackBar(
+          context,
+          'Error: $e',
+          backgroundColor: Theme.of(context).colorScheme.error,
         );
       }
     } finally {
@@ -446,18 +440,15 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
         HapticFeedback.mediumImpact();
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Entry deleted')),
-          );
+          showAppSnackBar(context, 'Entry deleted');
           context.pop();
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $e'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
+          showAppSnackBar(
+            context,
+            'Error: $e',
+            backgroundColor: Theme.of(context).colorScheme.error,
           );
           setState(() => _isLoading = false);
         }

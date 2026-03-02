@@ -8,6 +8,7 @@ import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../utils/egg_log_grouper.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../widgets/egg_quick_log.dart';
 
 class EggHistoryScreen extends ConsumerStatefulWidget {
@@ -61,6 +62,7 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          ScaffoldMessenger.of(context).clearSnackBars();
           ref.invalidate(dailyEggCountsProvider(dateRange));
           ref.invalidate(eggLogsByDateProvider);
           await ref.read(dailyEggCountsProvider(dateRange).future);
@@ -163,22 +165,15 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final log = await showEggQuickLog(context);
+          final log = await showEggQuickLog(context, initialDate: _selectedDate);
           if (log != null && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  log.count == 0
-                      ? 'Logged: No eggs collected'
-                      : 'Logged: ${log.count} egg${log.count == 1 ? '' : 's'}',
-                ),
-                behavior: SnackBarBehavior.floating,
-                duration: const Duration(seconds: 4),
-                action: SnackBarAction(
-                  label: 'Edit',
-                  onPressed: () => context.push('/eggs/log', extra: log),
-                ),
-              ),
+            showAppSnackBar(
+              context,
+              log.count == 0
+                  ? 'No eggs logged'
+                  : '${log.count} ${log.count == 1 ? 'egg' : 'eggs'} logged',
+              actionLabel: 'Edit',
+              onAction: () => context.push('/eggs/log', extra: log),
             );
           }
         },
@@ -536,12 +531,6 @@ class _DayDetailsInline extends ConsumerWidget {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () => context.push('/eggs/log', extra: date),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Entry'),
-                ),
               ],
             ),
           );
@@ -593,9 +582,7 @@ class _DayDetailsInline extends ConsumerWidget {
                     }
                     onLogDeleted();
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Distributed entry deleted')),
-                      );
+                      showAppSnackBar(context, 'Distributed entry deleted');
                     }
                   },
                 );
@@ -636,9 +623,7 @@ class _DayDetailsInline extends ConsumerWidget {
                     await ref.read(eggLogsProvider.notifier).deleteEggLog(log.id);
                     onLogDeleted();
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Entry deleted')),
-                      );
+                      showAppSnackBar(context, 'Entry deleted');
                     }
                   },
                   child: _EggLogTile(

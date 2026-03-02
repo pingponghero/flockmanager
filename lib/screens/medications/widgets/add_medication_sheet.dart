@@ -8,6 +8,7 @@ import '../../../providers/achievements_provider.dart';
 import '../../../providers/bird_provider.dart';
 import '../../../providers/flock_provider.dart';
 import '../../../providers/medication_provider.dart';
+import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/achievement_celebration_dialog.dart';
 import 'legal_status_badge.dart';
 
@@ -132,15 +133,12 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
                                     (m) => m.name.toLowerCase() == value.toLowerCase()
                             ).firstOrNull;
                             if (selectedMed?.isBannedOrRestricted == true) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    '⚠️ ${selectedMed!.name} is ${selectedMed.legalStatusDisplay}. '
-                                        'Do not use in food-producing poultry.',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                  duration: const Duration(seconds: 5),
-                                ),
+                              showAppSnackBar(
+                                context,
+                                '⚠️ ${selectedMed!.name} is ${selectedMed.legalStatusDisplay}. '
+                                    'Do not use in food-producing poultry.',
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 5),
                               );
                             }
                           },
@@ -413,9 +411,7 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedFlockId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a flock')),
-      );
+      showAppSnackBar(context, 'Please select a flock');
       return;
     }
 
@@ -441,12 +437,7 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
 
         if (mounted) {
           Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${medication.medicationName} logged'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          showAppSnackBar(context, '${medication.medicationName} logged');
 
           if (newAchievements.isNotEmpty) {
             await AchievementCelebrationDialog.showMultiple(context, newAchievements);
@@ -456,9 +447,7 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        showAppSnackBar(context, 'Error: $e');
       }
     }
   }

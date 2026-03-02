@@ -14,6 +14,7 @@ import '../../models/enums.dart';
 import '../../providers/achievements_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../providers/flock_provider.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
 
@@ -422,11 +423,10 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
       setState(() => _photoPath = savedPath);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error selecting photo: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        showAppSnackBar(
+          context,
+          'Error selecting photo: $e',
+          backgroundColor: Theme.of(context).colorScheme.error,
         );
       }
     }
@@ -438,9 +438,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
     }
 
     if (_selectedFlockId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a flock')),
-      );
+      showAppSnackBar(context, 'Please select a flock');
       return;
     }
 
@@ -506,12 +504,9 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.isEditing ? 'Bird updated' : 'Bird added',
-            ),
-          ),
+        showAppSnackBar(
+          context,
+          widget.isEditing ? 'Bird updated' : 'Bird added',
         );
 
         // Check for new achievements
@@ -525,11 +520,10 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        showAppSnackBar(
+          context,
+          'Error: $e',
+          backgroundColor: Theme.of(context).colorScheme.error,
         );
       }
     } finally {

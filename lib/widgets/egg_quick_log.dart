@@ -10,19 +10,20 @@ import '../providers/bird_provider.dart';
 import '../providers/egg_provider.dart';
 import '../providers/flock_provider.dart';
 import '../utils/distribution_helper.dart';
+import '../utils/snackbar_utils.dart';
 import 'achievement_celebration_dialog.dart';
 import 'distribute_eggs_dialog.dart';
 import 'egg_log_by_hen.dart';
 
 /// Shows the quick egg log bottom sheet.
 /// Returns the created EggLog if logged, null otherwise.
-Future<EggLog?> showEggQuickLog(BuildContext context) async {
+Future<EggLog?> showEggQuickLog(BuildContext context, {DateTime? initialDate}) async {
   final result = await showModalBottomSheet<EggLog?>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => const EggQuickLogSheet(),
+    builder: (context) => EggQuickLogSheet(initialDate: initialDate),
   );
   return result;
 }
@@ -31,7 +32,9 @@ Future<EggLog?> showEggQuickLog(BuildContext context) async {
 /// Designed for fast, 2-tap logging: open sheet, tap save.
 /// Supports switching to "Log by Hen" mode for per-bird attribution.
 class EggQuickLogSheet extends ConsumerStatefulWidget {
-  const EggQuickLogSheet({super.key});
+  final DateTime? initialDate;
+
+  const EggQuickLogSheet({super.key, this.initialDate});
 
   @override
   ConsumerState<EggQuickLogSheet> createState() => _EggQuickLogSheetState();
@@ -40,7 +43,7 @@ class EggQuickLogSheet extends ConsumerStatefulWidget {
 class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
   int _count = 0;
   String? _selectedFlockId;
-  DateTime _date = DateTime.now();
+  late DateTime _date = widget.initialDate ?? DateTime.now();
   String? _selectedBirdId;
   EggSize? _selectedSize;
   EggQuality? _selectedQuality;
@@ -378,14 +381,9 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
 
               // Show success message with bird names
               if (mounted) {
-                final birdNames = activeBirds.map((b) => b.name).join(', ');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Logged $_count eggs (1 each to $birdNames)',
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+                showAppSnackBar(
+                  context,
+                  '$_count ${_count == 1 ? 'egg' : 'eggs'} logged',
                 );
                 Navigator.pop(context, null); // Return null since we handled the snackbar
               }
@@ -428,11 +426,10 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        showAppSnackBar(
+          context,
+          'Error: $e',
+          backgroundColor: Theme.of(context).colorScheme.error,
         );
         setState(() => _isLoading = false);
       }

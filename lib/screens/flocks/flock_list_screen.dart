@@ -6,6 +6,7 @@ import '../../models/flock.dart';
 import '../../providers/flock_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 
 class FlockListScreen extends ConsumerWidget {
@@ -75,7 +76,10 @@ class FlockListScreen extends ConsumerWidget {
           }
 
           return RefreshIndicator(
-            onRefresh: () => ref.read(flocksProvider.notifier).refresh(),
+            onRefresh: () {
+              ScaffoldMessenger.of(context).clearSnackBars();
+              return ref.read(flocksProvider.notifier).refresh();
+            },
             child: ListView.builder(
               padding: pagePadding(context),
               itemCount: flocks.length,
@@ -112,12 +116,9 @@ class FlockListScreen extends ConsumerWidget {
 
     if (activeBirdCount > 0) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Cannot archive: ${flock.name} has $activeBirdCount active ${activeBirdCount == 1 ? 'bird' : 'birds'}',
-            ),
-          ),
+        showAppSnackBar(
+          context,
+          'Cannot archive: ${flock.name} has $activeBirdCount active ${activeBirdCount == 1 ? 'bird' : 'birds'}',
         );
       }
       return;
@@ -139,16 +140,13 @@ class FlockListScreen extends ConsumerWidget {
             onPressed: () {
               ref.read(flocksProvider.notifier).archiveFlock(flock.id);
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${flock.name} archived'),
-                  action: SnackBarAction(
-                    label: 'Undo',
-                    onPressed: () {
-                      ref.read(flocksProvider.notifier).unarchiveFlock(flock.id);
-                    },
-                  ),
-                ),
+              showAppSnackBar(
+                context,
+                '${flock.name} archived',
+                actionLabel: 'Undo',
+                onAction: () {
+                  ref.read(flocksProvider.notifier).unarchiveFlock(flock.id);
+                },
               );
             },
             child: const Text('Archive'),
@@ -255,9 +253,7 @@ class FlockListScreen extends ConsumerWidget {
                   dialogRef.invalidate(archivedFlocksProvider);
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
-                    ScaffoldMessenger.of(dialogContext).showSnackBar(
-                      SnackBar(content: Text('${flock.name} restored')),
-                    );
+                    showAppSnackBar(dialogContext, '${flock.name} restored');
                   }
                 },
                 child: const Text('Restore'),

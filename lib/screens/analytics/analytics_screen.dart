@@ -30,6 +30,7 @@ class AnalyticsScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          ScaffoldMessenger.of(context).clearSnackBars();
           ref.invalidate(analyticsProvider);
         },
         child: ListView(

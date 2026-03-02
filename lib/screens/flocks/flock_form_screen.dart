@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/flock.dart';
 import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../utils/snackbar_utils.dart';
 
 class FlockFormScreen extends ConsumerStatefulWidget {
   final String? flockId;
@@ -313,22 +314,18 @@ class _FlockFormScreenState extends ConsumerState<FlockFormScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.isEditing ? 'Flock updated' : 'Flock created',
-            ),
-          ),
+        showAppSnackBar(
+          context,
+          widget.isEditing ? 'Flock updated' : 'Flock created',
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        showAppSnackBar(
+          context,
+          'Error: $e',
+          backgroundColor: Theme.of(context).colorScheme.error,
         );
       }
     } finally {

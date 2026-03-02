@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../providers/trial_provider.dart';
 import '../services/iap_service.dart';
+import '../utils/snackbar_utils.dart';
 
 /// Banner displayed during trial period or when trial expires.
 class TrialBanner extends ConsumerWidget {
@@ -33,9 +34,7 @@ class TrialBanner extends ConsumerWidget {
   Future<void> _purchasePremium(BuildContext context, WidgetRef ref) async {
     final success = await ref.read(trialProvider.notifier).purchasePremium();
     if (!success && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Purchase not available')),
-      );
+      showAppSnackBar(context, 'Purchase not available');
     }
   }
 }

@@ -7,6 +7,7 @@ import '../../models/enums.dart';
 import '../../models/health_note.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/medication_provider.dart';
+import '../../utils/snackbar_utils.dart';
 
 /// Form screen for creating or editing a health note.
 class HealthNoteFormScreen extends ConsumerStatefulWidget {
@@ -112,19 +113,14 @@ class _HealthNoteFormScreenState extends ConsumerState<HealthNoteFormScreen> {
 
       if (mounted) {
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isEditing ? 'Note updated' : 'Note added'),
-          ),
-        );
+        showAppSnackBar(context, isEditing ? 'Note updated' : 'Note added');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        showAppSnackBar(
+          context,
+          'Error: $e',
+          backgroundColor: Theme.of(context).colorScheme.error,
         );
       }
     } finally {
@@ -163,17 +159,14 @@ class _HealthNoteFormScreenState extends ConsumerState<HealthNoteFormScreen> {
 
       if (mounted) {
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Note deleted')),
-        );
+        showAppSnackBar(context, 'Note deleted');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        showAppSnackBar(
+          context,
+          'Error: $e',
+          backgroundColor: Theme.of(context).colorScheme.error,
         );
       }
     } finally {

@@ -28,6 +28,7 @@ import '../../services/iap_service.dart';
 import '../../services/import_service.dart';
 import '../../services/notification_service.dart';
 import '../../utils/edge_insets.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../widgets/import_confirmation_dialog.dart';
 
 const _supportEmail = 'flockmanager.app@gmail.com';
@@ -372,9 +373,7 @@ class SettingsScreen extends ConsumerWidget {
                     subtitle: const Text('Show welcome flow again'),
                     onTap: () {
                       ref.read(onboardingProvider.notifier).resetOnboarding();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Onboarding reset. Restart app to see it.')),
-                      );
+                      showAppSnackBar(context, 'Onboarding reset. Restart app to see it.');
                     },
                   ),
                   const Divider(height: 1),
@@ -447,9 +446,7 @@ class SettingsScreen extends ConsumerWidget {
     } catch (e) {
       closeDialog();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
-        );
+        showAppSnackBar(context, 'Export failed: $e');
       }
     }
   }
@@ -473,9 +470,7 @@ class SettingsScreen extends ConsumerWidget {
 
     final filePath = result.files.first.path;
     if (filePath == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not access the selected file')),
-      );
+      showAppSnackBar(context, 'Could not access the selected file');
       return;
     }
 
@@ -489,12 +484,9 @@ class SettingsScreen extends ConsumerWidget {
       // Check format version
       if (!preview.isSupported) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'This backup is from a newer version of Flock Manager. Please update the app.',
-              ),
-            ),
+          showAppSnackBar(
+            context,
+            'This backup is from a newer version of Flock Manager. Please update the app.',
           );
         }
         return;
@@ -566,9 +558,7 @@ class SettingsScreen extends ConsumerWidget {
           }
         } else {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(importResult.summaryMessage)),
-            );
+            showAppSnackBar(context, importResult.summaryMessage);
           }
         }
 
@@ -587,14 +577,11 @@ class SettingsScreen extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              e is ImportException
-                  ? e.message
-                  : "This file isn't a valid backup. Please select a .zip file exported from Flock Manager.",
-            ),
-          ),
+        showAppSnackBar(
+          context,
+          e is ImportException
+              ? e.message
+              : "This file isn't a valid backup. Please select a .zip file exported from Flock Manager.",
         );
       }
     }
@@ -615,9 +602,7 @@ class SettingsScreen extends ConsumerWidget {
       // Copy email to clipboard as fallback
       await Clipboard.setData(ClipboardData(text: _supportEmail));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email copied to clipboard')),
-        );
+        showAppSnackBar(context, 'Email copied to clipboard');
       }
     }
   }
@@ -646,11 +631,7 @@ class SettingsScreen extends ConsumerWidget {
               Navigator.pop(context);
               await TestData.seedDatabase();
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Test data loaded! Restart app to see changes.'),
-                  ),
-                );
+                showAppSnackBar(context, 'Test data loaded! Restart app to see changes.');
               }
             },
             child: const Text('Load Data'),
@@ -688,11 +669,7 @@ class SettingsScreen extends ConsumerWidget {
               await DatabaseHelper.instance.deleteDatabase();
               ref.read(onboardingProvider.notifier).resetOnboarding();
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('All data cleared. Restart app.'),
-                  ),
-                );
+                showAppSnackBar(context, 'All data cleared. Restart app.');
               }
             },
             child: const Text('Delete Everything'),
@@ -1030,27 +1007,21 @@ class _AccountSection extends ConsumerWidget {
                       title: const Text('Reset Trial'),
                       onTap: () {
                         ref.read(trialProvider.notifier).debugResetTrial();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Trial reset')),
-                        );
+                        showAppSnackBar(context, 'Trial reset');
                       },
                     ),
                     ListTile(
                       title: const Text('Expire Trial'),
                       onTap: () {
                         ref.read(trialProvider.notifier).debugExpireTrial();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Trial expired')),
-                        );
+                        showAppSnackBar(context, 'Trial expired');
                       },
                     ),
                     ListTile(
                       title: const Text('Grant Lifetime Access'),
                       onTap: () {
                         ref.read(trialProvider.notifier).debugGrantPremium();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Lifetime access granted')),
-                        );
+                        showAppSnackBar(context, 'Lifetime access granted');
                       },
                     ),
                   ],
@@ -1089,18 +1060,14 @@ class _AccountSection extends ConsumerWidget {
   Future<void> _purchasePremium(BuildContext context, WidgetRef ref) async {
     final success = await ref.read(trialProvider.notifier).purchasePremium();
     if (!success && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Purchase not available. Try again later.')),
-      );
+      showAppSnackBar(context, 'Purchase not available. Try again later.');
     }
   }
 
   Future<void> _restorePurchases(BuildContext context, WidgetRef ref) async {
     await ref.read(trialProvider.notifier).restorePurchases();
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Checking for previous purchases...')),
-      );
+      showAppSnackBar(context, 'Checking for previous purchases...');
     }
   }
 }

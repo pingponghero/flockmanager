@@ -97,6 +97,7 @@ class BirdEventsScreen extends ConsumerWidget {
 
                 return RefreshIndicator(
                   onRefresh: () async {
+                    ScaffoldMessenger.of(context).clearSnackBars();
                     ref.invalidate(birdStatusEventsProvider);
                   },
                   child: ListView.builder(
