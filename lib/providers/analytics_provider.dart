@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../models/bird.dart';
 import '../models/bird_status_event.dart';
@@ -17,7 +18,7 @@ enum AnalyticsPeriod {
   allTime;
 
   String get displayName => switch (this) {
-        AnalyticsPeriod.week => 'This Week',
+        AnalyticsPeriod.week => 'Last 7 Days',
         AnalyticsPeriod.month => 'This Month',
         AnalyticsPeriod.year => 'This Year',
         AnalyticsPeriod.allTime => 'All Time',
@@ -29,9 +30,9 @@ enum AnalyticsPeriod {
 
     switch (this) {
       case AnalyticsPeriod.week:
-        // Start from Sunday
-        final startOfWeek = today.subtract(Duration(days: today.weekday % 7));
-        return DateRange(startOfWeek, today);
+        // Last 7 days (today is day 7)
+        final start = today.subtract(const Duration(days: 6));
+        return DateRange(start, today);
       case AnalyticsPeriod.month:
         final startOfMonth = DateTime(now.year, now.month, 1);
         return DateRange(startOfMonth, today);
@@ -90,6 +91,47 @@ class DailyEggCount {
   const DailyEggCount({required this.date, required this.count});
 }
 
+/// Granularity for chart data aggregation
+enum ChartGranularity {
+  daily,
+  weekly,
+  monthly;
+
+  String get yAxisLabel => switch (this) {
+        ChartGranularity.daily => 'eggs/day',
+        ChartGranularity.weekly => 'avg eggs/day',
+        ChartGranularity.monthly => 'avg eggs/day',
+      };
+}
+
+/// Chart data point that can represent daily counts or period averages
+class ChartDataPoint {
+  final DateTime startDate;
+  final DateTime endDate;
+  final double value; // count for daily, average for weekly/monthly
+  final int totalEggs; // total eggs in the period (for tooltip)
+  final int dayCount; // number of days in the period
+
+  const ChartDataPoint({
+    required this.startDate,
+    required this.endDate,
+    required this.value,
+    required this.totalEggs,
+    required this.dayCount,
+  });
+
+  String get label {
+    if (startDate == endDate) {
+      return DateFormat.MMMd().format(startDate);
+    }
+    // For weekly/monthly, show range
+    if (startDate.year == endDate.year && startDate.month == endDate.month) {
+      return '${DateFormat.MMMd().format(startDate)}-${endDate.day}';
+    }
+    return '${DateFormat.MMMd().format(startDate)}-${DateFormat.MMMd().format(endDate)}';
+  }
+}
+
 /// Analytics summary data
 class AnalyticsSummary {
   final int totalEggs;
@@ -102,8 +144,11 @@ class AnalyticsSummary {
   final int daysWithoutData;
   final double periodChange; // percentage change vs previous period
   final bool hasPreviousPeriodData; // whether comparison data exists
+  final DateTime? comparisonEndDate; // end date of previous period for display
   final List<BirdEggStats> birdStats;
   final List<DailyEggCount> dailyCounts;
+  final List<ChartDataPoint> chartData;
+  final ChartGranularity chartGranularity;
 
   const AnalyticsSummary({
     required this.totalEggs,
@@ -116,8 +161,11 @@ class AnalyticsSummary {
     required this.daysWithoutData,
     required this.periodChange,
     required this.hasPreviousPeriodData,
+    this.comparisonEndDate,
     required this.birdStats,
     required this.dailyCounts,
+    required this.chartData,
+    required this.chartGranularity,
   });
 
   // Keep for backwards compatibility
@@ -264,6 +312,13 @@ final analyticsProvider = FutureProvider<AnalyticsSummary>((ref) async {
     allEvents,
   );
 
+  // Calculate chart data with appropriate granularity
+  final (chartData, chartGranularity) = _aggregateChartData(
+    dailyCounts,
+    period,
+    dateRange,
+  );
+
   return AnalyticsSummary(
     totalEggs: totalEggs,
     dailyAverage: dailyAverage,
@@ -275,8 +330,11 @@ final analyticsProvider = FutureProvider<AnalyticsSummary>((ref) async {
     daysWithoutData: daysWithoutData,
     periodChange: periodChangeResult.change,
     hasPreviousPeriodData: periodChangeResult.hasPreviousData,
+    comparisonEndDate: periodChangeResult.comparisonEndDate,
     birdStats: birdStats,
     dailyCounts: dailyCounts,
+    chartData: chartData,
+    chartGranularity: chartGranularity,
   );
 });
 
@@ -284,8 +342,9 @@ final analyticsProvider = FutureProvider<AnalyticsSummary>((ref) async {
 class PeriodChangeResult {
   final double change;
   final bool hasPreviousData;
+  final DateTime? comparisonEndDate; // The end date of the previous period
 
-  const PeriodChangeResult(this.change, this.hasPreviousData);
+  const PeriodChangeResult(this.change, this.hasPreviousData, [this.comparisonEndDate]);
 }
 
 Future<PeriodChangeResult> _calculatePeriodChange(
@@ -300,44 +359,49 @@ Future<PeriodChangeResult> _calculatePeriodChange(
 
   switch (period) {
     case AnalyticsPeriod.week:
-      // Current week (from Sunday)
-      currentStart = today.subtract(Duration(days: today.weekday % 7));
+      // Last 7 days (today is day 7)
+      currentStart = today.subtract(const Duration(days: 6));
       currentEnd = today;
-      // Previous week
-      previousStart = currentStart.subtract(const Duration(days: 7));
-      previousEnd = currentStart.subtract(const Duration(days: 1));
+      // Compare to previous 7 days
+      previousStart = today.subtract(const Duration(days: 13));
+      previousEnd = today.subtract(const Duration(days: 7));
 
     case AnalyticsPeriod.month:
-      // Current month
+      // Current month (1st to today)
       currentStart = DateTime(now.year, now.month, 1);
       currentEnd = today;
-      // Previous month
+      // Compare to same days last month (1st to same day of month)
       final prevMonth = now.month == 1 ? 12 : now.month - 1;
       final prevYear = now.month == 1 ? now.year - 1 : now.year;
       previousStart = DateTime(prevYear, prevMonth, 1);
-      previousEnd = DateTime(now.year, now.month, 1).subtract(const Duration(days: 1));
+      // Handle months with fewer days (e.g., comparing Mar 31 to Feb)
+      final daysInPrevMonth = DateTime(prevYear, prevMonth + 1, 0).day;
+      final prevDay = now.day > daysInPrevMonth ? daysInPrevMonth : now.day;
+      previousEnd = DateTime(prevYear, prevMonth, prevDay);
 
     case AnalyticsPeriod.year:
-      // Current year
+      // Current year (Jan 1 to today)
       currentStart = DateTime(now.year, 1, 1);
       currentEnd = today;
-      // Previous year
+      // Compare to same days last year (Jan 1 to same month/day)
       previousStart = DateTime(now.year - 1, 1, 1);
-      previousEnd = DateTime(now.year, 1, 1).subtract(const Duration(days: 1));
+      // Handle leap year edge case (Feb 29)
+      final prevYearDay = (now.month == 2 && now.day == 29) ? 28 : now.day;
+      previousEnd = DateTime(now.year - 1, now.month, prevYearDay);
 
     case AnalyticsPeriod.allTime:
-      // For all time, fall back to week over week
+      // For all time, fall back to week over week with same-day comparison
       currentStart = today.subtract(Duration(days: today.weekday % 7));
       currentEnd = today;
       previousStart = currentStart.subtract(const Duration(days: 7));
-      previousEnd = currentStart.subtract(const Duration(days: 1));
+      previousEnd = today.subtract(const Duration(days: 7));
   }
 
   // Check if we have data in the previous period
   final firstEggDate = await eggRepo.getFirstEggLogDate();
   if (firstEggDate == null || firstEggDate.isAfter(previousEnd)) {
     // No data exists for the previous period
-    return const PeriodChangeResult(0.0, false);
+    return const PeriodChangeResult(0.0, false, null);
   }
 
   int currentCount;
@@ -366,11 +430,11 @@ Future<PeriodChangeResult> _calculatePeriodChange(
   }
 
   if (previousCount == 0) {
-    return PeriodChangeResult(currentCount > 0 ? 100.0 : 0.0, false);
+    return PeriodChangeResult(currentCount > 0 ? 100.0 : 0.0, false, previousEnd);
   }
 
   final change = ((currentCount - previousCount) / previousCount) * 100;
-  return PeriodChangeResult(change, true);
+  return PeriodChangeResult(change, true, previousEnd);
 }
 
 Future<List<BirdEggStats>> _calculateBirdStats(
@@ -422,6 +486,144 @@ Future<List<BirdEggStats>> _calculateBirdStats(
   stats.sort((a, b) => b.eggCount.compareTo(a.eggCount));
 
   return stats;
+}
+
+/// Aggregate daily counts into chart data with appropriate granularity
+(List<ChartDataPoint>, ChartGranularity) _aggregateChartData(
+  List<DailyEggCount> dailyCounts,
+  AnalyticsPeriod period,
+  DateRange dateRange,
+) {
+  if (dailyCounts.isEmpty) {
+    return ([], ChartGranularity.daily);
+  }
+
+  // Determine granularity based on period and data range
+  final weeksOfData = dateRange.dayCount / 7;
+
+  ChartGranularity granularity;
+  switch (period) {
+    case AnalyticsPeriod.week:
+    case AnalyticsPeriod.month:
+      granularity = ChartGranularity.daily;
+    case AnalyticsPeriod.year:
+      granularity = ChartGranularity.weekly;
+    case AnalyticsPeriod.allTime:
+      // Weekly if under ~2 years, monthly beyond that
+      granularity = weeksOfData > 104 ? ChartGranularity.monthly : ChartGranularity.weekly;
+  }
+
+  // For daily, convert directly
+  if (granularity == ChartGranularity.daily) {
+    return (
+      dailyCounts.map((dc) => ChartDataPoint(
+        startDate: dc.date,
+        endDate: dc.date,
+        value: dc.count.toDouble(),
+        totalEggs: dc.count,
+        dayCount: 1,
+      )).toList(),
+      granularity,
+    );
+  }
+
+  // For weekly/monthly, aggregate
+  final chartData = <ChartDataPoint>[];
+
+  if (granularity == ChartGranularity.weekly) {
+    // Group by ISO week (Monday-based for consistency)
+    var currentWeekStart = _getWeekStart(dailyCounts.first.date);
+    var weekEggs = 0;
+    var weekDays = 0;
+    DateTime? weekEnd;
+
+    for (final dc in dailyCounts) {
+      final dayWeekStart = _getWeekStart(dc.date);
+
+      if (dayWeekStart != currentWeekStart) {
+        // Save previous week
+        if (weekDays > 0) {
+          chartData.add(ChartDataPoint(
+            startDate: currentWeekStart,
+            endDate: weekEnd ?? currentWeekStart,
+            value: weekEggs / weekDays, // average eggs per day
+            totalEggs: weekEggs,
+            dayCount: weekDays,
+          ));
+        }
+        // Start new week
+        currentWeekStart = dayWeekStart;
+        weekEggs = 0;
+        weekDays = 0;
+      }
+
+      weekEggs += dc.count;
+      weekDays++;
+      weekEnd = dc.date;
+    }
+
+    // Don't forget the last week
+    if (weekDays > 0) {
+      chartData.add(ChartDataPoint(
+        startDate: currentWeekStart,
+        endDate: weekEnd ?? currentWeekStart,
+        value: weekEggs / weekDays,
+        totalEggs: weekEggs,
+        dayCount: weekDays,
+      ));
+    }
+  } else {
+    // Monthly aggregation
+    var currentMonth = DateTime(dailyCounts.first.date.year, dailyCounts.first.date.month, 1);
+    var monthEggs = 0;
+    var monthDays = 0;
+    DateTime? monthEnd;
+
+    for (final dc in dailyCounts) {
+      final dayMonth = DateTime(dc.date.year, dc.date.month, 1);
+
+      if (dayMonth != currentMonth) {
+        // Save previous month
+        if (monthDays > 0) {
+          chartData.add(ChartDataPoint(
+            startDate: currentMonth,
+            endDate: monthEnd ?? currentMonth,
+            value: monthEggs / monthDays,
+            totalEggs: monthEggs,
+            dayCount: monthDays,
+          ));
+        }
+        // Start new month
+        currentMonth = dayMonth;
+        monthEggs = 0;
+        monthDays = 0;
+      }
+
+      monthEggs += dc.count;
+      monthDays++;
+      monthEnd = dc.date;
+    }
+
+    // Don't forget the last month
+    if (monthDays > 0) {
+      chartData.add(ChartDataPoint(
+        startDate: currentMonth,
+        endDate: monthEnd ?? currentMonth,
+        value: monthEggs / monthDays,
+        totalEggs: monthEggs,
+        dayCount: monthDays,
+      ));
+    }
+  }
+
+  return (chartData, granularity);
+}
+
+/// Get the Monday of the week containing the given date
+DateTime _getWeekStart(DateTime date) {
+  // weekday: 1 = Monday, 7 = Sunday
+  final daysFromMonday = date.weekday - 1;
+  return DateTime(date.year, date.month, date.day - daysFromMonday);
 }
 
 /// Provider for top layers only
