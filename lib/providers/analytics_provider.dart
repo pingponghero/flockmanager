@@ -543,9 +543,13 @@ Future<List<BirdEggStats>> _calculateBirdStats(
       if (dayWeekStart != currentWeekStart) {
         // Save previous week
         if (weekDays > 0) {
+          // Clamp startDate so it doesn't precede the selected range
+          final clampedStart = currentWeekStart.isBefore(dateRange.start)
+              ? dateRange.start
+              : currentWeekStart;
           chartData.add(ChartDataPoint(
-            startDate: currentWeekStart,
-            endDate: weekEnd ?? currentWeekStart,
+            startDate: clampedStart,
+            endDate: weekEnd ?? clampedStart,
             value: weekEggs / weekDays, // average eggs per day
             totalEggs: weekEggs,
             dayCount: weekDays,
@@ -564,9 +568,12 @@ Future<List<BirdEggStats>> _calculateBirdStats(
 
     // Don't forget the last week
     if (weekDays > 0) {
+      final clampedStart = currentWeekStart.isBefore(dateRange.start)
+          ? dateRange.start
+          : currentWeekStart;
       chartData.add(ChartDataPoint(
-        startDate: currentWeekStart,
-        endDate: weekEnd ?? currentWeekStart,
+        startDate: clampedStart,
+        endDate: weekEnd ?? clampedStart,
         value: weekEggs / weekDays,
         totalEggs: weekEggs,
         dayCount: weekDays,

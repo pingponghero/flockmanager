@@ -527,7 +527,7 @@ class _ProductionChart extends StatelessWidget {
       }
       return DateFormat.MMM().format(point.startDate);
     } else {
-      // Weekly - include year if data spans multiple years
+      // Weekly — use short date; include year if spanning multiple years
       if (_spansMultipleYears) {
         return DateFormat("M/d/yy").format(point.startDate);
       }
@@ -551,10 +551,9 @@ class _ProductionChart extends StatelessWidget {
   }
 
   double _calculateInterval() {
+    // Aim for ~5-6 labels on the x-axis regardless of data length
     if (chartData.length <= 7) return 1;
-    if (chartData.length <= 14) return 2;
-    if (chartData.length <= 31) return 7;
-    return (chartData.length / 5).roundToDouble();
+    return (chartData.length / 5).ceilToDouble();
   }
 }
 
