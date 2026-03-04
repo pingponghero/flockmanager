@@ -329,10 +329,11 @@ class _EggValueCard extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          '${summary.eggsConsumed} eggs @ \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz',
-                          style: mutedStyle,
-                        ),
+                        if (summary.eggsConsumed > 0)
+                          Text(
+                            '${summary.eggsConsumed} eggs valued @ \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz',
+                            style: mutedStyle,
+                          ),
                         if (summary.eggsSold > 0) ...[
                           const SizedBox(height: 2),
                           Text(
@@ -588,8 +589,9 @@ class _LineItemList extends StatelessWidget {
     }).toList();
 
     if (selectedFlockId != null) {
-      filteredExpenses =
-          filteredExpenses.where((e) => e.flockId == selectedFlockId).toList();
+      filteredExpenses = filteredExpenses
+          .where((e) => e.flockId == selectedFlockId || e.flockId == null)
+          .toList();
     }
 
     if (filter.isExpenseCategory) {
@@ -598,11 +600,17 @@ class _LineItemList extends StatelessWidget {
           .toList();
     }
 
-    // Filter income by date range
-    final filteredIncome = income.where((i) {
+    // Filter income by date range and flock
+    var filteredIncome = income.where((i) {
       final d = i.date;
       return !d.isBefore(rangeStart) && !d.isAfter(rangeEnd);
     }).toList();
+
+    if (selectedFlockId != null) {
+      filteredIncome = filteredIncome
+          .where((i) => i.flockId == selectedFlockId || i.flockId == null)
+          .toList();
+    }
 
     // Build merged list based on filter
     final items = <_LineItem>[
@@ -643,9 +651,17 @@ class _LineItemList extends StatelessWidget {
       child: Column(
         children: items.map((item) {
           if (item.expense != null) {
-            return _ExpenseCard(expense: item.expense!);
+            return _ExpenseCard(
+              expense: item.expense!,
+              showSharedBadge:
+                  selectedFlockId != null && item.expense!.flockId == null,
+            );
           } else {
-            return _IncomeCard(income: item.incomeRecord!);
+            return _IncomeCard(
+              income: item.incomeRecord!,
+              showSharedBadge:
+                  selectedFlockId != null && item.incomeRecord!.flockId == null,
+            );
           }
         }).toList(),
       ),
@@ -657,8 +673,9 @@ class _LineItemList extends StatelessWidget {
 
 class _ExpenseCard extends ConsumerWidget {
   final Expense expense;
+  final bool showSharedBadge;
 
-  const _ExpenseCard({required this.expense});
+  const _ExpenseCard({required this.expense, this.showSharedBadge = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -709,7 +726,29 @@ class _ExpenseCard extends ConsumerWidget {
             ),
           ),
           title: Text(expense.description ?? expense.category.displayName),
-          subtitle: Text(DateFormat.yMMMd().format(expense.date)),
+          subtitle: Row(
+            children: [
+              Text(DateFormat.yMMMd().format(expense.date)),
+              if (showSharedBadge) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Shared',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ),
+              ],
+            ],
+          ),
           trailing: Text(
             '-\$${expense.amount.toStringAsFixed(2)}',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -759,8 +798,9 @@ class _ExpenseCard extends ConsumerWidget {
 
 class _IncomeCard extends ConsumerWidget {
   final Income income;
+  final bool showSharedBadge;
 
-  const _IncomeCard({required this.income});
+  const _IncomeCard({required this.income, this.showSharedBadge = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -828,6 +868,24 @@ class _IncomeCard extends ConsumerWidget {
                   ),
                   child: Text(
                     '${income.eggCount} eggs',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ),
+              ],
+              if (showSharedBadge) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Shared',
                     style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ),

@@ -45,6 +45,6 @@ class EggValueSummary {
   /// Income minus expenses (only meaningful if user tracks income).
   double get cashFlow => totalIncome - totalExpenses;
 
-  /// Eggs consumed (not sold).
-  int get eggsConsumed => eggCount - eggsSold;
+  /// Eggs consumed (not sold). Clamped to 0 if sold exceeds logged.
+  int get eggsConsumed => (eggCount - eggsSold).clamp(0, eggCount);
 }

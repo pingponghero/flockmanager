@@ -53,11 +53,6 @@ class MonthlySavingsCard extends ConsumerWidget {
                                     color: primaryColor,
                                   ),
                         ),
-                        TextSpan(
-                          text:
-                              ' vs \$${summary.retailPricePerDozen.toStringAsFixed(2)} store',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
                       ],
                     ),
                   ),
