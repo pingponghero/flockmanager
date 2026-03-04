@@ -68,7 +68,7 @@ class ScaffoldWithNavBar extends ConsumerWidget {
           const NavigationDestination(
             icon: Icon(Icons.attach_money_outlined),
             selectedIcon: Icon(Icons.attach_money),
-            label: 'Expenses',
+            label: 'Value',
           ),
           const NavigationDestination(
             icon: Icon(Icons.settings_outlined),

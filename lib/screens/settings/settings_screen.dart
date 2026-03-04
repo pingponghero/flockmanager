@@ -16,6 +16,7 @@ import '../../data/test_data.dart';
 import '../../database/database_helper.dart';
 import '../../providers/bird_provider.dart' show birdsProvider;
 import '../../providers/egg_provider.dart' show autoDistributeEggsProvider, eggLogsProvider;
+import '../../providers/egg_value_provider.dart';
 import '../../providers/expense_provider.dart' show expensesProvider;
 import '../../providers/flock_provider.dart' show flocksProvider, selectedFlockIdProvider;
 import '../../providers/medication_provider.dart' show medicationsProvider;
@@ -187,6 +188,17 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
           ),
+          const SizedBox(height: 24),
+
+          // Finances Section
+          Text(
+            'Finances',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+          ),
+          const SizedBox(height: 12),
+          const _RetailPriceCard(),
           const SizedBox(height: 24),
 
           // Notifications Section
@@ -673,6 +685,83 @@ class SettingsScreen extends ConsumerWidget {
               }
             },
             child: const Text('Delete Everything'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RetailPriceCard extends ConsumerWidget {
+  const _RetailPriceCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final retailPrice = ref.watch(retailPricePerDozenProvider);
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.egg),
+        title: const Text('Store Egg Price'),
+        subtitle: const Text('Retail price per dozen for comparison'),
+        trailing: Text(
+          '\$${retailPrice.toStringAsFixed(2)}/doz',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+        ),
+        onTap: () => _showPriceDialog(context, ref, retailPrice),
+      ),
+    );
+  }
+
+  void _showPriceDialog(
+      BuildContext context, WidgetRef ref, double currentPrice) {
+    final controller = TextEditingController(
+      text: currentPrice.toStringAsFixed(2),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Store Egg Price'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+                'What does a dozen eggs cost at your local store? Used to calculate the value of your flock\'s production.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              ],
+              decoration: const InputDecoration(
+                prefixText: '\$ ',
+                labelText: 'Price per dozen',
+                hintText: '4.50',
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text);
+              if (value != null && value > 0) {
+                ref.read(retailPricePerDozenProvider.notifier).setPrice(value);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
           ),
         ],
       ),

@@ -87,7 +87,9 @@ class Tables {
       amount REAL NOT NULL,
       description TEXT,
       egg_count INTEGER,
-      created_at TEXT NOT NULL
+      flock_id TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (flock_id) REFERENCES flocks(id)
     )
   ''';
 

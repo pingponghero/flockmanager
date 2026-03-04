@@ -5,6 +5,7 @@ import '../models/income.dart';
 import '../models/enums.dart';
 import '../repositories/expense_repository.dart';
 import 'egg_provider.dart';
+import 'egg_value_provider.dart';
 
 /// Repository provider
 final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
@@ -60,6 +61,10 @@ class ExpensesNotifier extends AsyncNotifier<List<Expense>> {
     ref.invalidate(selectedRangeExpensesProvider);
     ref.invalidate(selectedRangeIncomeProvider);
     ref.invalidate(selectedRangeCostPerEggProvider);
+    ref.invalidate(selectedRangeEggValueProvider);
+    ref.invalidate(monthEggValueProvider);
+    ref.invalidate(selectedRangeDailyExpensesProvider);
+    ref.invalidate(selectedRangeDailyIncomeProvider);
   }
 }
 
@@ -115,6 +120,10 @@ class IncomeNotifier extends AsyncNotifier<List<Income>> {
     ref.invalidate(selectedRangeExpensesProvider);
     ref.invalidate(selectedRangeIncomeProvider);
     ref.invalidate(selectedRangeCostPerEggProvider);
+    ref.invalidate(selectedRangeEggValueProvider);
+    ref.invalidate(monthEggValueProvider);
+    ref.invalidate(selectedRangeDailyExpensesProvider);
+    ref.invalidate(selectedRangeDailyIncomeProvider);
   }
 }
 
@@ -308,6 +317,26 @@ final expenseByIdProvider = FutureProvider.family<Expense?, String>((ref, id) as
 final incomeByIdProvider = FutureProvider.family<Income?, String>((ref, id) async {
   final repository = ref.read(expenseRepositoryProvider);
   return repository.getIncomeById(id);
+});
+
+// ==================== DAILY TREND PROVIDERS ====================
+
+/// Daily expense totals for the selected finance date range (for sparklines).
+final selectedRangeDailyExpensesProvider =
+    FutureProvider<Map<DateTime, double>>((ref) async {
+  final repository = ref.read(expenseRepositoryProvider);
+  final range = ref.watch(financeDateRangeProvider);
+  final (start, end) = range.dates;
+  return repository.getDailyExpenses(start, end);
+});
+
+/// Daily income totals for the selected finance date range (for sparklines).
+final selectedRangeDailyIncomeProvider =
+    FutureProvider<Map<DateTime, double>>((ref) async {
+  final repository = ref.read(expenseRepositoryProvider);
+  final range = ref.watch(financeDateRangeProvider);
+  final (start, end) = range.dates;
+  return repository.getDailyIncome(start, end);
 });
 
 /// Break-even price per egg (expenses / eggs sold)

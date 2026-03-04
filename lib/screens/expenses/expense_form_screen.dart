@@ -320,6 +320,7 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
   final _eggCountController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
+  String? _selectedFlockId;
 
   bool _isLoading = false;
   bool _isInitialized = false;
@@ -342,6 +343,7 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
     _descriptionController.text = income.description ?? '';
     _eggCountController.text = income.eggCount?.toString() ?? '';
     _selectedDate = income.date;
+    _selectedFlockId = income.flockId;
   }
 
   Future<void> _selectDate() async {
@@ -375,6 +377,7 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
             amount: amount,
             description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
             eggCount: eggCount,
+            flockId: _selectedFlockId,
           );
           await ref.read(incomeProvider.notifier).updateIncome(updated);
         }
@@ -384,6 +387,7 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
           amount: amount,
           description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
           eggCount: eggCount,
+          flockId: _selectedFlockId,
         );
         await ref.read(incomeProvider.notifier).addIncome(income);
       }
@@ -411,6 +415,8 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final flocksAsync = ref.watch(flocksProvider);
+
     // Load existing income if editing
     if (_isEditing) {
       final incomeAsync = ref.watch(incomeByIdProvider(widget.incomeId!));
@@ -513,6 +519,36 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
                 hintText: 'e.g., Farmers market, neighbor',
               ),
               maxLines: 2,
+            ),
+            const SizedBox(height: 16),
+
+            // Flock (optional)
+            flocksAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (flocks) {
+                if (flocks.isEmpty) return const SizedBox.shrink();
+                return DropdownButtonFormField<String?>(
+                  value: _selectedFlockId,
+                  decoration: const InputDecoration(
+                    labelText: 'Flock (optional)',
+                    hintText: 'Shared income',
+                  ),
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Shared (all flocks)'),
+                    ),
+                    ...flocks.map((flock) => DropdownMenuItem(
+                          value: flock.id,
+                          child: Text(flock.name),
+                        )),
+                  ],
+                  onChanged: (value) {
+                    setState(() => _selectedFlockId = value);
+                  },
+                );
+              },
             ),
           ],
         ),
