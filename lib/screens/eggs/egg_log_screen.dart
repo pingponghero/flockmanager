@@ -233,59 +233,31 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Size chips
-            Text('Size', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: EggSize.values.map((size) {
-                final isSelected = _selectedSize == size;
-                return ChoiceChip(
-                  label: Text(
-                    size.displayName,
-                    style: TextStyle(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  selected: isSelected,
-                  selectedColor: Theme.of(context).colorScheme.primary,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedSize = selected ? size : null;
-                    });
-                  },
-                );
-              }).toList(),
+            // Size dropdown
+            DropdownMenu<EggSize>(
+              initialSelection: _selectedSize,
+              label: const Text('Size'),
+              expandedInsets: EdgeInsets.zero,
+              onSelected: (value) {
+                if (value != null) setState(() => _selectedSize = value);
+              },
+              dropdownMenuEntries: EggSize.values
+                  .map((s) => DropdownMenuEntry(value: s, label: s.displayName))
+                  .toList(),
             ),
             const SizedBox(height: 16),
 
-            // Quality chips
-            Text('Quality', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: EggQuality.values.map((quality) {
-                final isSelected = _selectedQuality == quality;
-                return ChoiceChip(
-                  label: Text(
-                    quality.displayName,
-                    style: TextStyle(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  selected: isSelected,
-                  selectedColor: Theme.of(context).colorScheme.primary,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedQuality = selected ? quality : null;
-                    });
-                  },
-                );
-              }).toList(),
+            // Quality dropdown
+            DropdownMenu<EggQuality>(
+              initialSelection: _selectedQuality,
+              label: const Text('Quality'),
+              expandedInsets: EdgeInsets.zero,
+              onSelected: (value) {
+                if (value != null) setState(() => _selectedQuality = value);
+              },
+              dropdownMenuEntries: EggQuality.values
+                  .map((q) => DropdownMenuEntry(value: q, label: q.displayName))
+                  .toList(),
             ),
             const SizedBox(height: 16),
 

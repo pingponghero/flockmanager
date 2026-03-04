@@ -208,9 +208,14 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             const SizedBox(height: 16),
 
             // Date
-            _DateIndicator(
-              date: _selectedDate,
-              onTap: _selectDate,
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: Text(DateFormat.yMMMd().format(_selectedDate)),
+                subtitle: const Text('Date'),
+                trailing: const Icon(Icons.edit),
+                onTap: _selectDate,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -495,9 +500,14 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
             const SizedBox(height: 16),
 
             // Date
-            _DateIndicator(
-              date: _selectedDate,
-              onTap: _selectDate,
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.calendar_today),
+                title: Text(DateFormat.yMMMd().format(_selectedDate)),
+                subtitle: const Text('Date'),
+                trailing: const Icon(Icons.edit),
+                onTap: _selectDate,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -545,63 +555,3 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
   }
 }
 
-class _DateIndicator extends StatelessWidget {
-  final DateTime date;
-  final VoidCallback? onTap;
-
-  const _DateIndicator({required this.date, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final dateOnly = DateTime(date.year, date.month, date.day);
-
-    String label;
-    if (dateOnly == today) {
-      label = 'Today';
-    } else if (dateOnly == yesterday) {
-      label = 'Yesterday';
-    } else {
-      label = DateFormat.MMMd().format(date);
-    }
-
-    return Row(
-      children: [
-        Text(
-          'Date',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-        const Spacer(),
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}

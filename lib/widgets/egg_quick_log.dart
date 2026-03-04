@@ -45,8 +45,8 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
   String? _selectedFlockId;
   late DateTime _date = widget.initialDate ?? DateTime.now();
   String? _selectedBirdId;
-  EggSize? _selectedSize;
-  EggQuality? _selectedQuality;
+  EggSize? _selectedSize = EggSize.medium;
+  EggQuality? _selectedQuality = EggQuality.normal;
   String? _notes;
   bool _showAdvanced = false;
   bool _isLoading = false;
@@ -168,60 +168,30 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
                           onChanged: (birdId) => setState(() => _selectedBirdId = birdId),
                         ),
                         const SizedBox(height: 12),
-                        // Size chips
-                        Text('Size', style: Theme.of(context).textTheme.labelMedium),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 4,
-                          children: EggSize.values.map((size) {
-                            final isSelected = _selectedSize == size;
-                            return ChoiceChip(
-                              label: Text(
-                                size.displayName,
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                              selected: isSelected,
-                              selectedColor: Theme.of(context).colorScheme.primary,
-                              onSelected: (selected) {
-                                setState(() {
-                                  _selectedSize = selected ? size : null;
-                                });
-                              },
-                            );
-                          }).toList(),
+                        // Size dropdown
+                        DropdownMenu<EggSize>(
+                          initialSelection: _selectedSize,
+                          label: const Text('Size'),
+                          expandedInsets: EdgeInsets.zero,
+                          onSelected: (value) {
+                            if (value != null) setState(() => _selectedSize = value);
+                          },
+                          dropdownMenuEntries: EggSize.values
+                              .map((s) => DropdownMenuEntry(value: s, label: s.displayName))
+                              .toList(),
                         ),
                         const SizedBox(height: 12),
-                        // Quality chips
-                        Text('Quality', style: Theme.of(context).textTheme.labelMedium),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 4,
-                          children: EggQuality.values.map((quality) {
-                            final isSelected = _selectedQuality == quality;
-                            return ChoiceChip(
-                              label: Text(
-                                quality.displayName,
-                                style: TextStyle(
-                                  color: isSelected
-                                      ? Theme.of(context).colorScheme.onPrimary
-                                      : Theme.of(context).colorScheme.onSurface,
-                                    ),
-                              ),
-                              selected: isSelected,
-                              selectedColor: Theme.of(context).colorScheme.primary,
-                              onSelected: (selected) {
-                                setState(() {
-                                  _selectedQuality = selected ? quality : null;
-                                });
-                              },
-                            );
-                          }).toList(),
+                        // Quality dropdown
+                        DropdownMenu<EggQuality>(
+                          initialSelection: _selectedQuality,
+                          label: const Text('Quality'),
+                          expandedInsets: EdgeInsets.zero,
+                          onSelected: (value) {
+                            if (value != null) setState(() => _selectedQuality = value);
+                          },
+                          dropdownMenuEntries: EggQuality.values
+                              .map((q) => DropdownMenuEntry(value: q, label: q.displayName))
+                              .toList(),
                         ),
                         const SizedBox(height: 12),
                         // Notes field
