@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../providers/achievements_provider.dart';
+import '../../settings/achievements_screen.dart' show showAchievementDetails;
 
 /// Displays the latest achievement earned with a link to all achievements
 class LatestAchievement extends ConsumerWidget {
@@ -11,7 +12,6 @@ class LatestAchievement extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final latestAsync = ref.watch(latestAchievementProvider);
-    final summaryAsync = ref.watch(achievementSummaryProvider);
 
     return latestAsync.when(
       loading: () => const SizedBox.shrink(),
@@ -19,10 +19,22 @@ class LatestAchievement extends ConsumerWidget {
       data: (achievement) {
         if (achievement == null) return const SizedBox.shrink();
 
-        final summary = summaryAsync.value;
-
         return GestureDetector(
-          onTap: () => context.go('/settings/achievements'),
+          onTap: () => showAchievementDetails(
+            context,
+            achievement: achievement,
+            earned: true,
+            trailing: [
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.go('/settings/achievements');
+                },
+                child: const Text('See all achievements'),
+              ),
+            ],
+          ),
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -69,23 +81,6 @@ class LatestAchievement extends ConsumerWidget {
                     ],
                   ),
                 ),
-                // Summary count
-                // if (summary != null)
-                //   Container(
-                //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                //     decoration: BoxDecoration(
-                //       color: Theme.of(context).colorScheme.primaryContainer,
-                //       borderRadius: BorderRadius.circular(12),
-                //     ),
-                //     child: Text(
-                //       '${summary.earned}/${summary.total}',
-                //       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                //             color: Theme.of(context).colorScheme.onPrimaryContainer,
-                //             fontWeight: FontWeight.bold,
-                //           ),
-                //     ),
-                //   ),
-                // const SizedBox(width: 8),
                 Icon(
                   Icons.chevron_right,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
