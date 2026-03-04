@@ -79,7 +79,7 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
         children: [
           // Flock filter dropdown
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: FlockDropdown(
               selectedFlockId: selectedFlockId,
               onChanged: (value) {
@@ -89,7 +89,7 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
           ),
           // Gender and status filter dropdowns
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
               children: [
                 Expanded(

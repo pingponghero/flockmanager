@@ -228,36 +228,19 @@ class _HealthNoteFormScreenState extends ConsumerState<HealthNoteFormScreen> {
                   const SizedBox(height: 16),
 
                   // Type selector
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Type',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: HealthNoteType.values.map((type) {
-                              final isSelected = type == _selectedType;
-                              return ChoiceChip(
-                                label: Text(type.displayName),
-                                selected: isSelected,
-                                onSelected: (_) {
-                                  setState(() => _selectedType = type);
-                                },
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
+                  DropdownMenu<HealthNoteType>(
+                    initialSelection: _selectedType,
+                    label: const Text('Type'),
+                    expandedInsets: EdgeInsets.zero,
+                    onSelected: (type) {
+                      if (type != null) setState(() => _selectedType = type);
+                    },
+                    dropdownMenuEntries: HealthNoteType.values
+                        .map((type) => DropdownMenuEntry(
+                              value: type,
+                              label: type.displayName,
+                            ))
+                        .toList(),
                   ),
                   const SizedBox(height: 16),
 

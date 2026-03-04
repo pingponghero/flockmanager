@@ -5,6 +5,7 @@ import '../models/egg_log.dart';
 import '../models/enums.dart';
 import '../repositories/egg_repository.dart';
 import 'analytics_provider.dart';
+import 'egg_value_provider.dart';
 import 'expense_provider.dart';
 import 'flock_provider.dart';
 import 'notification_provider.dart';
@@ -128,6 +129,10 @@ class EggLogsNotifier extends AsyncNotifier<List<EggLog>> {
     ref.invalidate(costPerEggProvider);
     ref.invalidate(selectedRangeCostPerEggProvider);
     ref.invalidate(breakEvenPriceProvider);
+    // Egg value providers
+    ref.invalidate(selectedRangeEggValueProvider);
+    ref.invalidate(monthEggValueProvider);
+    ref.invalidate(allTimeEggValueProvider);
   }
 }
 

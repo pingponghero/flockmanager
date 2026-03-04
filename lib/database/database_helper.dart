@@ -15,7 +15,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String _databaseName = 'flock_manager.db';
-  static const int _databaseVersion = 3;
+  static const int _databaseVersion = 4;
 
   /// Get the database instance, initializing if needed.
   Future<Database> get database async {
@@ -102,6 +102,15 @@ class DatabaseHelper {
       }
 
       await batch.commit(noResult: true);
+    }
+
+    // Migration to version 4: Add flock_id to income table
+    if (oldVersion < 4) {
+      final cols = await db.rawQuery('PRAGMA table_info(income)');
+      final hasFlockId = cols.any((c) => c['name'] == 'flock_id');
+      if (!hasFlockId) {
+        await db.execute('ALTER TABLE income ADD COLUMN flock_id TEXT');
+      }
     }
   }
 

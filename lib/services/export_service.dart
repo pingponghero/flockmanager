@@ -148,6 +148,7 @@ class ExportService {
         'amount',
         'description',
         'egg_count',
+        'flock_id',
         'created_at',
       ]);
       archive.addFile(

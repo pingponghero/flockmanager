@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/achievements_provider.dart';
+import '../../providers/egg_value_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
@@ -16,6 +17,7 @@ import 'widgets/chicken_of_the_week.dart' show FlockSpotlight;
 import 'widgets/greeting_header.dart';
 import 'widgets/home_stats_row.dart';
 import 'widgets/latest_achievement.dart';
+import 'widgets/monthly_savings_card.dart';
 import 'widgets/spark_line_card.dart';
 import 'widgets/today_egg_card.dart';
 import 'widgets/withdrawal_warning.dart';
@@ -58,6 +60,8 @@ class HomeScreen extends ConsumerWidget {
           ref.invalidate(activeWithdrawalsProvider);
           // Achievements
           ref.invalidate(latestAchievementProvider);
+          // Egg value
+          ref.invalidate(allTimeEggValueProvider);
           ref.invalidate(achievementSummaryProvider);
           // Wait for data to actually refresh
           await Future.wait([
@@ -66,6 +70,7 @@ class HomeScreen extends ConsumerWidget {
             ref.read(weekEggCountByFlockProvider.future),
             ref.read(monthEggCountByFlockProvider.future),
             ref.read(activeBirdsProvider.future),
+            ref.read(allTimeEggValueProvider.future),
           ]);
         },
         child: ListView(
@@ -97,6 +102,10 @@ class HomeScreen extends ConsumerWidget {
 
             // Stats row
             HomeStatsRow(selectedFlockId: selectedFlockId),
+            const SizedBox(height: 16),
+
+            // Monthly savings vs store
+            const MonthlySavingsCard(),
             const SizedBox(height: 24),
 
             // Latest achievement

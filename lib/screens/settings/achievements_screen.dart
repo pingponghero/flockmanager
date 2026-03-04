@@ -124,16 +124,28 @@ class _CategorySection extends StatelessWidget {
           ),
         ),
         // Achievement grid
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: sortedItems.map((item) {
-            return _AchievementTile(
-              achievement: item.achievement,
-              earned: item.earned,
-              progress: progress[item.achievement.id],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const spacing = 12.0;
+            const columns = 3;
+            final tileWidth = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+            final tileHeight = tileWidth * 1.25;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: sortedItems.map((item) {
+                return SizedBox(
+                  width: tileWidth,
+                  height: tileHeight,
+                  child: _AchievementTile(
+                    achievement: item.achievement,
+                    earned: item.earned,
+                    progress: progress[item.achievement.id],
+                  ),
+                );
+              }).toList(),
             );
-          }).toList(),
+          },
         ),
         const SizedBox(height: 24),
       ],
@@ -159,7 +171,6 @@ class _AchievementTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => _showDetails(context),
       child: Container(
-        width: 100,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: earned
@@ -171,7 +182,6 @@ class _AchievementTile extends StatelessWidget {
               : null,
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             // Icon
             Container(
@@ -256,9 +266,28 @@ class _AchievementTile extends StatelessWidget {
   }
 
   void _showDetails(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
+    showAchievementDetails(
+      context,
+      achievement: achievement,
+      earned: earned,
+      progress: progress,
+    );
+  }
+}
+
+/// Shows a bottom sheet with achievement details.
+/// Used by both the achievements list and the home screen latest achievement.
+void showAchievementDetails(
+  BuildContext context, {
+  required Achievement achievement,
+  required bool earned,
+  AchievementProgress? progress,
+  List<Widget> trailing = const [],
+}) {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) => SafeArea(
+      child: Container(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -323,7 +352,7 @@ class _AchievementTile extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
-                        value: progress!.percent,
+                        value: progress.percent,
                         minHeight: 8,
                         backgroundColor: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                         valueColor: AlwaysStoppedAnimation(
@@ -333,7 +362,7 @@ class _AchievementTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${progress!.current} / ${progress!.target}',
+                      '${progress.current} / ${progress.target}',
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: Theme.of(context).colorScheme.outline,
                           ),
@@ -371,10 +400,11 @@ class _AchievementTile extends StatelessWidget {
                 ],
               ),
             ),
+            ...trailing,
             const SizedBox(height: 16),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }

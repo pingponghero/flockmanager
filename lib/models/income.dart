@@ -13,6 +13,7 @@ abstract class Income with _$Income {
     required double amount,
     String? description,
     int? eggCount,
+    String? flockId,
     required DateTime createdAt,
   }) = _Income;
 
@@ -22,6 +23,7 @@ abstract class Income with _$Income {
     required double amount,
     String? description,
     int? eggCount,
+    String? flockId,
   }) {
     return Income(
       id: const Uuid().v4(),
@@ -29,6 +31,7 @@ abstract class Income with _$Income {
       amount: amount,
       description: description,
       eggCount: eggCount,
+      flockId: flockId,
       createdAt: DateTime.now(),
     );
   }
@@ -41,6 +44,7 @@ abstract class Income with _$Income {
       amount: (map['amount'] as num).toDouble(),
       description: map['description'] as String?,
       eggCount: map['egg_count'] as int?,
+      flockId: map['flock_id'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
@@ -53,6 +57,7 @@ abstract class Income with _$Income {
       'amount': amount,
       'description': description,
       'egg_count': eggCount,
+      'flock_id': flockId,
       'created_at': createdAt.toIso8601String(),
     };
   }

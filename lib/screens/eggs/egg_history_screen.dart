@@ -8,6 +8,7 @@ import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../utils/egg_log_grouper.dart';
+import '../../widgets/flock_dropdown.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/egg_quick_log.dart';
 
@@ -40,7 +41,6 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
-    final flocksAsync = ref.watch(flocksProvider);
 
     // Calculate date range for current month view
     final startOfMonth = _currentMonth;
@@ -83,28 +83,12 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
           children: [
             // Flock filter
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: flocksAsync.when(
-                loading: () => const SizedBox.shrink(),
-                error: (error, stack) => const SizedBox.shrink(),
-                data: (flocks) => DropdownMenu<String?>(
-                  initialSelection: selectedFlockId,
-                  expandedInsets: EdgeInsets.zero,
-                  label: const Text('Flock'),
-                  dropdownMenuEntries: [
-                    const DropdownMenuEntry(
-                      value: null,
-                      label: 'All Flocks',
-                    ),
-                    ...flocks.map((flock) => DropdownMenuEntry(
-                          value: flock.id,
-                          label: flock.name,
-                        )),
-                  ],
-                  onSelected: (value) {
-                    ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
-                  },
-                ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: FlockDropdown(
+                selectedFlockId: selectedFlockId,
+                onChanged: (value) {
+                  ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
+                },
               ),
             ),
             const SizedBox(height: 8),

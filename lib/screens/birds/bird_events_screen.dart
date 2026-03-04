@@ -33,7 +33,7 @@ class BirdEventsScreen extends ConsumerWidget {
         children: [
           // Flock filter dropdown
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: FlockDropdown(
               selectedFlockId: selectedFlockId,
               onChanged: (value) {

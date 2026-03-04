@@ -65,7 +65,9 @@ class GreetingHeader extends ConsumerWidget {
 
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -153,6 +155,7 @@ class GreetingHeader extends ConsumerWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

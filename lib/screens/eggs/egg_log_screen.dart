@@ -138,29 +138,22 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
                   });
                 }
 
-                return DropdownButtonFormField<String>(
-                  value: _selectedFlockId,
-                  decoration: const InputDecoration(
-                    labelText: 'Flock *',
-                    prefixIcon: Icon(Icons.grid_view),
-                  ),
-                  items: flocks.map((flock) {
-                    return DropdownMenuItem(
-                      value: flock.id,
-                      child: Text(flock.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
+                return DropdownMenu<String>(
+                  initialSelection: _selectedFlockId,
+                  expandedInsets: EdgeInsets.zero,
+                  label: const Text('Flock *'),
+                  leadingIcon: const Icon(Icons.grid_view),
+                  dropdownMenuEntries: flocks
+                      .map((flock) => DropdownMenuEntry(
+                            value: flock.id,
+                            label: flock.name,
+                          ))
+                      .toList(),
+                  onSelected: (value) {
                     setState(() {
                       _selectedFlockId = value;
-                      _selectedBirdId = null; // Reset bird when flock changes
+                      _selectedBirdId = null;
                     });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Please select a flock';
-                    }
-                    return null;
                   },
                 );
               },
@@ -184,33 +177,30 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
                         return const SizedBox.shrink();
                       }
 
-                      return DropdownButtonFormField<String?>(
-                        value: _selectedBirdId,
-                        decoration: InputDecoration(
-                          labelText: 'Bird (optional)',
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Image.asset(
-                              'assets/icons/cute_hen.png',
-                              width: 24,
-                              height: 24,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                      return DropdownMenu<String?>(
+                        initialSelection: _selectedBirdId,
+                        expandedInsets: EdgeInsets.zero,
+                        label: const Text('Bird (optional)'),
+                        leadingIcon: Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Image.asset(
+                            'assets/icons/cute_hen.png',
+                            width: 24,
+                            height: 24,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        items: [
-                          const DropdownMenuItem(
+                        dropdownMenuEntries: [
+                          const DropdownMenuEntry(
                             value: null,
-                            child: Text('Not specified'),
+                            label: 'Not specified',
                           ),
-                          ...birds.map((bird) {
-                            return DropdownMenuItem(
-                              value: bird.id,
-                              child: Text(bird.name),
-                            );
-                          }),
+                          ...birds.map((bird) => DropdownMenuEntry(
+                                value: bird.id,
+                                label: bird.name,
+                              )),
                         ],
-                        onChanged: (value) {
+                        onSelected: (value) {
                           setState(() => _selectedBirdId = value);
                         },
                       );
@@ -243,59 +233,31 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Size chips
-            Text('Size', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: EggSize.values.map((size) {
-                final isSelected = _selectedSize == size;
-                return ChoiceChip(
-                  label: Text(
-                    size.displayName,
-                    style: TextStyle(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  selected: isSelected,
-                  selectedColor: Theme.of(context).colorScheme.primary,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedSize = selected ? size : null;
-                    });
-                  },
-                );
-              }).toList(),
+            // Size dropdown
+            DropdownMenu<EggSize>(
+              initialSelection: _selectedSize,
+              label: const Text('Size'),
+              expandedInsets: EdgeInsets.zero,
+              onSelected: (value) {
+                if (value != null) setState(() => _selectedSize = value);
+              },
+              dropdownMenuEntries: EggSize.values
+                  .map((s) => DropdownMenuEntry(value: s, label: s.displayName))
+                  .toList(),
             ),
             const SizedBox(height: 16),
 
-            // Quality chips
-            Text('Quality', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: EggQuality.values.map((quality) {
-                final isSelected = _selectedQuality == quality;
-                return ChoiceChip(
-                  label: Text(
-                    quality.displayName,
-                    style: TextStyle(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  selected: isSelected,
-                  selectedColor: Theme.of(context).colorScheme.primary,
-                  onSelected: (selected) {
-                    setState(() {
-                      _selectedQuality = selected ? quality : null;
-                    });
-                  },
-                );
-              }).toList(),
+            // Quality dropdown
+            DropdownMenu<EggQuality>(
+              initialSelection: _selectedQuality,
+              label: const Text('Quality'),
+              expandedInsets: EdgeInsets.zero,
+              onSelected: (value) {
+                if (value != null) setState(() => _selectedQuality = value);
+              },
+              dropdownMenuEntries: EggQuality.values
+                  .map((q) => DropdownMenuEntry(value: q, label: q.displayName))
+                  .toList(),
             ),
             const SizedBox(height: 16),
 

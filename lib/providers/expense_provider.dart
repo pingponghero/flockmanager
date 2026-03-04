@@ -5,6 +5,8 @@ import '../models/income.dart';
 import '../models/enums.dart';
 import '../repositories/expense_repository.dart';
 import 'egg_provider.dart';
+import 'egg_value_provider.dart';
+import 'flock_provider.dart';
 
 /// Repository provider
 final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
@@ -60,6 +62,12 @@ class ExpensesNotifier extends AsyncNotifier<List<Expense>> {
     ref.invalidate(selectedRangeExpensesProvider);
     ref.invalidate(selectedRangeIncomeProvider);
     ref.invalidate(selectedRangeCostPerEggProvider);
+    ref.invalidate(selectedRangeEggValueProvider);
+    ref.invalidate(monthEggValueProvider);
+    ref.invalidate(allTimeEggValueProvider);
+    ref.invalidate(selectedRangeDailyExpensesProvider);
+    ref.invalidate(selectedRangeDailyIncomeProvider);
+    ref.invalidate(selectedRangeExpensesByCategoryProvider);
   }
 }
 
@@ -115,6 +123,12 @@ class IncomeNotifier extends AsyncNotifier<List<Income>> {
     ref.invalidate(selectedRangeExpensesProvider);
     ref.invalidate(selectedRangeIncomeProvider);
     ref.invalidate(selectedRangeCostPerEggProvider);
+    ref.invalidate(selectedRangeEggValueProvider);
+    ref.invalidate(monthEggValueProvider);
+    ref.invalidate(allTimeEggValueProvider);
+    ref.invalidate(selectedRangeDailyExpensesProvider);
+    ref.invalidate(selectedRangeDailyIncomeProvider);
+    ref.invalidate(selectedRangeExpensesByCategoryProvider);
   }
 }
 
@@ -308,6 +322,41 @@ final expenseByIdProvider = FutureProvider.family<Expense?, String>((ref, id) as
 final incomeByIdProvider = FutureProvider.family<Income?, String>((ref, id) async {
   final repository = ref.read(expenseRepositoryProvider);
   return repository.getIncomeById(id);
+});
+
+/// Expenses grouped by category for the selected date range, respecting flock filter.
+final selectedRangeExpensesByCategoryProvider =
+    FutureProvider<Map<ExpenseCategory, double>>((ref) async {
+  final repository = ref.read(expenseRepositoryProvider);
+  final range = ref.watch(financeDateRangeProvider);
+  final selectedFlockId = ref.watch(selectedFlockIdProvider);
+  final (start, end) = range.dates;
+
+  if (selectedFlockId == null) {
+    return repository.getExpensesByCategories(start, end);
+  } else {
+    return repository.getExpensesByCategoriesByFlock(selectedFlockId, start, end);
+  }
+});
+
+// ==================== DAILY TREND PROVIDERS ====================
+
+/// Daily expense totals for the selected finance date range (for sparklines).
+final selectedRangeDailyExpensesProvider =
+    FutureProvider<Map<DateTime, double>>((ref) async {
+  final repository = ref.read(expenseRepositoryProvider);
+  final range = ref.watch(financeDateRangeProvider);
+  final (start, end) = range.dates;
+  return repository.getDailyExpenses(start, end);
+});
+
+/// Daily income totals for the selected finance date range (for sparklines).
+final selectedRangeDailyIncomeProvider =
+    FutureProvider<Map<DateTime, double>>((ref) async {
+  final repository = ref.read(expenseRepositoryProvider);
+  final range = ref.watch(financeDateRangeProvider);
+  final (start, end) = range.dates;
+  return repository.getDailyIncome(start, end);
 });
 
 /// Break-even price per egg (expenses / eggs sold)

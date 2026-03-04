@@ -130,6 +130,26 @@ class ExpenseRepository {
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
+  /// Get total expenses within a date range for a specific flock.
+  /// Includes shared expenses (null flock_id) and flock-specific.
+  Future<double> getTotalExpensesByFlock(
+      String flockId, DateTime start, DateTime end) async {
+    final db = await _db.database;
+
+    final startStr =
+        DateTime(start.year, start.month, start.day).toIso8601String();
+    final endStr =
+        DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
+
+    final result = await db.rawQuery(
+      'SELECT COALESCE(SUM(amount), 0) as total FROM expenses '
+      'WHERE date >= ? AND date <= ? AND (flock_id = ? OR flock_id IS NULL)',
+      [startStr, endStr, flockId],
+    );
+
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
   /// Get total expenses for all time.
   Future<double> getTotalExpensesAllTime() async {
     final db = await _db.database;
@@ -159,6 +179,43 @@ class ExpenseRepository {
       GROUP BY category
       ''',
       [startStr, endStr],
+    );
+
+    final categories = <ExpenseCategory, double>{};
+    for (final row in result) {
+      final categoryName = row['category'] as String;
+      final total = (row['total'] as num?)?.toDouble() ?? 0.0;
+      final category = ExpenseCategory.values.firstWhere(
+        (c) => c.name == categoryName,
+        orElse: () => ExpenseCategory.other,
+      );
+      categories[category] = total;
+    }
+    return categories;
+  }
+
+  /// Get expenses grouped by category within a date range for a specific flock.
+  /// Includes shared expenses (null flock_id) and flock-specific.
+  Future<Map<ExpenseCategory, double>> getExpensesByCategoriesByFlock(
+    String flockId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final db = await _db.database;
+
+    final startStr =
+        DateTime(start.year, start.month, start.day).toIso8601String();
+    final endStr =
+        DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
+
+    final result = await db.rawQuery(
+      '''
+      SELECT category, SUM(amount) as total
+      FROM expenses
+      WHERE date >= ? AND date <= ? AND (flock_id = ? OR flock_id IS NULL)
+      GROUP BY category
+      ''',
+      [startStr, endStr, flockId],
     );
 
     final categories = <ExpenseCategory, double>{};
@@ -267,6 +324,26 @@ class ExpenseRepository {
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
   }
 
+  /// Get total income within a date range for a specific flock.
+  /// Includes shared income (null flock_id) and flock-specific.
+  Future<double> getTotalIncomeByFlock(
+      String flockId, DateTime start, DateTime end) async {
+    final db = await _db.database;
+
+    final startStr =
+        DateTime(start.year, start.month, start.day).toIso8601String();
+    final endStr =
+        DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
+
+    final result = await db.rawQuery(
+      'SELECT COALESCE(SUM(amount), 0) as total FROM income '
+      'WHERE date >= ? AND date <= ? AND (flock_id = ? OR flock_id IS NULL)',
+      [startStr, endStr, flockId],
+    );
+
+    return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
   /// Get total income for all time.
   Future<double> getTotalIncomeAllTime() async {
     final db = await _db.database;
@@ -276,6 +353,56 @@ class ExpenseRepository {
     );
 
     return (result.first['total'] as num?)?.toDouble() ?? 0.0;
+  }
+
+  /// Get daily expense totals within a date range.
+  Future<Map<DateTime, double>> getDailyExpenses(
+      DateTime start, DateTime end) async {
+    final db = await _db.database;
+
+    final startStr =
+        DateTime(start.year, start.month, start.day).toIso8601String();
+    final endStr =
+        DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
+
+    final result = await db.rawQuery(
+      'SELECT date(date) as day, SUM(amount) as total FROM expenses WHERE date >= ? AND date <= ? GROUP BY date(date) ORDER BY day ASC',
+      [startStr, endStr],
+    );
+
+    final counts = <DateTime, double>{};
+    for (final row in result) {
+      final dayStr = row['day'] as String;
+      final total = (row['total'] as num?)?.toDouble() ?? 0.0;
+      final day = DateTime.parse(dayStr);
+      counts[DateTime(day.year, day.month, day.day)] = total;
+    }
+    return counts;
+  }
+
+  /// Get daily income totals within a date range.
+  Future<Map<DateTime, double>> getDailyIncome(
+      DateTime start, DateTime end) async {
+    final db = await _db.database;
+
+    final startStr =
+        DateTime(start.year, start.month, start.day).toIso8601String();
+    final endStr =
+        DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
+
+    final result = await db.rawQuery(
+      'SELECT date(date) as day, SUM(amount) as total FROM income WHERE date >= ? AND date <= ? GROUP BY date(date) ORDER BY day ASC',
+      [startStr, endStr],
+    );
+
+    final counts = <DateTime, double>{};
+    for (final row in result) {
+      final dayStr = row['day'] as String;
+      final total = (row['total'] as num?)?.toDouble() ?? 0.0;
+      final day = DateTime.parse(dayStr);
+      counts[DateTime(day.year, day.month, day.day)] = total;
+    }
+    return counts;
   }
 
   /// Get total eggs sold within a date range.
@@ -291,5 +418,67 @@ class ExpenseRepository {
     );
 
     return (result.first['total'] as int?) ?? 0;
+  }
+
+  /// Get eggs sold and their actual sale income within a date range.
+  ///
+  /// Returns (eggsSold, saleIncome) from income records that have egg_count.
+  /// Income records without egg_count are excluded — those are treated as
+  /// additive cash with no egg count adjustment.
+  Future<(int eggsSold, double saleIncome)> getEggSalesData(
+      DateTime start, DateTime end) async {
+    final db = await _db.database;
+
+    final startStr =
+        DateTime(start.year, start.month, start.day).toIso8601String();
+    final endStr =
+        DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
+
+    final result = await db.rawQuery(
+      'SELECT COALESCE(SUM(egg_count), 0) as eggs, COALESCE(SUM(amount), 0) as income '
+      'FROM income WHERE date >= ? AND date <= ? AND egg_count IS NOT NULL',
+      [startStr, endStr],
+    );
+
+    final eggs = (result.first['eggs'] as int?) ?? 0;
+    final income = (result.first['income'] as num?)?.toDouble() ?? 0.0;
+    return (eggs, income);
+  }
+
+  /// Get eggs sold and sale income for a specific flock within a date range.
+  /// Includes shared income (null flock_id) and flock-specific.
+  Future<(int eggsSold, double saleIncome)> getEggSalesDataByFlock(
+      String flockId, DateTime start, DateTime end) async {
+    final db = await _db.database;
+
+    final startStr =
+        DateTime(start.year, start.month, start.day).toIso8601String();
+    final endStr =
+        DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
+
+    final result = await db.rawQuery(
+      'SELECT COALESCE(SUM(egg_count), 0) as eggs, COALESCE(SUM(amount), 0) as income '
+      'FROM income WHERE date >= ? AND date <= ? AND egg_count IS NOT NULL '
+      'AND (flock_id = ? OR flock_id IS NULL)',
+      [startStr, endStr, flockId],
+    );
+
+    final eggs = (result.first['eggs'] as int?) ?? 0;
+    final income = (result.first['income'] as num?)?.toDouble() ?? 0.0;
+    return (eggs, income);
+  }
+
+  /// Get eggs sold and sale income for all time.
+  Future<(int eggsSold, double saleIncome)> getEggSalesDataAllTime() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery(
+      'SELECT COALESCE(SUM(egg_count), 0) as eggs, COALESCE(SUM(amount), 0) as income '
+      'FROM income WHERE egg_count IS NOT NULL',
+    );
+
+    final eggs = (result.first['eggs'] as int?) ?? 0;
+    final income = (result.first['income'] as num?)?.toDouble() ?? 0.0;
+    return (eggs, income);
   }
 }

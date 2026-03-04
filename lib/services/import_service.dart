@@ -355,7 +355,7 @@ class ImportService {
       income = await _parseCsv(
         incomeFile,
         'income.csv',
-        ['id', 'date', 'amount', 'description', 'egg_count', 'created_at'],
+        ['id', 'date', 'amount', 'description', 'egg_count', 'flock_id', 'created_at'],
         ['id', 'date', 'amount', 'created_at'],
       );
     }

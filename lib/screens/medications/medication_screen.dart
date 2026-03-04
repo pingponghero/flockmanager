@@ -464,23 +464,21 @@ class _ReferenceTabState extends State<_ReferenceTab> {
           child: Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<MedicationCategory?>(
-                  value: _selectedCategory,
-                  decoration: const InputDecoration(
-                    labelText: 'Category',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  items: [
-                    const DropdownMenuItem<MedicationCategory?>(
+                child: DropdownMenu<MedicationCategory?>(
+                  initialSelection: _selectedCategory,
+                  expandedInsets: EdgeInsets.zero,
+                  label: const Text('Category'),
+                  dropdownMenuEntries: [
+                    const DropdownMenuEntry(
                       value: null,
-                      child: Text('All Categories'),
+                      label: 'All Categories',
                     ),
-                    ..._getSortedCategories().map((cat) => DropdownMenuItem(
+                    ..._getSortedCategories().map((cat) => DropdownMenuEntry(
                       value: cat,
-                      child: Text(_categoryLabel(cat)),
+                      label: _categoryLabel(cat),
                     )),
                   ],
-                  onChanged: (value) => setState(() => _selectedCategory = value),
+                  onSelected: (value) => setState(() => _selectedCategory = value),
                 ),
               ),
             ],

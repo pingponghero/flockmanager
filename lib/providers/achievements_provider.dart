@@ -6,6 +6,7 @@ import '../data/breeds.dart';
 import '../models/enums.dart';
 import 'bird_provider.dart';
 import 'egg_provider.dart';
+import 'egg_value_provider.dart';
 import 'expense_provider.dart';
 import 'flock_provider.dart';
 import 'medication_provider.dart';
@@ -74,6 +75,9 @@ class AchievementContext {
   final double totalExpenses;
   final double totalIncome;
   final double? costPerEgg;
+  final double netSavings; // eggProductionValue - totalExpenses
+  final double? netCostPerDozen; // (expenses - income) / eggsConsumed * 12
+  final double retailPricePerDozen;
   final int expenseCount;
   final int incomeCount;
 
@@ -122,6 +126,9 @@ class AchievementContext {
     required this.totalExpenses,
     required this.totalIncome,
     required this.costPerEgg,
+    required this.netSavings,
+    required this.netCostPerDozen,
+    required this.retailPricePerDozen,
     required this.expenseCount,
     required this.incomeCount,
     required this.medicationLogCount,
@@ -372,11 +379,11 @@ final achievements = <Achievement>[
   Achievement(
     id: 'beat_the_store',
     name: 'Beat the Store',
-    description: 'Cost per egg below \$0.25',
+    description: 'Egg value exceeds expenses',
     icon: Icons.local_grocery_store,
     color: Colors.green,
     category: 'Nest Egg',
-    check: (ctx) => ctx.costPerEgg != null && ctx.costPerEgg! < 0.25 && ctx.totalEggs >= 50,
+    check: (ctx) => ctx.netSavings >= 0 && ctx.totalEggs >= 50 && ctx.totalExpenses > 0,
   ),
   Achievement(
     id: 'basically_free',
@@ -711,6 +718,7 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
   final totalExpenses = await ref.watch(totalExpensesProvider.future);
   final totalIncome = await ref.watch(totalIncomeProvider.future);
   final costPerEgg = await ref.watch(costPerEggProvider.future);
+  final eggValueSummary = await ref.watch(allTimeEggValueProvider.future);
   final activeWithdrawals = await ref.watch(activeWithdrawalsProvider.future);
 
   // Get repositories for additional queries
@@ -877,6 +885,9 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
     totalExpenses: totalExpenses,
     totalIncome: totalIncome,
     costPerEgg: costPerEgg,
+    netSavings: eggValueSummary.netSavings,
+    netCostPerDozen: eggValueSummary.netCostPerDozen,
+    retailPricePerDozen: eggValueSummary.retailPricePerDozen,
     expenseCount: expenses.length,
     incomeCount: incomes.length,
     medicationLogCount: medications.length,

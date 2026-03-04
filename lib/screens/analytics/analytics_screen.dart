@@ -12,6 +12,7 @@ import '../../providers/analytics_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../widgets/flock_dropdown.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/scaffold_with_nav_bar.dart';
 
@@ -49,7 +50,6 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
     final selectedPeriod = ref.watch(analyticsPeriodProvider);
     final analyticsAsync = ref.watch(analyticsProvider);
-    final flocksAsync = ref.watch(flocksProvider);
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
 
     return Scaffold(
@@ -64,33 +64,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             child: Column(
               children: [
                 // Flock filter (hidden if only 1 flock)
-                flocksAsync.when(
-                  loading: () => const SizedBox.shrink(),
-                  error: (error, stack) => const SizedBox.shrink(),
-                  data: (flocks) {
-                    if (flocks.length <= 1) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: DropdownMenu<String?>(
-                        initialSelection: selectedFlockId,
-                        expandedInsets: EdgeInsets.zero,
-                        label: const Text('Flock'),
-                        dropdownMenuEntries: [
-                          const DropdownMenuEntry(
-                            value: null,
-                            label: 'All Flocks',
-                          ),
-                          ...flocks.map((flock) => DropdownMenuEntry(
-                                value: flock.id,
-                                label: flock.name,
-                              )),
-                        ],
-                        onSelected: (value) {
-                          ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
-                        },
-                      ),
-                    );
-                  },
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: FlockDropdown(
+                    selectedFlockId: selectedFlockId,
+                    onChanged: (value) {
+                      ref.read(selectedFlockIdProvider.notifier).selectFlock(value);
+                    },
+                  ),
                 ),
                 // Period selector
                 DropdownMenu<AnalyticsPeriod>(
