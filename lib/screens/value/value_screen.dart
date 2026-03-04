@@ -15,6 +15,7 @@ import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
+import '../settings/settings_screen.dart' show showRetailPriceDialog;
 
 /// Filter options combining expense categories + income.
 enum _ListFilter {
@@ -167,12 +168,18 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
           // Expense category breakdown
           _CategoryBreakdown(
             categoryAsync: categoryAsync,
+            selectedCategory: _selectedFilter.expenseCategory,
             onCategoryTap: (category) {
-              final filter = _ListFilter.values.firstWhere(
-                (f) => f.expenseCategory == category,
-                orElse: () => _ListFilter.all,
-              );
-              setState(() => _selectedFilter = filter);
+              // Toggle: tap again to clear
+              if (_selectedFilter.expenseCategory == category) {
+                setState(() => _selectedFilter = _ListFilter.all);
+              } else {
+                final filter = _ListFilter.values.firstWhere(
+                  (f) => f.expenseCategory == category,
+                  orElse: () => _ListFilter.all,
+                );
+                setState(() => _selectedFilter = filter);
+              }
             },
           ),
           const SizedBox(height: 16),
@@ -246,13 +253,13 @@ class _LineItem {
 
 // ==================== Egg Value Hero Card ====================
 
-class _EggValueCard extends StatelessWidget {
+class _EggValueCard extends ConsumerWidget {
   final AsyncValue<EggValueSummary> eggValueAsync;
 
   const _EggValueCard({required this.eggValueAsync});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: eggValueAsync.when(
@@ -295,55 +302,64 @@ class _EggValueCard extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               );
 
-          return Card(
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  // Left: label + big number
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Egg Value',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '\$${summary.eggProductionValue.toStringAsFixed(2)}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .displayMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Right: value breakdown
-                  if (summary.eggCount > 0)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        if (summary.eggsConsumed > 0)
+          return GestureDetector(
+            onTap: () => _showEggValueBreakdown(context, ref, summary),
+            child: Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    // Left: label + big number
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            '${summary.eggsConsumed} eggs valued @ \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz',
-                            style: mutedStyle,
+                            'Egg Value',
+                            style: Theme.of(context).textTheme.titleMedium,
                           ),
-                        if (summary.eggsSold > 0) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            '${summary.eggsSold} sold @ \$${(summary.totalIncome / summary.eggsSold * 12).toStringAsFixed(2)}/dz avg',
-                            style: mutedStyle,
+                          const SizedBox(height: 8),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _$(summary.eggProductionValue),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .displayMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryColor,
+                                  ),
+                            ),
                           ),
                         ],
-                      ],
+                      ),
                     ),
-                ],
+                    // Right: value breakdown
+                    if (summary.eggCount > 0)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (summary.eggsConsumed > 0)
+                            Text(
+                              '${NumberFormat('#,###').format(summary.eggsConsumed)} eggs valued\n@ \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz',
+                              style: mutedStyle,
+                              textAlign: TextAlign.right,
+                            ),
+                          if (summary.eggsSold > 0) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              '${NumberFormat('#,###').format(summary.eggsSold)} sold\n@ \$${(summary.totalIncome / summary.eggsSold * 12).toStringAsFixed(2)}/dz avg',
+                              style: mutedStyle,
+                              textAlign: TextAlign.right,
+                            ),
+                          ],
+                        ],
+                      ),
+                  ],
+                ),
               ),
             ),
           );
@@ -380,32 +396,36 @@ class _MetricCards extends StatelessWidget {
             children: [
               // Your Cost per Dozen
               Expanded(
-                child: Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Your Cost per Dozen',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          summary.totalExpenses == 0 && summary.eggCount > 0
-                              ? '\$0.00'
-                              : netCostPerDozen != null
-                                  ? '\$${netCostPerDozen.toStringAsFixed(2)}'
-                                  : 'N/A',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor,
-                              ),
-                        ),
-                      ],
+                child: GestureDetector(
+                  onTap: () =>
+                      _showCostPerDozenBreakdown(context, summary),
+                  child: Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Your Cost per Dozen',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            summary.totalExpenses == 0 && summary.eggCount > 0
+                                ? '\$0.00'
+                                : netCostPerDozen != null
+                                    ? '\$${netCostPerDozen.toStringAsFixed(2)}'
+                                    : 'N/A',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -413,28 +433,32 @@ class _MetricCards extends StatelessWidget {
               const SizedBox(width: 8),
               // Net Impact
               Expanded(
-                child: Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Net Impact',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${isPositive ? '+' : '-'}\$${summary.netSavings.abs().toStringAsFixed(2)}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor,
-                              ),
-                        ),
-                      ],
+                child: GestureDetector(
+                  onTap: () =>
+                      _showNetImpactBreakdown(context, summary),
+                  child: Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Net Impact',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${isPositive ? '+' : '-'}${_$(summary.netSavings.abs())}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -451,10 +475,12 @@ class _MetricCards extends StatelessWidget {
 
 class _CategoryBreakdown extends StatelessWidget {
   final AsyncValue<Map<ExpenseCategory, double>> categoryAsync;
+  final ExpenseCategory? selectedCategory;
   final ValueChanged<ExpenseCategory> onCategoryTap;
 
   const _CategoryBreakdown({
     required this.categoryAsync,
+    required this.selectedCategory,
     required this.onCategoryTap,
   });
 
@@ -486,13 +512,19 @@ class _CategoryBreakdown extends StatelessWidget {
                   final fraction = entry.value / maxAmount;
                   // Gradient: strongest bar gets full alpha, weakest gets lighter
                   // Range from 0.7 down to 0.25 based on rank
-                  final alpha = sorted.length == 1
+                  final isSelected = selectedCategory == entry.key;
+                  final hasSelection = selectedCategory != null;
+                  final baseAlpha = sorted.length == 1
                       ? 0.6
                       : 0.7 - (rank / (sorted.length - 1)) * 0.45;
+                  final alpha = hasSelection && !isSelected
+                      ? baseAlpha * 0.3
+                      : baseAlpha;
                   final barColor = Theme.of(context)
                       .colorScheme
                       .secondary
                       .withValues(alpha: alpha);
+                  final dimText = hasSelection && !isSelected;
                   return InkWell(
                     onTap: () => onCategoryTap(entry.key),
                     child: Padding(
@@ -503,7 +535,11 @@ class _CategoryBreakdown extends StatelessWidget {
                             width: 72,
                             child: Text(
                               entry.key.displayName,
-                              style: Theme.of(context).textTheme.bodySmall,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: dimText
+                                        ? Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
+                                        : null,
+                                  ),
                             ),
                           ),
                           Expanded(
@@ -528,7 +564,12 @@ class _CategoryBreakdown extends StatelessWidget {
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: dimText
+                                        ? Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
+                                        : null,
+                                  ),
                             ),
                           ),
                         ],
@@ -794,6 +835,201 @@ class _ExpenseCard extends ConsumerWidget {
         return Colors.grey;
     }
   }
+}
+
+// ==================== Math Breakdown Bottom Sheets ====================
+
+void _showMathBreakdown(
+  BuildContext context, {
+  required String title,
+  required List<Widget> children,
+}) {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+String _$(double value) => NumberFormat.currency(symbol: '\$').format(value);
+
+void _showEggValueBreakdown(
+    BuildContext context, WidgetRef ref, EggValueSummary summary) {
+  final primaryColor = Theme.of(context).colorScheme.primary;
+  final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+  final mutedStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontStyle: FontStyle.italic,
+      );
+
+  final consumedValue = summary.eggsConsumed * summary.retailPricePerEgg;
+  final saleValue = summary.eggProductionValue - consumedValue;
+
+  _showMathBreakdown(
+    context,
+    title: 'Egg Value',
+    children: [
+      if (summary.eggsConsumed > 0)
+        Text(
+          '${summary.eggsConsumed} eggs kept × \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz = ${_$(consumedValue)}',
+          style: bodyStyle,
+        ),
+      if (summary.eggsSold > 0) ...[
+        const SizedBox(height: 4),
+        Text(
+          '${summary.eggsSold} sold · ${_$(saleValue)} income',
+          style: bodyStyle,
+        ),
+      ],
+      if (summary.eggsSold > 0) ...[
+        const Divider(height: 24),
+        Text(
+          'Total: ${_$(summary.eggProductionValue)}',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: primaryColor,
+              ),
+        ),
+      ],
+      const SizedBox(height: 12),
+      if (!summary.isBeatingTheStore)
+        Text(
+          'Your eggs are worth ${_$(summary.eggProductionValue)} — keep tracking to see the full picture.',
+          style: mutedStyle,
+        ),
+      const SizedBox(height: 8),
+      GestureDetector(
+        onTap: () {
+          Navigator.pop(context);
+          showRetailPriceDialog(context, ref, summary.retailPricePerDozen);
+        },
+        child: Text(
+          'Store price set to \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz · Change',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+        ),
+      ),
+    ],
+  );
+}
+
+void _showCostPerDozenBreakdown(
+    BuildContext context, EggValueSummary summary) {
+  final primaryColor = Theme.of(context).colorScheme.primary;
+  final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+  final mutedStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontStyle: FontStyle.italic,
+      );
+
+  final netCost = summary.totalExpenses - summary.totalIncome;
+  final netCostPerDozen = summary.netCostPerDozen;
+
+  _showMathBreakdown(
+    context,
+    title: 'Your Cost per Dozen',
+    children: [
+      Text(
+        'Total expenses: ${_$(summary.totalExpenses)}',
+        style: bodyStyle,
+      ),
+      if (summary.totalIncome > 0) ...[
+        const SizedBox(height: 4),
+        Text(
+          '– Sale income: ${_$(summary.totalIncome)}',
+          style: bodyStyle,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '= Net cost: ${_$(netCost)}',
+          style: bodyStyle?.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
+      const Divider(height: 24),
+      if (netCostPerDozen != null) ...[
+        Text.rich(
+          TextSpan(children: [
+            TextSpan(
+                text:
+                    '${_$(netCost)} ÷ ${summary.eggsConsumed} eggs × 12 = '),
+            TextSpan(
+              text: '\$${netCostPerDozen.toStringAsFixed(2)}/dz',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: primaryColor),
+            ),
+          ]),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          netCostPerDozen < summary.retailPricePerDozen
+              ? 'That\'s less than the \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz store price — nice work!'
+              : 'That\'s more than the \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz store price — but your eggs are fresher!',
+          style: mutedStyle,
+        ),
+      ],
+    ],
+  );
+}
+
+void _showNetImpactBreakdown(BuildContext context, EggValueSummary summary) {
+  final primaryColor = Theme.of(context).colorScheme.primary;
+  final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+  final mutedStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontStyle: FontStyle.italic,
+      );
+
+  final isPositive = summary.isBeatingTheStore;
+  final prefix = isPositive ? '+' : '-';
+
+  _showMathBreakdown(
+    context,
+    title: 'Net Impact',
+    children: [
+      Text(
+        'Egg value: ${_$(summary.eggProductionValue)}',
+        style: bodyStyle,
+      ),
+      const SizedBox(height: 4),
+      Text(
+        '– Total expenses: ${_$(summary.totalExpenses)}',
+        style: bodyStyle,
+      ),
+      const Divider(height: 24),
+      Text.rich(
+        TextSpan(children: [
+          const TextSpan(text: 'Net Impact: '),
+          TextSpan(
+            text: '$prefix${_$(summary.netSavings.abs())}',
+            style: TextStyle(
+                fontWeight: FontWeight.bold, color: primaryColor),
+          ),
+        ]),
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const SizedBox(height: 12),
+      Text(
+        isPositive
+            ? 'You\'re coming out ahead by ${_$(summary.netSavings)} — your flock is paying for itself!'
+            : 'You\'re behind by ${_$(summary.netSavings.abs())} — but every egg brings you closer to break-even.',
+        style: mutedStyle,
+      ),
+    ],
+  );
 }
 
 class _IncomeCard extends ConsumerWidget {

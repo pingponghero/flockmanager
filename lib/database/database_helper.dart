@@ -106,7 +106,11 @@ class DatabaseHelper {
 
     // Migration to version 4: Add flock_id to income table
     if (oldVersion < 4) {
-      await db.execute('ALTER TABLE income ADD COLUMN flock_id TEXT');
+      final cols = await db.rawQuery('PRAGMA table_info(income)');
+      final hasFlockId = cols.any((c) => c['name'] == 'flock_id');
+      if (!hasFlockId) {
+        await db.execute('ALTER TABLE income ADD COLUMN flock_id TEXT');
+      }
     }
   }
 

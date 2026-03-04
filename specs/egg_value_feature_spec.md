@@ -1,20 +1,61 @@
-# Flock Manager — Egg Value & Savings Feature Spec
+# Flock Manager — Egg Value Feature Spec
 
 ## Overview
 
-Replace the profit/loss framing with a universal "egg value" metric that answers "is my flock worth it financially?" for every type of keeper — consumers who eat their eggs, sellers, and the majority who do both.
+The Value tab answers one question for every keeper: "Is my flock worth it financially?" It replaces the old separate Expenses/Income tabs with a single consolidated screen showing what your flock produced, what it cost, and whether you're coming out ahead.
+
+The math distinguishes between eggs you ate (savings vs. store) and eggs you sold (actual income). No user-type toggle, no per-egg disposition tracking, no red numbers.
 
 ---
 
 ## Core Concept
 
-Every egg has a retail-equivalent value: what the keeper would have paid at the store. This single idea unifies the financial picture for all users without requiring a mode toggle or per-egg disposition tracking.
+A flock produces value two ways:
 
-**Egg Production Value** = `total_eggs × (retail_price_per_dozen / 12)`
+1. **Savings** — eggs you consumed replaced a grocery purchase
+2. **Earnings** — eggs you sold generated actual income
 
-**Net Savings** = `Egg Production Value − Expenses`
+**Total Flock Value** = Savings + Earnings
 
-A positive number means the flock is "beating the store." A negative number is the true hobby cost beyond what the eggs are worth. Sellers who record income get a bonus comparison, but the core metric works even if income is never logged.
+**Net Impact** = Total Flock Value − Expenses
+
+A positive Net Impact means the flock is paying for itself and then some. A negative Net Impact is the true hobby cost beyond what the flock gave back. Both are presented as neutral facts, not judgments.
+
+---
+
+## Formulas
+
+### Inputs
+
+| Variable | Source |
+|----------|--------|
+| `total_eggs` | Sum of `egg_logs.count` in period |
+| `eggs_sold` | Sum of `income.egg_count` in period (where egg_count is non-null) |
+| `income` | Sum of `income.amount` in period |
+| `store_price_per_egg` | User's `retail_egg_price_per_dozen` ÷ 12 |
+| `expenses` | Sum of `expenses.amount` in period |
+
+### Derived Values
+
+```
+eggs_consumed       = total_eggs − eggs_sold
+savings             = eggs_consumed × store_price_per_egg
+earnings            = income (actual cash received)
+total_flock_value   = savings + earnings
+net_impact          = total_flock_value − expenses
+your_cost_per_dozen = (expenses − earnings) ÷ eggs_consumed × 12
+```
+
+### Edge Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| No income records | `eggs_sold = 0`, `earnings = 0`, all eggs are savings |
+| Income without egg count | Treat as pure cash earnings, don't subtract from `eggs_consumed` |
+| `eggs_sold > total_eggs` (sold from stockpile) | Clamp `eggs_consumed` to 0, `savings = 0` |
+| Zero eggs in period | Hero shows $0.00, hide cost per dozen |
+| Zero expenses in period | `your_cost_per_dozen = 0`, show "Your eggs cost you nothing this period" |
+| Zero eggs consumed | Hide "Your Cost per Dozen" (division by zero) |
 
 ---
 
@@ -22,9 +63,9 @@ A positive number means the flock is "beating the store." A negative number is t
 
 **As a** keeper who eats all my eggs, **I want to** see what my eggs would have cost at the store **so that** I know whether my flock is saving me money.
 
-**As a** keeper who sells some eggs, **I want to** see both my actual income and the retail value of all eggs produced **so that** I can evaluate my pricing and overall financial picture.
+**As a** keeper who sells surplus eggs, **I want to** see my actual sale income alongside the value of eggs I kept **so that** I understand my total financial picture.
 
-**As any** keeper, **I want to** see a simple "am I beating the store?" answer **so that** the financial tab is meaningful even if I never log income.
+**As any** keeper, **I want to** see a simple answer to "am I coming out ahead?" **so that** the financial tab is meaningful regardless of whether I sell eggs.
 
 ---
 
@@ -32,15 +73,33 @@ A positive number means the flock is "beating the store." A negative number is t
 
 ### No user-type toggle
 
-Most keepers are hybrids — they eat most eggs, sell a few, give some away. A consumer/seller toggle forces a false choice. Instead, show the same data to everyone. If income is zero, income lines naturally fade from relevance. If income exists, it enriches the picture. Same math, same screen.
+Most keepers are hybrids — they eat most eggs, sell a few, give some away. A consumer/seller toggle forces a false choice. Same math, same screen, same layout for everyone. If income is zero, income rows simply don't appear. If income exists, it enriches the picture.
 
-### Per-egg disposition not tracked
+### Consumed vs. sold eggs
 
-We do not track whether individual eggs were sold, consumed, or given away. Every egg gets the same retail-equivalent value. This avoids adding friction to the egg logging flow (which must stay fast) and keeps the model simple. Sellers who want precise per-sale tracking can use the existing income feature.
+The assumption: users wanted to eat what they kept, and sold the rest. Eggs consumed are valued at store price (savings). Eggs sold are valued at actual sale price (earnings). This avoids both double-counting and the false equivalence of valuing sold eggs at store price.
 
 ### User-set retail price
 
-Egg prices vary wildly by region and by what the user would actually buy (conventional vs. pasture-raised vs. organic). A hardcoded national average would be wrong for most people. The user sets their own reference price once.
+Egg prices vary wildly by region and quality tier (conventional vs. pasture-raised vs. organic). The user sets their own reference price once in Settings. Default: $4.50/dozen.
+
+### Neutral tone for negative numbers
+
+Negative Net Impact is displayed in muted dark text, never red. Most keepers will be in the red after any large purchase — that's a normal financial fact, not an error. Positive numbers get teal (the app's accent color). The label "Net Impact" works in both directions without judgment.
+
+### Consolidated single screen
+
+The old Expenses tab and Income tab merge into a single "Value" tab. One summary, one list, one FAB. The Category dropdown handles filtering between expense categories and income entries.
+
+### Cost per dozen, not per egg
+
+Chicken keepers think in dozens. "$4.11/doz vs $6.00 store" is immediately meaningful. It also maps to how they'd price eggs for sale.
+
+---
+
+## Tab Rename
+
+Bottom navigation label changes from **"Expenses"** to **"Value"** with the existing $ icon.
 
 ---
 
@@ -55,7 +114,7 @@ Egg prices vary wildly by region and by what the user would actually buy (conven
 ### Provider
 
 ```dart
-// lib/providers/settings_provider.dart (or egg_value_provider.dart)
+// lib/providers/egg_value_provider.dart
 
 final retailPricePerDozenProvider = StateProvider<double>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
@@ -71,7 +130,7 @@ Future<void> setRetailPricePerDozen(WidgetRef ref, double price) async {
 
 ### Settings UI
 
-Add to Settings screen under a "Financial" or "Egg Value" section:
+Add to Settings screen under an "Egg Value" section:
 
 ```
 Egg Value
@@ -87,7 +146,7 @@ Store egg price (per dozen)
 ```
 
 - Number input with currency formatting
-- Min: $0.50, Max: $20.00 (reasonable guardrails)
+- Min: $0.50, Max: $20.00
 - Validation: must be > 0
 
 ### Acceptance Criteria
@@ -100,170 +159,256 @@ Store egg price (per dozen)
 
 ---
 
-## Task 2: Egg Value Provider
+## Task 2: Value Provider & Model
 
-### File: `lib/providers/egg_value_provider.dart` (new)
+### File: `lib/providers/egg_value_provider.dart`
 
 ```dart
-/// Value of a single egg at the user's retail reference price.
 final retailPricePerEggProvider = Provider<double>((ref) {
-  final dozenPrice = ref.watch(retailPricePerDozenProvider);
-  return dozenPrice / 12.0;
+  return ref.watch(retailPricePerDozenProvider) / 12.0;
 });
 
-/// Egg production value for a date range.
-/// This is what the eggs would have cost at the store.
-final eggProductionValueProvider = FutureProvider.family<double, DateRange>(
+final flockValueProvider = FutureProvider.family<FlockValue, DateRange>(
   (ref, range) async {
-    final eggCount = await ref.watch(
+    final totalEggs = await ref.watch(
       eggCountByDateRangeProvider(range).future,
     );
     final pricePerEgg = ref.watch(retailPricePerEggProvider);
-    return eggCount * pricePerEgg;
-  },
-);
-
-/// Net savings for a date range.
-/// Positive = beating the store. Negative = hobby cost beyond egg value.
-final netSavingsProvider = FutureProvider.family<NetSavings, DateRange>(
-  (ref, range) async {
-    final eggValue = await ref.watch(
-      eggProductionValueProvider(range).future,
-    );
+    final retailPerDozen = ref.watch(retailPricePerDozenProvider);
     final totalExpenses = await ref.watch(
       totalExpensesProvider(range).future,
     );
     final totalIncome = await ref.watch(
       totalIncomeProvider(range).future,
     );
+    final eggsSold = await ref.watch(
+      eggsSoldByDateRangeProvider(range).future,
+    );
 
-    return NetSavings(
-      eggProductionValue: eggValue,
-      totalExpenses: totalExpenses,
-      totalIncome: totalIncome,
+    return FlockValue(
+      totalEggs: totalEggs,
+      eggsSold: eggsSold,
+      storePerEgg: pricePerEgg,
+      storePerDozen: retailPerDozen,
+      expenses: totalExpenses,
+      income: totalIncome,
     );
   },
 );
 ```
 
-### Model
+### File: `lib/models/flock_value.dart`
 
 ```dart
-// lib/models/net_savings.dart (new)
+class FlockValue {
+  final int totalEggs;
+  final int eggsSold;
+  final double storePerEgg;
+  final double storePerDozen;
+  final double expenses;
+  final double income;
 
-class NetSavings {
-  final double eggProductionValue;
-  final double totalExpenses;
-  final double totalIncome;
-
-  const NetSavings({
-    required this.eggProductionValue,
-    required this.totalExpenses,
-    required this.totalIncome,
+  const FlockValue({
+    required this.totalEggs,
+    required this.eggsSold,
+    required this.storePerEgg,
+    required this.storePerDozen,
+    required this.expenses,
+    required this.income,
   });
 
-  /// Core metric: are your eggs worth more than you spent?
-  double get netSavings => eggProductionValue - totalExpenses;
+  /// Eggs the keeper consumed (not sold)
+  int get eggsConsumed => (totalEggs - eggsSold).clamp(0, totalEggs);
 
-  /// Cost per egg from actual expenses (existing metric, kept)
-  /// Returns null if no eggs in period.
-  double? costPerEgg(int eggCount) =>
-      eggCount > 0 ? totalExpenses / eggCount : null;
+  /// Value of consumed eggs at store price
+  double get savings => eggsConsumed * storePerEgg;
 
-  /// Retail value per egg (for comparison display)
-  double retailPerEgg(double retailPerDozen) => retailPerDozen / 12.0;
+  /// Actual cash from sales
+  double get earnings => income;
 
-  /// For sellers: how does actual income compare to retail value?
-  double get incomeVsRetailDelta => totalIncome - eggProductionValue;
+  /// Total financial value the flock produced
+  double get totalFlockValue => savings + earnings;
 
-  /// Is the user beating the store?
-  bool get isBeatingTheStore => netSavings >= 0;
+  /// The bottom line: flock value minus what you spent
+  double get netImpact => totalFlockValue - expenses;
+
+  /// What you effectively pay per dozen eggs you eat,
+  /// after offsetting expenses with sale income.
+  /// Returns null if no eggs consumed.
+  double? get yourCostPerDozen =>
+      eggsConsumed > 0 ? (expenses - earnings) / eggsConsumed * 12 : null;
+
+  /// Is the flock providing net positive value?
+  bool get isPositive => netImpact >= 0;
+
+  /// Does this period have any income records?
+  bool get hasIncome => income > 0;
 }
+```
+
+### New Provider Needed
+
+```dart
+/// Sum of egg_count from income records where egg_count is non-null.
+final eggsSoldByDateRangeProvider = FutureProvider.family<int, DateRange>(
+  (ref, range) async {
+    final repository = ref.read(incomeRepositoryProvider);
+    return repository.getEggsSoldByDateRange(range.start, range.end);
+  },
+);
 ```
 
 ### Acceptance Criteria
 
-- [ ] Egg production value calculated correctly from egg count × retail price
-- [ ] Net savings = egg value − expenses
-- [ ] Responds to retail price changes (provider invalidation)
+- [ ] `eggsConsumed` correctly subtracts sold eggs from total
+- [ ] `savings` uses store price only for consumed eggs
+- [ ] `earnings` uses actual income, not imputed value
+- [ ] `totalFlockValue` = savings + earnings
+- [ ] `netImpact` = totalFlockValue − expenses
+- [ ] `yourCostPerDozen` offsets expenses with earnings
+- [ ] Income records without egg_count don't reduce eggs_consumed
+- [ ] `eggs_sold > total_eggs` clamps consumed to 0
+- [ ] Responds to retail price changes
 - [ ] Responds to selected flock filter
-- [ ] Handles zero eggs and zero expenses gracefully
-- [ ] Income data included when available, ignored when absent
 
 ---
 
-## Task 3: Expense Tab Summary
+## Task 3: Value Tab Screen
 
-### File: `lib/screens/expenses/expense_list_screen.dart`
+### File: `lib/screens/value/value_screen.dart` (replaces expense_list_screen.dart)
 
-Rework the summary header at the top of the expenses tab. This is the primary home for the detailed financial picture.
-
-### Summary Layout
+### Layout
 
 ```
 ┌─────────────────────────────────────────┐
-│  This Month                     [▼]     │  ← period selector (existing)
+│  Egg Value                              │  ← screen title
 │                                         │
-│  🥚 Egg Value          $56.25           │  ← total eggs × retail price
-│     150 eggs × $4.50/dz                 │
+│  ┌─────────────────────────────────┐    │
+│  │ 🏠 Flock     All Flocks      ▼ │    │  ← hidden for single-flock users
+│  └─────────────────────────────────┘    │
+│  ┌──────────────┐ ┌────────────────┐    │
+│  │ Period       │ │ Category       │    │
+│  │ All Time   ▼ │ │ All          ▼ │    │
+│  └──────────────┘ └────────────────┘    │
 │                                         │
-│  📉 Expenses           $38.00           │  ← existing total
+│  ┌─────────────────────────────────┐    │
+│  │         Egg Value               │    │  ← hero card
+│  │         $193.50                 │    │  ← large, teal
+│  │    387 eggs @ $6.00/dz          │    │  ← muted subtitle
+│  └─────────────────────────────────┘    │
 │                                         │
-│  ─────────────────────────────          │
-│  ✅ Net Savings        +$18.25          │  ← egg value − expenses
-│     Beating the store by $18.25!        │
+│  ┌──────────────┐ ┌────────────────┐    │
+│  │ Your Cost    │ │ Net Impact     │    │  ← 2-up derived metrics
+│  │ per Dozen    │ │                │    │
+│  │ $4.11        │ │ +$20.75        │    │  ← teal if positive
+│  │ vs $6.00     │ │ vs buying      │    │  ← muted dark if negative
+│  │ store        │ │ at store       │    │
+│  └──────────────┘ └────────────────┘    │
 │                                         │
-│  Your cost: $0.25/egg                   │  ← existing metric, kept
-│  Store cost: $0.38/egg                  │  ← new comparison point
+│  ┌─────────────────────────────────┐    │
+│  │ 🛠 Fancy chicken toys           │    │
+│  │ Mar 3, 2026              $70.00 │    │  ← expense row
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │ 🌿 50lb layer pellets          │    │
+│  │ Feb 7, 2026              $35.00 │    │  ← expense row
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │ 🥚 Dozen to neighbor           │    │
+│  │ Feb 6, 2026  ⌈12 eggs⌉  +$6.00│    │  ← income row, teal
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │ 🌿 Mealworm treats             │    │
+│  │ Feb 2, 2026              $10.00 │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│                                 [+]     │  ← speed-dial FAB
 └─────────────────────────────────────────┘
 ```
 
-When net savings is negative:
-```
-│  ⚠️ Net Cost           −$12.50          │
-│     Your eggs cost $12.50 more          │
-│     than buying at the store            │
-```
+### Filters
 
-When income has been logged (seller/mixed):
-```
-│  🥚 Egg Value          $56.25           │
-│     150 eggs × $4.50/dz                 │
-│                                         │
-│  💵 Income             $24.00           │
-│     from egg sales                      │
-│                                         │
-│  📉 Expenses           $38.00           │
-│                                         │
-│  ─────────────────────────────          │
-│  ✅ Net Savings        +$18.25          │
-│     (egg value − expenses)              │
-│                                         │
-│  💰 Cash Flow          −$14.00          │
-│     (income − expenses)                 │
-```
+- **Flock** — full-width dropdown, hidden for single-flock users
+- **Period** — left half: This Month, Last 90 Days, This Year, All Time
+- **Category** — right half: All, Feed, Bedding, Supplies, Medical, Equipment, Income
 
-The income and cash flow lines only appear if the user has logged any income in the selected period. No clutter for pure consumers.
+Category behavior:
+- **All** — shows expenses and income together, chronological
+- **Feed / Bedding / etc.** — shows only that expense category, income rows hidden
+- **Income** — shows only income entries
+
+### Hero Card
+
+Always shows `totalFlockValue` for the selected period, regardless of category filter. The hero answers the overall question, not the filtered view.
+
+- Label: "Egg Value" (small, muted)
+- Amount: large, teal, bold
+- Subtitle: "XXX eggs @ $X.XX/dz" (muted)
+
+### Derived Metrics Row (2-up cards)
+
+**Left card: "Your Cost per Dozen"**
+- Amount: `(expenses − earnings) ÷ eggs_consumed × 12`
+- Subtitle: "vs $X.XX store" (user's retail price)
+- Hidden when zero eggs consumed in period
+
+**Right card: "Net Impact"**
+- Amount: `totalFlockValue − expenses`
+- Positive: teal, show as "+$XX.XX"
+- Negative: muted dark text (not red), show as "$XX.XX"
+- Subtitle: "vs buying at store"
+
+### List Items
+
+Single chronological list, most recent first.
+
+**Expense rows:**
+- Category icon (existing colored circles)
+- Description
+- Date
+- Amount right-aligned, standard dark text
+
+**Income rows:**
+- Egg/income icon (teal tinted circle)
+- Description
+- Date + egg count badge if available (e.g., "Feb 6, 2026 · 12 eggs")
+- Amount right-aligned in teal, prefixed with "+"
+
+### Speed-Dial FAB
+
+- Default state: single teal "+" button
+- On tap: expands to two mini-FABs:
+  - **Expense** — opens existing expense form
+  - **Income** — opens existing Record Sale form
+- Tap outside to collapse
 
 ### Edge Cases
 
 | Scenario | Display |
 |----------|---------|
 | Zero eggs, zero expenses | "No activity this period" |
-| Zero eggs, some expenses | Show expenses only, net = −expenses, omit cost-per-egg |
-| Some eggs, zero expenses | Show egg value, net = full egg value, "Your eggs cost you nothing this month!" |
-| No income ever logged | Income and cash flow lines hidden |
-| Income logged in other periods but not this one | Income line shows $0.00 (user has established they sell sometimes) |
+| Zero eggs, some expenses | Hero shows $0.00, Net Impact = −expenses, hide cost per dozen |
+| Some eggs, zero expenses | Hero shows egg value, Net Impact = full value, "Your eggs cost you nothing this period" |
+| Zero eggs consumed (all sold) | Hide "Your Cost per Dozen" |
+| No income ever logged | Income rows never appear, all eggs valued at store price |
+| List empty after category filter | "No [category] expenses this period" |
 
 ### Acceptance Criteria
 
-- [ ] Summary shows egg value, expenses, and net savings
-- [ ] Net savings colored green (positive) or amber/red (negative)
-- [ ] Cost-per-egg comparison (yours vs. store) displayed
-- [ ] Income section appears only when user has income history
-- [ ] Period selector applies to all values
-- [ ] Flock filter applies to all values
-- [ ] Edge cases handled per table above
+- [ ] Tab labeled "Value" in bottom nav
+- [ ] Flock dropdown hidden for single-flock users
+- [ ] All three filters (flock, period, category) work correctly
+- [ ] Hero card always shows total flock value for full period (unaffected by category filter)
+- [ ] Derived metrics update with all filters
+- [ ] Your Cost per Dozen hidden when zero eggs consumed
+- [ ] Net Impact uses teal for positive, muted dark for negative (never red)
+- [ ] List shows mixed expenses + income in chronological order
+- [ ] Category "Income" shows only income rows
+- [ ] Category expense filters hide income rows
+- [ ] Income rows visually distinct (teal amount, + prefix, egg count badge)
+- [ ] Speed-dial FAB expands to Expense / Income options
+- [ ] Tapping income row navigates to edit sale
+- [ ] Tapping expense row navigates to edit expense
 
 ---
 
@@ -271,42 +416,39 @@ The income and cash flow lines only appear if the user has logged any income in 
 
 ### File: `lib/screens/home/home_screen.dart`
 
-Add a single financial summary line to the home screen. This is not a full breakdown — just enough to answer "how am I doing?" at a glance.
+A single line below the stat cards row, above recent activity.
 
 ### Display
 
-When beating the store:
+Positive Net Impact:
 ```
-🥚 Your eggs saved you $18 this month
-```
-
-When not beating the store:
-```
-🥚 Your eggs cost $12 more than store-bought this month
+🥚 Your eggs saved you $21 this month
 ```
 
-When no eggs this period:
+Negative Net Impact:
 ```
-(omit the line entirely — don't show "$0 saved")
+🥚 Your flock cost $5 beyond egg value this month
 ```
 
-### Placement
+Zero eggs in period:
+```
+(line hidden entirely)
+```
 
-Below the existing stat cards row, above recent activity. Tapping the line navigates to the expenses tab for the full breakdown.
+### Behavior
 
-### Implementation
-
-- Uses the same `netSavingsProvider` with current month as the date range
-- Rounds to whole dollar for glanceability
-- Responds to flock filter
+- Uses `flockValueProvider` with current month
+- Rounds to whole dollar
+- Tapping navigates to Value tab
+- Respects flock filter
+- Updates when eggs, expenses, or income change
 
 ### Acceptance Criteria
 
-- [ ] One-line savings summary on home screen
-- [ ] Positive framing for savings, honest framing for costs
-- [ ] Tapping navigates to expenses tab
+- [ ] One-line summary on home screen
+- [ ] Neutral language for both positive and negative
+- [ ] Tapping navigates to Value tab
 - [ ] Hidden when no eggs in current period
-- [ ] Updates when egg logs or expenses change
 
 ---
 
@@ -314,36 +456,34 @@ Below the existing stat cards row, above recent activity. Tapping the line navig
 
 ### File: `lib/screens/analytics/analytics_screen.dart`
 
-Add a savings trend to the analytics screen for users with enough history.
+### Monthly Net Impact Trend
 
-### Monthly Savings Trend Chart
-
-A simple bar or line chart showing net savings per month over the last 6–12 months. Bars above zero are green (beating the store), bars below are red/amber.
-
-This is where the long-term story gets interesting: early months are deep negative (coop build, initial supplies), then the line climbs as one-time costs amortize. Watching it cross zero is a genuine milestone.
+Bar chart showing net impact per month over last 6–12 months.
+- Bars above zero: teal
+- Bars below zero: muted warm tone (not red)
+- X-axis: month labels
+- Y-axis: dollar amounts
 
 ### Cumulative View
 
-An optional toggle to show cumulative savings over time — "lifetime, have my chickens paid for themselves?" This is a running total of monthly net savings. The crossover point from negative to positive territory is the true break-even moment.
+Toggle to show running total of net impact over time. The line crossing from negative to positive territory is the break-even moment — a genuine milestone worth celebrating.
 
 ### Acceptance Criteria
 
-- [ ] Monthly savings bar chart on analytics screen
-- [ ] Green/red coloring for positive/negative months
+- [ ] Monthly bar chart on analytics screen
+- [ ] Teal/muted coloring for positive/negative
 - [ ] Cumulative toggle shows running total
 - [ ] Respects flock filter
-- [ ] Only shows with 2+ months of data (otherwise not meaningful)
+- [ ] Only shows with 2+ months of data
 
 ---
 
 ## Achievement Tie-In
 
-Two natural achievements from `achievements_ideas.md` map directly to this feature:
-
-| Badge | Name | Updated Criteria |
-|-------|------|-----------------|
-| 💰 | **Beat the Store** | Net savings positive for a calendar month |
-| ⚖️ | **Break Even** | Cumulative lifetime net savings crosses from negative to positive |
+| Badge | Name | Criteria |
+|-------|------|---------|
+| 💰 | **Beat the Store** | Net Impact positive for a calendar month |
+| ⚖️ | **Break Even** | Cumulative lifetime Net Impact crosses from negative to positive |
 
 ---
 
@@ -351,35 +491,38 @@ Two natural achievements from `achievements_ideas.md` map directly to this featu
 
 ### No schema changes
 
-All data comes from existing tables and the one new SharedPreferences key:
-
 | Source | Used For |
 |--------|----------|
 | `egg_logs.count` | Total egg count by period |
 | `expenses.amount` | Total expenses by period |
-| `income.amount` | Total income by period (when present) |
-| `retail_egg_price_per_dozen` (prefs) | Retail reference price |
+| `income.amount` | Actual sale income by period |
+| `income.egg_count` | Eggs sold (to separate consumed from sold) |
+| `retail_egg_price_per_dozen` (SharedPreferences) | Store comparison price |
 
-### Existing providers needed
+### Providers Needed
 
-| Provider | Exists? | Notes |
-|----------|---------|-------|
+| Provider | Status | Notes |
+|----------|--------|-------|
+| `retailPricePerDozenProvider` | New | SharedPreferences |
+| `retailPricePerEggProvider` | New | Derived from above |
+| `flockValueProvider` | New | Core calculation |
+| `eggsSoldByDateRangeProvider` | New | Sum of income.egg_count |
 | `eggCountByDateRangeProvider` | Should exist | From egg provider |
 | `totalExpensesProvider(DateRange)` | Should exist | From expense provider |
-| `totalIncomeProvider(DateRange)` | May need creation | Income tracking may be incomplete |
+| `totalIncomeProvider(DateRange)` | May need creation | From income provider |
 | `selectedFlockProvider` | Exists | For filtering |
 
 ---
 
 ## Implementation Order
 
-1. **Task 1**: Retail price setting (foundation — everything depends on this)
-2. **Task 2**: Egg value provider and model (core calculation)
-3. **Task 3**: Expense tab summary (primary UI, most detailed)
+1. **Task 1**: Retail price setting (foundation)
+2. **Task 2**: Value provider and model (core math)
+3. **Task 3**: Value tab screen (primary UI — replaces old Expenses/Income tabs)
 4. **Task 4**: Home screen line (glanceable summary)
-5. **Task 5**: Analytics trend (optional, adds depth with history)
+5. **Task 5**: Analytics trend (optional, adds depth)
 
-Estimated effort: 3–4 hours for Tasks 1–4, +2 hours for Task 5.
+Estimated effort: 4–5 hours for Tasks 1–4, +2 hours for Task 5.
 
 ---
 
@@ -387,7 +530,6 @@ Estimated effort: 3–4 hours for Tasks 1–4, +2 hours for Task 5.
 
 - **Regional price defaults**: Auto-suggest retail price based on location
 - **Price history tracking**: Update retail price over time, use historical prices for past months
-- **Per-category breakdowns**: "Your feed costs are X per egg, supplies are Y per egg"
-- **Amortized one-time costs**: Spread coop build cost over 5 years for more accurate monthly picture
-- **Comparison benchmarks**: "You're in the top 30% of keepers for cost efficiency" (requires anonymized aggregate data, conflicts with privacy-first model)
-- **Per-egg disposition tracking**: Mark eggs as sold/consumed/gifted for precise accounting (adds friction to logging, unlikely worth it)
+- **Per-category breakdowns**: "Your feed costs are X per dozen, supplies are Y per dozen"
+- **Amortized one-time costs**: Spread coop build cost over N years for more accurate monthly picture
+- **Comparison benchmarks**: "You're in the top 30% of keepers for cost efficiency" (requires aggregate data, conflicts with privacy-first model)
