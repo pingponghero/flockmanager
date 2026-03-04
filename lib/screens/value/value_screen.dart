@@ -114,7 +114,8 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                Expanded(
+                Flexible(
+                  flex: 3,
                   child: DropdownMenu<FinanceDateRange>(
                     initialSelection: selectedRange,
                     expandedInsets: EdgeInsets.zero,
@@ -135,7 +136,8 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
+                Flexible(
+                  flex: 2,
                   child: DropdownMenu<_ListFilter>(
                     initialSelection: _selectedFilter,
                     expandedInsets: EdgeInsets.zero,
@@ -165,7 +167,10 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
           _MetricCards(eggValueAsync: eggValueAsync),
           const SizedBox(height: 8),
 
-          // Expense category breakdown
+          // Expense category breakdown (hidden when filtering to income)
+          if (_selectedFilter.isIncomeOnly)
+            const Divider(height: 1)
+          else
           _CategoryBreakdown(
             categoryAsync: categoryAsync,
             selectedCategory: _selectedFilter.expenseCategory,
@@ -406,23 +411,39 @@ class _MetricCards extends StatelessWidget {
                       child: Column(
                         children: [
                           Text(
-                            'Your Cost per Dozen',
+                            'Your Cost',
                             style: Theme.of(context).textTheme.titleSmall,
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            summary.totalExpenses == 0 && summary.eggCount > 0
-                                ? '\$0.00'
-                                : netCostPerDozen != null
-                                    ? '\$${netCostPerDozen.toStringAsFixed(2)}'
-                                    : 'N/A',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryColor,
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: summary.totalExpenses == 0 && summary.eggCount > 0
+                                      ? '\$0.00'
+                                      : netCostPerDozen != null
+                                          ? '\$${netCostPerDozen.toStringAsFixed(2)}'
+                                          : 'N/A',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: primaryColor,
+                                      ),
                                 ),
+                                if (netCostPerDozen != null || (summary.totalExpenses == 0 && summary.eggCount > 0))
+                                  TextSpan(
+                                    text: '/dz',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: primaryColor,
+                                        ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

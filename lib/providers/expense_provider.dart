@@ -141,7 +141,7 @@ final incomeProvider = AsyncNotifierProvider<IncomeNotifier, List<Income>>(() {
 
 /// Date range options for financial reports
 enum FinanceDateRange {
-  thisMonth('This Month'),
+  last30Days('Last 30 Days'),
   last90Days('Last 90 Days'),
   thisYear('This Year'),
   allTime('All Time');
@@ -154,8 +154,8 @@ enum FinanceDateRange {
     final today = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
     switch (this) {
-      case FinanceDateRange.thisMonth:
-        return (DateTime(now.year, now.month, 1), today);
+      case FinanceDateRange.last30Days:
+        return (DateTime(now.year, now.month, now.day - 30), today);
       case FinanceDateRange.last90Days:
         return (DateTime(now.year, now.month, now.day - 90), today);
       case FinanceDateRange.thisYear:
@@ -169,7 +169,7 @@ enum FinanceDateRange {
 /// Finance date range notifier
 class FinanceDateRangeNotifier extends Notifier<FinanceDateRange> {
   @override
-  FinanceDateRange build() => FinanceDateRange.thisMonth;
+  FinanceDateRange build() => FinanceDateRange.last30Days;
 
   void setRange(FinanceDateRange range) => state = range;
 }

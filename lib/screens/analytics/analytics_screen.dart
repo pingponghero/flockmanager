@@ -553,6 +553,7 @@ class _TrendCard extends StatelessWidget {
 
   String get _periodLabel => switch (period) {
         AnalyticsPeriod.week => 'vs Previous 7 Days',
+        AnalyticsPeriod.last30Days => 'vs Previous 30 Days',
         AnalyticsPeriod.month => 'Month over Month',
         AnalyticsPeriod.year => 'Year over Year',
         AnalyticsPeriod.allTime => 'Week over Week',
@@ -563,6 +564,8 @@ class _TrendCard extends StatelessWidget {
     return switch (period) {
       AnalyticsPeriod.week =>
         'vs ${DateFormat.MMMd().format(comparisonEndDate!.subtract(const Duration(days: 6)))} - ${DateFormat.MMMd().format(comparisonEndDate!)}',
+      AnalyticsPeriod.last30Days =>
+        'vs ${DateFormat.MMMd().format(comparisonEndDate!.subtract(const Duration(days: 29)))} - ${DateFormat.MMMd().format(comparisonEndDate!)}',
       AnalyticsPeriod.allTime =>
         'vs ${DateFormat.EEEE().format(comparisonEndDate!)} last week',
       AnalyticsPeriod.month =>

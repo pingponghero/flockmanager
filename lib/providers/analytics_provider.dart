@@ -13,12 +13,14 @@ import 'flock_provider.dart';
 /// Analytics period for filtering data
 enum AnalyticsPeriod {
   week,
+  last30Days,
   month,
   year,
   allTime;
 
   String get displayName => switch (this) {
         AnalyticsPeriod.week => 'Last 7 Days',
+        AnalyticsPeriod.last30Days => 'Last 30 Days',
         AnalyticsPeriod.month => 'This Month',
         AnalyticsPeriod.year => 'This Year',
         AnalyticsPeriod.allTime => 'All Time',
@@ -30,8 +32,10 @@ enum AnalyticsPeriod {
 
     switch (this) {
       case AnalyticsPeriod.week:
-        // Last 7 days (today is day 7)
         final start = today.subtract(const Duration(days: 6));
+        return DateRange(start, today);
+      case AnalyticsPeriod.last30Days:
+        final start = today.subtract(const Duration(days: 29));
         return DateRange(start, today);
       case AnalyticsPeriod.month:
         final startOfMonth = DateTime(now.year, now.month, 1);
@@ -40,7 +44,6 @@ enum AnalyticsPeriod {
         final startOfYear = DateTime(now.year, 1, 1);
         return DateRange(startOfYear, today);
       case AnalyticsPeriod.allTime:
-        // Start from a very early date
         return DateRange(DateTime(2020, 1, 1), today);
     }
   }
@@ -366,6 +369,13 @@ Future<PeriodChangeResult> _calculatePeriodChange(
       previousStart = today.subtract(const Duration(days: 13));
       previousEnd = today.subtract(const Duration(days: 7));
 
+    case AnalyticsPeriod.last30Days:
+      currentStart = today.subtract(const Duration(days: 29));
+      currentEnd = today;
+      // Compare to previous 30 days
+      previousStart = today.subtract(const Duration(days: 59));
+      previousEnd = today.subtract(const Duration(days: 30));
+
     case AnalyticsPeriod.month:
       // Current month (1st to today)
       currentStart = DateTime(now.year, now.month, 1);
@@ -504,6 +514,7 @@ Future<List<BirdEggStats>> _calculateBirdStats(
   ChartGranularity granularity;
   switch (period) {
     case AnalyticsPeriod.week:
+    case AnalyticsPeriod.last30Days:
     case AnalyticsPeriod.month:
       granularity = ChartGranularity.daily;
     case AnalyticsPeriod.year:
