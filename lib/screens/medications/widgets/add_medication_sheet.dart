@@ -224,20 +224,20 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
                         if (_selectedFlockId == null && flocks.length == 1) {
                           _selectedFlockId = flocks.first.id;
                         }
-                        return DropdownButtonFormField<String>(
-                          value: _selectedFlockId,
-                          decoration: const InputDecoration(
-                            labelText: 'Flock',
-                          ),
-                          items: flocks.map((f) => DropdownMenuItem(
-                            value: f.id,
-                            child: Text(f.name),
-                          )).toList(),
-                          onChanged: (v) => setState(() {
+                        return DropdownMenu<String>(
+                          initialSelection: _selectedFlockId,
+                          expandedInsets: EdgeInsets.zero,
+                          label: const Text('Flock'),
+                          dropdownMenuEntries: flocks
+                              .map((f) => DropdownMenuEntry(
+                                    value: f.id,
+                                    label: f.name,
+                                  ))
+                              .toList(),
+                          onSelected: (v) => setState(() {
                             _selectedFlockId = v;
-                            _selectedBirdId = null; // Reset bird when flock changes
+                            _selectedBirdId = null;
                           }),
-                          validator: (v) => v == null ? 'Required' : null,
                         );
                       },
                     ),
@@ -258,23 +258,21 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  DropdownButtonFormField<String?>(
-                                    value: _selectedBirdId,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Bird (optional)',
-                                      hintText: 'Entire flock if not selected',
-                                    ),
-                                    items: [
-                                      const DropdownMenuItem<String?>(
+                                  DropdownMenu<String?>(
+                                    initialSelection: _selectedBirdId,
+                                    expandedInsets: EdgeInsets.zero,
+                                    label: const Text('Bird (optional)'),
+                                    dropdownMenuEntries: [
+                                      const DropdownMenuEntry(
                                         value: null,
-                                        child: Text('Entire flock'),
+                                        label: 'Entire flock',
                                       ),
-                                      ...birds.map((b) => DropdownMenuItem(
+                                      ...birds.map((b) => DropdownMenuEntry(
                                         value: b.id,
-                                        child: Text(b.name),
+                                        label: b.name,
                                       )),
                                     ],
-                                    onChanged: (v) => setState(() => _selectedBirdId = v),
+                                    onSelected: (v) => setState(() => _selectedBirdId = v),
                                   ),
                                   const SizedBox(height: 16),
                                 ],

@@ -126,18 +126,17 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
             const SizedBox(height: 16),
 
             // Species dropdown
-            DropdownButtonFormField<BirdSpecies>(
-              value: _selectedSpecies,
-              decoration: const InputDecoration(
-                labelText: 'Species',
-              ),
-              items: BirdSpecies.values.map((species) {
-                return DropdownMenuItem(
-                  value: species,
-                  child: Text(species.displayName),
-                );
-              }).toList(),
-              onChanged: (value) {
+            DropdownMenu<BirdSpecies>(
+              initialSelection: _selectedSpecies,
+              expandedInsets: EdgeInsets.zero,
+              label: const Text('Species'),
+              dropdownMenuEntries: BirdSpecies.values
+                  .map((species) => DropdownMenuEntry(
+                        value: species,
+                        label: species.displayName,
+                      ))
+                  .toList(),
+              onSelected: (value) {
                 if (value != null) {
                   setState(() => _selectedSpecies = value);
                   _generateDefaultName();
@@ -147,18 +146,17 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
             const SizedBox(height: 16),
 
             // Sex dropdown
-            DropdownButtonFormField<BirdSex>(
-              value: _selectedSex,
-              decoration: const InputDecoration(
-                labelText: 'Sex',
-              ),
-              items: BirdSex.values.map((sex) {
-                return DropdownMenuItem(
-                  value: sex,
-                  child: Text(sex.displayName),
-                );
-              }).toList(),
-              onChanged: (value) {
+            DropdownMenu<BirdSex>(
+              initialSelection: _selectedSex,
+              expandedInsets: EdgeInsets.zero,
+              label: const Text('Sex'),
+              dropdownMenuEntries: BirdSex.values
+                  .map((sex) => DropdownMenuEntry(
+                        value: sex,
+                        label: sex.displayName,
+                      ))
+                  .toList(),
+              onSelected: (value) {
                 if (value != null) {
                   setState(() => _selectedSex = value);
                   _generateDefaultName();
@@ -698,24 +696,17 @@ class _FlockDropdown extends ConsumerWidget {
         }
 
         // Multiple flocks: show dropdown
-        return DropdownButtonFormField<String>(
-          value: selectedFlockId,
-          decoration: const InputDecoration(
-            labelText: 'Flock *',
-          ),
-          items: flocks.map((flock) {
-            return DropdownMenuItem(
-              value: flock.id,
-              child: Text(flock.name),
-            );
-          }).toList(),
-          onChanged: onChanged,
-          validator: (value) {
-            if (value == null) {
-              return 'Please select a flock';
-            }
-            return null;
-          },
+        return DropdownMenu<String>(
+          initialSelection: selectedFlockId,
+          expandedInsets: EdgeInsets.zero,
+          label: const Text('Flock *'),
+          dropdownMenuEntries: flocks
+              .map((flock) => DropdownMenuEntry(
+                    value: flock.id,
+                    label: flock.name,
+                  ))
+              .toList(),
+          onSelected: onChanged,
         );
       },
     );

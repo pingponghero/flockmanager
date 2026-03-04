@@ -38,98 +38,72 @@ class _BreedListScreenState extends State<BreedListScreen> {
             ),
           ),
 
-          // Filter chips
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          // Egg color filter
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                // Egg color filter
-                PopupMenuButton<EggColor?>(
-                  child: Chip(
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (_selectedEggColor != null) ...[
-                          Container(
-                            width: 12,
-                            height: 12,
+            child: DropdownMenu<EggColor?>(
+              initialSelection: _selectedEggColor,
+              expandedInsets: EdgeInsets.zero,
+              label: const Text('Egg Color'),
+              dropdownMenuEntries: [
+                const DropdownMenuEntry(value: null, label: 'All Colors'),
+                ...EggColor.values
+                    .where((c) => c != EggColor.green && c != EggColor.pink)
+                    .map((color) => DropdownMenuEntry(
+                          value: color,
+                          label: _getEggColorLabel(color),
+                          leadingIcon: Container(
+                            width: 16,
+                            height: 16,
                             decoration: BoxDecoration(
-                              color: _getEggColorValue(_selectedEggColor!),
+                              color: _getEggColorValue(color),
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.grey.shade400),
                             ),
                           ),
-                          const SizedBox(width: 6),
-                        ],
-                        Text(_selectedEggColor != null
-                            ? _getEggColorLabel(_selectedEggColor!)
-                            : 'Egg Color'),
-                        const Icon(Icons.arrow_drop_down, size: 18),
-                      ],
-                    ),
-                    deleteIcon: _selectedEggColor != null
-                        ? const Icon(Icons.close, size: 16)
-                        : null,
-                    onDeleted: _selectedEggColor != null
-                        ? () => setState(() => _selectedEggColor = null)
-                        : null,
-                  ),
-                  onSelected: (color) => setState(() => _selectedEggColor = color),
-                  itemBuilder: (context) => [
-                    PopupMenuItem<EggColor?>(
-                      value: null,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.check,
-                            size: 16,
-                            color: _selectedEggColor == null
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.transparent,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('All Colors'),
-                        ],
-                      ),
-                    ),
-                    ...EggColor.values
-                        .where((c) => c != EggColor.green && c != EggColor.pink)
-                        .map((color) => PopupMenuItem<EggColor?>(
-                          value: color,
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  color: _getEggColorValue(color),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.grey.shade400),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(_getEggColorLabel(color)),
-                            ],
-                          ),
                         )),
-                  ],
+              ],
+              onSelected: (value) =>
+                  setState(() => _selectedEggColor = value),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Boolean filters
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _coldHardyFilter == true
+                      ? FilledButton.tonalIcon(
+                          onPressed: () =>
+                              setState(() => _coldHardyFilter = null),
+                          icon: const Icon(Icons.ac_unit, size: 18),
+                          label: const Text('Cold Hardy'),
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: () =>
+                              setState(() => _coldHardyFilter = true),
+                          icon: const Icon(Icons.ac_unit, size: 18),
+                          label: const Text('Cold Hardy'),
+                        ),
                 ),
-                const SizedBox(width: 8),
-                FilterChip(
-                  label: const Text('Cold Hardy'),
-                  selected: _coldHardyFilter == true,
-                  onSelected: (selected) => setState(
-                    () => _coldHardyFilter = selected ? true : null,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FilterChip(
-                  label: const Text('Good Layers'),
-                  selected: _goodLayerFilter == true,
-                  onSelected: (selected) => setState(
-                    () => _goodLayerFilter = selected ? true : null,
-                  ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _goodLayerFilter == true
+                      ? FilledButton.tonalIcon(
+                          onPressed: () =>
+                              setState(() => _goodLayerFilter = null),
+                          icon: const Icon(Icons.egg_outlined, size: 18),
+                          label: const Text('Good Layers'),
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: () =>
+                              setState(() => _goodLayerFilter = true),
+                          icon: const Icon(Icons.egg_outlined, size: 18),
+                          label: const Text('Good Layers'),
+                        ),
                 ),
               ],
             ),

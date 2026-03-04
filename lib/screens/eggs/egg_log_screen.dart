@@ -138,29 +138,22 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
                   });
                 }
 
-                return DropdownButtonFormField<String>(
-                  value: _selectedFlockId,
-                  decoration: const InputDecoration(
-                    labelText: 'Flock *',
-                    prefixIcon: Icon(Icons.grid_view),
-                  ),
-                  items: flocks.map((flock) {
-                    return DropdownMenuItem(
-                      value: flock.id,
-                      child: Text(flock.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
+                return DropdownMenu<String>(
+                  initialSelection: _selectedFlockId,
+                  expandedInsets: EdgeInsets.zero,
+                  label: const Text('Flock *'),
+                  leadingIcon: const Icon(Icons.grid_view),
+                  dropdownMenuEntries: flocks
+                      .map((flock) => DropdownMenuEntry(
+                            value: flock.id,
+                            label: flock.name,
+                          ))
+                      .toList(),
+                  onSelected: (value) {
                     setState(() {
                       _selectedFlockId = value;
-                      _selectedBirdId = null; // Reset bird when flock changes
+                      _selectedBirdId = null;
                     });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Please select a flock';
-                    }
-                    return null;
                   },
                 );
               },
@@ -184,33 +177,30 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
                         return const SizedBox.shrink();
                       }
 
-                      return DropdownButtonFormField<String?>(
-                        value: _selectedBirdId,
-                        decoration: InputDecoration(
-                          labelText: 'Bird (optional)',
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Image.asset(
-                              'assets/icons/cute_hen.png',
-                              width: 24,
-                              height: 24,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                      return DropdownMenu<String?>(
+                        initialSelection: _selectedBirdId,
+                        expandedInsets: EdgeInsets.zero,
+                        label: const Text('Bird (optional)'),
+                        leadingIcon: Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Image.asset(
+                            'assets/icons/cute_hen.png',
+                            width: 24,
+                            height: 24,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        items: [
-                          const DropdownMenuItem(
+                        dropdownMenuEntries: [
+                          const DropdownMenuEntry(
                             value: null,
-                            child: Text('Not specified'),
+                            label: 'Not specified',
                           ),
-                          ...birds.map((bird) {
-                            return DropdownMenuItem(
-                              value: bird.id,
-                              child: Text(bird.name),
-                            );
-                          }),
+                          ...birds.map((bird) => DropdownMenuEntry(
+                                value: bird.id,
+                                label: bird.name,
+                              )),
                         ],
-                        onChanged: (value) {
+                        onSelected: (value) {
                           setState(() => _selectedBirdId = value);
                         },
                       );

@@ -189,36 +189,30 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             const SizedBox(height: 16),
 
             // Category
-            Text(
-              'Category',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: ExpenseCategory.values.map((category) {
-                final isSelected = _selectedCategory == category;
-                return ChoiceChip(
-                  label: Text(category.displayName),
-                  selected: isSelected,
-                  onSelected: (_) {
-                    setState(() => _selectedCategory = category);
-                  },
-                );
-              }).toList(),
+            DropdownMenu<ExpenseCategory>(
+              initialSelection: _selectedCategory,
+              expandedInsets: EdgeInsets.zero,
+              label: const Text('Category'),
+              dropdownMenuEntries: ExpenseCategory.values
+                  .map((category) => DropdownMenuEntry(
+                        value: category,
+                        label: category.displayName,
+                      ))
+                  .toList(),
+              onSelected: (value) {
+                if (value != null) {
+                  setState(() => _selectedCategory = value);
+                }
+              },
             ),
             const SizedBox(height: 16),
 
             // Date
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Date'),
-              subtitle: Text(DateFormat.yMMMd().format(_selectedDate)),
-              trailing: const Icon(Icons.calendar_today),
+            _DateIndicator(
+              date: _selectedDate,
               onTap: _selectDate,
             ),
-            const Divider(),
+            const SizedBox(height: 16),
 
             // Description
             TextFormField(
@@ -237,23 +231,21 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               error: (_, __) => const SizedBox.shrink(),
               data: (flocks) {
                 if (flocks.isEmpty) return const SizedBox.shrink();
-                return DropdownButtonFormField<String?>(
-                  value: _selectedFlockId,
-                  decoration: const InputDecoration(
-                    labelText: 'Flock (optional)',
-                    hintText: 'Shared expense',
-                  ),
-                  items: [
-                    const DropdownMenuItem(
+                return DropdownMenu<String?>(
+                  initialSelection: _selectedFlockId,
+                  expandedInsets: EdgeInsets.zero,
+                  label: const Text('Flock (optional)'),
+                  dropdownMenuEntries: [
+                    const DropdownMenuEntry(
                       value: null,
-                      child: Text('Shared (all flocks)'),
+                      label: 'Shared (all flocks)',
                     ),
-                    ...flocks.map((flock) => DropdownMenuItem(
+                    ...flocks.map((flock) => DropdownMenuEntry(
                           value: flock.id,
-                          child: Text(flock.name),
+                          label: flock.name,
                         )),
                   ],
-                  onChanged: (value) {
+                  onSelected: (value) {
                     setState(() => _selectedFlockId = value);
                   },
                 );
@@ -280,19 +272,20 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             // Recurring interval
             if (_isRecurring) ...[
               const SizedBox(height: 8),
-              DropdownButtonFormField<RecurringInterval>(
-                value: _recurringInterval ?? RecurringInterval.monthly,
-                decoration: const InputDecoration(
-                  labelText: 'Repeat',
-                ),
-                items: RecurringInterval.values.map((interval) {
-                  return DropdownMenuItem(
-                    value: interval,
-                    child: Text(interval.displayName),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() => _recurringInterval = value);
+              DropdownMenu<RecurringInterval>(
+                initialSelection: _recurringInterval ?? RecurringInterval.monthly,
+                expandedInsets: EdgeInsets.zero,
+                label: const Text('Repeat'),
+                dropdownMenuEntries: RecurringInterval.values
+                    .map((interval) => DropdownMenuEntry(
+                          value: interval,
+                          label: interval.displayName,
+                        ))
+                    .toList(),
+                onSelected: (value) {
+                  if (value != null) {
+                    setState(() => _recurringInterval = value);
+                  }
                 },
               ),
             ],
@@ -502,14 +495,11 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
             const SizedBox(height: 16),
 
             // Date
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Date'),
-              subtitle: Text(DateFormat.yMMMd().format(_selectedDate)),
-              trailing: const Icon(Icons.calendar_today),
+            _DateIndicator(
+              date: _selectedDate,
               onTap: _selectDate,
             ),
-            const Divider(),
+            const SizedBox(height: 16),
 
             // Description
             TextFormField(
@@ -528,23 +518,21 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
               error: (_, __) => const SizedBox.shrink(),
               data: (flocks) {
                 if (flocks.isEmpty) return const SizedBox.shrink();
-                return DropdownButtonFormField<String?>(
-                  value: _selectedFlockId,
-                  decoration: const InputDecoration(
-                    labelText: 'Flock (optional)',
-                    hintText: 'Shared income',
-                  ),
-                  items: [
-                    const DropdownMenuItem(
+                return DropdownMenu<String?>(
+                  initialSelection: _selectedFlockId,
+                  expandedInsets: EdgeInsets.zero,
+                  label: const Text('Flock (optional)'),
+                  dropdownMenuEntries: [
+                    const DropdownMenuEntry(
                       value: null,
-                      child: Text('Shared (all flocks)'),
+                      label: 'Shared (all flocks)',
                     ),
-                    ...flocks.map((flock) => DropdownMenuItem(
+                    ...flocks.map((flock) => DropdownMenuEntry(
                           value: flock.id,
-                          child: Text(flock.name),
+                          label: flock.name,
                         )),
                   ],
-                  onChanged: (value) {
+                  onSelected: (value) {
                     setState(() => _selectedFlockId = value);
                   },
                 );
@@ -553,6 +541,67 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _DateIndicator extends StatelessWidget {
+  final DateTime date;
+  final VoidCallback? onTap;
+
+  const _DateIndicator({required this.date, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final dateOnly = DateTime(date.year, date.month, date.day);
+
+    String label;
+    if (dateOnly == today) {
+      label = 'Today';
+    } else if (dateOnly == yesterday) {
+      label = 'Yesterday';
+    } else {
+      label = DateFormat.MMMd().format(date);
+    }
+
+    return Row(
+      children: [
+        Text(
+          'Date',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+        const Spacer(),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

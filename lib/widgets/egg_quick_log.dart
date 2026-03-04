@@ -508,20 +508,19 @@ class _FlockSelector extends ConsumerWidget {
         }
 
         // Multiple flocks: show dropdown
-        return DropdownButtonFormField<String>(
-          value: selectedFlockId,
-          decoration: const InputDecoration(
-            labelText: 'Flock',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-          items: flocks.map((flock) {
-            return DropdownMenuItem(
-              value: flock.id,
-              child: Text(flock.name),
-            );
-          }).toList(),
-          onChanged: onChanged,
+        return DropdownMenu<String>(
+          initialSelection: selectedFlockId,
+          expandedInsets: EdgeInsets.zero,
+          label: const Text('Flock'),
+          dropdownMenuEntries: flocks
+              .map((flock) => DropdownMenuEntry(
+                    value: flock.id,
+                    label: flock.name,
+                  ))
+              .toList(),
+          onSelected: (value) {
+            if (value != null) onChanged(value);
+          },
         );
       },
     );
@@ -769,26 +768,21 @@ class _BirdSelector extends ConsumerWidget {
               style: Theme.of(context).textTheme.labelMedium,
             ),
             const SizedBox(height: 8),
-            DropdownButtonFormField<String?>(
-              value: selectedBirdId,
-              decoration: const InputDecoration(
-                hintText: 'Any bird',
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                isDense: true,
-              ),
-              isExpanded: true,
-              items: [
-                const DropdownMenuItem<String?>(
+            DropdownMenu<String?>(
+              initialSelection: selectedBirdId,
+              expandedInsets: EdgeInsets.zero,
+              label: const Text('Bird (optional)'),
+              dropdownMenuEntries: [
+                const DropdownMenuEntry(
                   value: null,
-                  child: Text('Any bird'),
+                  label: 'Any bird',
                 ),
-                ...activeBirds.map((bird) => DropdownMenuItem<String?>(
+                ...activeBirds.map((bird) => DropdownMenuEntry(
                       value: bird.id,
-                      child: Text(bird.name),
+                      label: bird.name,
                     )),
               ],
-              onChanged: onChanged,
+              onSelected: onChanged,
             ),
           ],
         );
