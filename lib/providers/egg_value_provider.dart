@@ -45,7 +45,8 @@ final retailPricePerDozenProvider =
 ///   saleValue = actual income from sales with egg counts
 ///
 /// Income without egg_count is additive cash — those eggs stay at store price.
-EggValueSummary _buildSummary({
+/// Visible for testing. Builds an [EggValueSummary] from raw query results.
+EggValueSummary buildEggValueSummary({
   required int eggCount,
   required double totalExpenses,
   required double totalIncome,
@@ -102,7 +103,7 @@ final selectedRangeEggValueProvider =
 
   final (eggsSold, saleIncome) = salesData;
 
-  return _buildSummary(
+  return buildEggValueSummary(
     eggCount: eggCount,
     totalExpenses: totalExpenses,
     totalIncome: totalIncome,
@@ -147,7 +148,7 @@ final monthEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
 
   final (eggsSold, saleIncome) = salesData;
 
-  return _buildSummary(
+  return buildEggValueSummary(
     eggCount: eggCount,
     totalExpenses: totalExpenses,
     totalIncome: totalIncome,
@@ -169,7 +170,7 @@ final allTimeEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
   final salesData = await repository.getEggSalesDataAllTime();
   final (eggsSold, saleIncome) = salesData;
 
-  return _buildSummary(
+  return buildEggValueSummary(
     eggCount: eggCount,
     totalExpenses: totalExpenses,
     totalIncome: totalIncome,
