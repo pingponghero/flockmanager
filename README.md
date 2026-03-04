@@ -2,7 +2,7 @@
 
 A cross-platform mobile app for backyard chicken keepers to track flocks, log eggs, monitor expenses, and manage bird health.
 
-**Current Version:** 1.2.0
+**Current Version:** 2.0.0
 
 ## Tech Stack
 
@@ -144,10 +144,12 @@ Test structure:
 - **Daily Reminders** - Configurable notifications to remind you to log eggs
 - **Flock Management** - Organize birds into multiple flocks
 - **Bird Profiles** - Track individual birds with photos, breed, hatch date, and status
-- **Expense Tracking** - Monitor costs with category breakdown and recurring expenses
-- **Income Tracking** - Log egg sales with price-per-egg calculations
+- **Egg Value Analytics** - Compare your flock's egg production value against store prices with cost per dozen, net impact, and savings calculations
+- **Tappable Summary Cards** - Tap financial cards for step-by-step math breakdowns
+- **Expense & Income Tracking** - Monitor costs by category and log egg sales with flock filtering
 - **Medication Tracking** - Log treatments with egg withdrawal period alerts
 - **Health Notes** - Record observations, symptoms, and vet visits per bird
+- **Achievements** - 50+ badges across production, financial, health, and engagement categories
 - **Analytics** - View production trends, per-bird statistics, and cost analysis
 - **Data Export/Import** - Backup and restore your data with photo support
 - **Breed Reference** - Built-in guide to 50 chicken breeds with egg color, temperament, and production info
