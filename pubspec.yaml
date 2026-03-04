@@ -1,6 +1,6 @@
 name: flock_manager
 description: "Backyard chicken flock management app"
-version: 2.0.0+17
+version: 2.0.1+18
 publish_to: 'none'  # Not for public Dart package registry
 
 environment:
