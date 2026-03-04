@@ -125,6 +125,68 @@ void main() {
 
       expect(summary.eggsConsumed, 138);
     });
+
+    test('netCostPerDozen returns null when no eggs consumed', () {
+      const summary = EggValueSummary(
+        eggCount: 120,
+        eggProductionValue: 48.00,
+        totalExpenses: 30.00,
+        totalIncome: 48.00,
+        retailPricePerDozen: 4.50,
+        eggsSold: 120,
+      );
+
+      expect(summary.netCostPerDozen, isNull);
+    });
+
+    test('netCostPerDozen is (expenses - income) / eggsConsumed * 12', () {
+      // 150 eggs, 12 sold for $7, $38 expenses, $4.50/dz
+      // eggsConsumed = 138
+      // netCostPerDozen = (38 - 7) / 138 * 12 = 31 / 138 * 12 ≈ $2.70
+      final summary = EggValueSummary(
+        eggCount: 150,
+        eggProductionValue: 58.75,
+        totalExpenses: 38.00,
+        totalIncome: 7.00,
+        retailPricePerDozen: 4.50,
+        eggsSold: 12,
+      );
+
+      expect(summary.netCostPerDozen, closeTo(2.6957, 0.001));
+    });
+
+    test('netCostPerDozen can be negative when income exceeds expenses', () {
+      // 100 eggs, 50 sold for $30, $20 expenses
+      // eggsConsumed = 50
+      // netCostPerDozen = (20 - 30) / 50 * 12 = -10 / 50 * 12 = -$2.40
+      final summary = EggValueSummary(
+        eggCount: 100,
+        eggProductionValue: 48.75,
+        totalExpenses: 20.00,
+        totalIncome: 30.00,
+        retailPricePerDozen: 4.50,
+        eggsSold: 50,
+      );
+
+      expect(summary.netCostPerDozen, closeTo(-2.40, 0.001));
+    });
+
+    test('netCostPerDozen with no income equals gross cost per dozen', () {
+      // 120 eggs, 0 sold, $30 expenses
+      // netCostPerDozen = (30 - 0) / 120 * 12 = $3.00
+      final summary = EggValueSummary(
+        eggCount: 120,
+        eggProductionValue: 45.00,
+        totalExpenses: 30.00,
+        totalIncome: 0,
+        retailPricePerDozen: 4.50,
+        eggsSold: 0,
+      );
+
+      expect(summary.netCostPerDozen, closeTo(3.00, 0.001));
+      // Should equal costPerEgg * 12 when no income
+      expect(summary.netCostPerDozen, closeTo(summary.costPerEgg! * 12, 0.001));
+    });
   });
 
   // =======================================================

@@ -9,16 +9,15 @@ class MonthlySavingsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final eggValueAsync = ref.watch(monthEggValueProvider);
+    final eggValueAsync = ref.watch(allTimeEggValueProvider);
 
     return eggValueAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (summary) {
-        if (summary.eggCount == 0) return const SizedBox.shrink();
+        final netCostPerDozen = summary.netCostPerDozen;
+        if (netCostPerDozen == null) return const SizedBox.shrink();
 
-        final netSavings = summary.netSavings;
-        final isPositive = netSavings >= 0;
         final primaryColor = Theme.of(context).colorScheme.primary;
 
         return GestureDetector(
@@ -44,8 +43,10 @@ class MonthlySavingsCard extends ConsumerWidget {
                   child: Text.rich(
                     TextSpan(
                       children: [
+                        const TextSpan(text: 'Your eggs cost '),
                         TextSpan(
-                          text: '\$${netSavings.abs().toStringAsFixed(2)}',
+                          text:
+                              '\$${netCostPerDozen.toStringAsFixed(2)}/dz',
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
@@ -53,9 +54,8 @@ class MonthlySavingsCard extends ConsumerWidget {
                                   ),
                         ),
                         TextSpan(
-                          text: isPositive
-                              ? ' saved vs. store this month'
-                              : ' more than store this month',
+                          text:
+                              ' vs \$${summary.retailPricePerDozen.toStringAsFixed(2)} store',
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],

@@ -55,14 +55,14 @@ enum _ListFilter {
   bool get isExpenseCategory => !isAll && !isIncomeOnly;
 }
 
-class ExpenseListScreen extends ConsumerStatefulWidget {
-  const ExpenseListScreen({super.key});
+class ValueScreen extends ConsumerStatefulWidget {
+  const ValueScreen({super.key});
 
   @override
-  ConsumerState<ExpenseListScreen> createState() => _ExpenseListScreenState();
+  ConsumerState<ValueScreen> createState() => _ValueScreenState();
 }
 
-class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
+class _ValueScreenState extends ConsumerState<ValueScreen> {
   _ListFilter _selectedFilter = _ListFilter.all;
 
   @override
@@ -71,6 +71,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
     final incomeAsync = ref.watch(incomeProvider);
     final selectedRange = ref.watch(financeDateRangeProvider);
     final eggValueAsync = ref.watch(selectedRangeEggValueProvider);
+    final categoryAsync = ref.watch(selectedRangeExpensesByCategoryProvider);
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
     final canEdit = ref.watch(canEditProvider);
 
@@ -85,10 +86,12 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
           ref.invalidate(selectedRangeEggValueProvider);
           ref.invalidate(selectedRangeDailyExpensesProvider);
           ref.invalidate(selectedRangeDailyIncomeProvider);
+          ref.invalidate(selectedRangeExpensesByCategoryProvider);
           await Future.wait([
             ref.read(expensesProvider.future),
             ref.read(incomeProvider.future),
             ref.read(selectedRangeEggValueProvider.future),
+            ref.read(selectedRangeExpensesByCategoryProvider.future),
           ]);
         },
         child: ListView(
@@ -159,6 +162,19 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
 
           // Side-by-side metric cards
           _MetricCards(eggValueAsync: eggValueAsync),
+          const SizedBox(height: 8),
+
+          // Expense category breakdown
+          _CategoryBreakdown(
+            categoryAsync: categoryAsync,
+            onCategoryTap: (category) {
+              final filter = _ListFilter.values.firstWhere(
+                (f) => f.expenseCategory == category,
+                orElse: () => _ListFilter.all,
+              );
+              setState(() => _selectedFilter = filter);
+            },
+          ),
           const SizedBox(height: 16),
 
           // Merged chronological list
@@ -353,7 +369,7 @@ class _MetricCards extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        final costPerEgg = summary.costPerEgg;
+        final netCostPerDozen = summary.netCostPerDozen;
         final isPositive = summary.isBeatingTheStore;
         final primaryColor = Theme.of(context).colorScheme.primary;
 
@@ -361,7 +377,7 @@ class _MetricCards extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              // Cost per Dozen
+              // Your Cost per Dozen
               Expanded(
                 child: Card(
                   clipBehavior: Clip.antiAlias,
@@ -370,38 +386,31 @@ class _MetricCards extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          'Cost per Dozen',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          'Your Cost per Dozen',
+                          style: Theme.of(context).textTheme.titleSmall,
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          costPerEgg != null
-                              ? '\$${(costPerEgg * 12).toStringAsFixed(2)}'
-                              : 'N/A',
+                          summary.totalExpenses == 0 && summary.eggCount > 0
+                              ? '\$0.00'
+                              : netCostPerDozen != null
+                                  ? '\$${netCostPerDozen.toStringAsFixed(2)}'
+                                  : 'N/A',
                           style: Theme.of(context)
                               .textTheme
-                              .titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: primaryColor,
+                              ),
                         ),
-                        if (costPerEgg != null)
-                          Text(
-                            'vs \$${summary.retailPricePerDozen.toStringAsFixed(2)} store',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                          ),
                       ],
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              // Net Savings
+              // Net Impact
               Expanded(
                 child: Card(
                   clipBehavior: Clip.antiAlias,
@@ -410,30 +419,19 @@ class _MetricCards extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          'Net Savings',
-                          style: Theme.of(context).textTheme.bodySmall,
+                          'Net Impact',
+                          style: Theme.of(context).textTheme.titleSmall,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '${isPositive ? '+' : '-'}\$${summary.netSavings.abs().toStringAsFixed(2)}',
                           style: Theme.of(context)
                               .textTheme
-                              .titleLarge
+                              .headlineSmall
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: isPositive ? primaryColor : null,
+                                color: primaryColor,
                               ),
-                        ),
-                        Text(
-                          isPositive
-                              ? 'beating the store'
-                              : 'vs buying at store',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
                         ),
                       ],
                     ),
@@ -446,6 +444,105 @@ class _MetricCards extends StatelessWidget {
       },
     );
   }
+}
+
+// ==================== Category Breakdown ====================
+
+class _CategoryBreakdown extends StatelessWidget {
+  final AsyncValue<Map<ExpenseCategory, double>> categoryAsync;
+  final ValueChanged<ExpenseCategory> onCategoryTap;
+
+  const _CategoryBreakdown({
+    required this.categoryAsync,
+    required this.onCategoryTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return categoryAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (categories) {
+        if (categories.isEmpty) return const SizedBox.shrink();
+
+        // Sort by amount descending
+        final sorted = categories.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+
+        final maxAmount = sorted.first.value;
+        if (maxAmount == 0) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Card(
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                children: sorted.asMap().entries.map((indexed) {
+                  final entry = indexed.value;
+                  final rank = indexed.key;
+                  final fraction = entry.value / maxAmount;
+                  // Gradient: strongest bar gets full alpha, weakest gets lighter
+                  // Range from 0.7 down to 0.25 based on rank
+                  final alpha = sorted.length == 1
+                      ? 0.6
+                      : 0.7 - (rank / (sorted.length - 1)) * 0.45;
+                  final barColor = Theme.of(context)
+                      .colorScheme
+                      .secondary
+                      .withValues(alpha: alpha);
+                  return InkWell(
+                    onTap: () => onCategoryTap(entry.key),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 72,
+                            child: Text(
+                              entry.key.displayName,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(3),
+                              child: FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: fraction,
+                                child: Container(
+                                  height: 14,
+                                  color: barColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 60,
+                            child: Text(
+                              '\$${entry.value.toStringAsFixed(0)}',
+                              textAlign: TextAlign.right,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 }
 
 // ==================== Line Item List ====================

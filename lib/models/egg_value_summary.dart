@@ -33,6 +33,12 @@ class EggValueSummary {
   /// Actual cost per egg from expenses, null if no eggs.
   double? get costPerEgg => eggCount > 0 ? totalExpenses / eggCount : null;
 
+  /// Net cost per dozen: (expenses − income) ÷ eggsConsumed × 12.
+  /// This is what the keeper actually pays per dozen consumed eggs
+  /// after offsetting with sales income. Null if no eggs consumed.
+  double? get netCostPerDozen =>
+      eggsConsumed > 0 ? (totalExpenses - totalIncome) / eggsConsumed * 12 : null;
+
   /// Retail price per single egg.
   double get retailPricePerEgg => retailPricePerDozen / 12;
 

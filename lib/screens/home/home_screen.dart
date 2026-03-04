@@ -61,7 +61,7 @@ class HomeScreen extends ConsumerWidget {
           // Achievements
           ref.invalidate(latestAchievementProvider);
           // Egg value
-          ref.invalidate(monthEggValueProvider);
+          ref.invalidate(allTimeEggValueProvider);
           ref.invalidate(achievementSummaryProvider);
           // Wait for data to actually refresh
           await Future.wait([
@@ -70,7 +70,7 @@ class HomeScreen extends ConsumerWidget {
             ref.read(weekEggCountByFlockProvider.future),
             ref.read(monthEggCountByFlockProvider.future),
             ref.read(activeBirdsProvider.future),
-            ref.read(monthEggValueProvider.future),
+            ref.read(allTimeEggValueProvider.future),
           ]);
         },
         child: ListView(

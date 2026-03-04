@@ -157,6 +157,28 @@ final monthEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
   );
 });
 
+/// Egg value summary for all time (used for home screen cost per dozen).
+final allTimeEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
+  final repository = ref.read(expenseRepositoryProvider);
+  final eggRepository = ref.read(eggRepositoryProvider);
+  final retailPrice = ref.watch(retailPricePerDozenProvider);
+
+  final totalExpenses = await repository.getTotalExpensesAllTime();
+  final totalIncome = await repository.getTotalIncomeAllTime();
+  final eggCount = await eggRepository.getTotalEggCount();
+  final salesData = await repository.getEggSalesDataAllTime();
+  final (eggsSold, saleIncome) = salesData;
+
+  return _buildSummary(
+    eggCount: eggCount,
+    totalExpenses: totalExpenses,
+    totalIncome: totalIncome,
+    retailPrice: retailPrice,
+    eggsSold: eggsSold,
+    saleIncome: saleIncome,
+  );
+});
+
 /// Whether the user has ever logged any income (for conditional UI display).
 final hasEverLoggedIncomeProvider = FutureProvider<bool>((ref) async {
   final incomeList = await ref.watch(incomeProvider.future);

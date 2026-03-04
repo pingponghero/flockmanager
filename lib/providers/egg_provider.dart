@@ -132,6 +132,7 @@ class EggLogsNotifier extends AsyncNotifier<List<EggLog>> {
     // Egg value providers
     ref.invalidate(selectedRangeEggValueProvider);
     ref.invalidate(monthEggValueProvider);
+    ref.invalidate(allTimeEggValueProvider);
   }
 }
 

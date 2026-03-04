@@ -11,8 +11,8 @@ import '../screens/birds/bird_events_screen.dart';
 import '../screens/birds/health_note_form_screen.dart';
 import '../screens/eggs/egg_history_screen.dart';
 import '../screens/eggs/egg_log_screen.dart';
-import '../screens/expenses/expense_list_screen.dart';
-import '../screens/expenses/expense_form_screen.dart';
+import '../screens/value/value_screen.dart';
+import '../screens/value/value_form_screen.dart';
 import '../screens/medications/medication_screen.dart';
 import '../screens/breeds/breed_list_screen.dart';
 import '../screens/analytics/analytics_screen.dart';
@@ -159,7 +159,7 @@ final router = GoRouter(
             GoRoute(
               path: '/expenses',
               name: 'expenses',
-              builder: (context, state) => const ExpenseListScreen(),
+              builder: (context, state) => const ValueScreen(),
               routes: [
                 GoRoute(
                   path: 'new',
