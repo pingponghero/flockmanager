@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FAQ — Flock Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+          --barn: #8B3A2A;
+          --barn-light: #B85C45;
+          --barn-deep: #6B2A1E;
+          --straw: #F5EDD6;
+          --straw-dark: #E8D9B5;
+          --straw-mid: #EFE4C8;
+          --earth: #5C3D2E;
+          --earth-light: #7A5544;
+          --sage: #6B7C5C;
+          --sage-light: #8A9E76;
+          --ink: #2A1F1A;
+          --muted: #8C7B6E;
+          --white: #FDFAF5;
+          --warm-white: #FAF6EE;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+          font-family: 'Lora', Georgia, serif;
+          background-color: var(--white);
+          color: var(--ink);
+          line-height: 1.7;
+          -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Subtle linen background ── */
+        body::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.3;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23e8d9b5' fill-opacity='0.3'/%3E%3Crect x='0' y='0' width='1' height='1' fill='%23d4c5a0' fill-opacity='0.15'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23d4c5a0' fill-opacity='0.1'/%3E%3C/svg%3E");
+        }
+
+        /* ── Header ── */
+        header {
+          background-color: var(--barn);
+          background-image:
+            radial-gradient(ellipse at 15% 50%, rgba(184,92,69,0.45) 0%, transparent 55%),
+            radial-gradient(ellipse at 85% 20%, rgba(42,31,26,0.35) 0%, transparent 45%),
+            radial-gradient(ellipse at 50% 100%, rgba(107,42,30,0.4) 0%, transparent 60%);
+          padding: 5rem 2rem 4rem;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+        }
+
+        header::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.035'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        /* Warm glow at bottom edge */
+        header::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--straw-dark), transparent);
+        }
+
+        .header-icon {
+          display: block;
+          width: 72px;
+          height: 72px;
+          margin: 0 auto 1rem;
+          animation: gentle-bob 3s ease-in-out infinite;
+          filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+          border-radius: 16px;
+        }
+
+        @keyframes gentle-bob {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+
+        header h1 {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: clamp(2rem, 5vw, 2.8rem);
+          font-weight: 600;
+          color: var(--straw);
+          letter-spacing: -0.01em;
+          position: relative;
+        }
+
+        .header-rule {
+          display: block;
+          width: 48px;
+          height: 1.5px;
+          background: linear-gradient(90deg, transparent, rgba(245,237,214,0.5), transparent);
+          margin: 0.9rem auto 0.7rem;
+          border: none;
+        }
+
+        header p {
+          color: rgba(245,237,214,0.65);
+          font-size: 1rem;
+          font-weight: 400;
+          font-style: italic;
+          position: relative;
+          letter-spacing: 0.01em;
+        }
+
+        /* ── Layout ── */
+        main {
+          max-width: 700px;
+          margin: 0 auto;
+          padding: 3.5rem 1.5rem 5rem;
+          position: relative;
+        }
+
+        /* ── Category sections ── */
+        .category {
+          margin-bottom: 3.25rem;
+          animation: section-in 0.5s ease both;
+        }
+
+        .category:nth-child(1) { animation-delay: 0.05s; }
+        .category:nth-child(2) { animation-delay: 0.1s; }
+        .category:nth-child(3) { animation-delay: 0.15s; }
+        .category:nth-child(4) { animation-delay: 0.2s; }
+        .category:nth-child(5) { animation-delay: 0.25s; }
+        .category:nth-child(6) { animation-delay: 0.3s; }
+        .category:nth-child(7) { animation-delay: 0.35s; }
+
+        @keyframes section-in {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .category-label {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 0.68rem;
+          font-weight: 600;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: var(--barn);
+          padding-bottom: 0.6rem;
+          margin-bottom: 0.5rem;
+          position: relative;
+        }
+
+        .category-label::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, var(--barn-light), var(--straw-dark) 50%, transparent);
+          opacity: 0.5;
+        }
+
+        /* ── FAQ Items ── */
+        details {
+          border-bottom: 1px solid var(--straw-dark);
+          position: relative;
+        }
+
+        details:last-child {
+          border-bottom: none;
+        }
+
+        summary {
+          font-family: 'Lora', Georgia, serif;
+          font-size: 1.02rem;
+          font-weight: 500;
+          color: var(--earth);
+          padding: 1.15rem 2.5rem 1.15rem 0;
+          cursor: pointer;
+          list-style: none;
+          position: relative;
+          transition: color 0.25s ease, padding-left 0.25s ease;
+        }
+
+        summary::-webkit-details-marker { display: none; }
+
+        summary::after {
+          content: '+';
+          position: absolute;
+          right: 0.25rem;
+          top: 50%;
+          transform: translateY(-50%);
+          font-family: 'Playfair Display', Georgia, serif;
+          font-size: 1.35rem;
+          font-weight: 400;
+          color: var(--straw-dark);
+          line-height: 1;
+          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.25s ease;
+        }
+
+        details[open] summary::after {
+          transform: translateY(-50%) rotate(45deg);
+          color: var(--barn);
+        }
+
+        details[open] summary {
+          color: var(--ink);
+          padding-left: 0.25rem;
+        }
+
+        summary:hover {
+          color: var(--barn);
+        }
+
+        summary:hover::after {
+          color: var(--barn-light);
+        }
+
+        .answer {
+          padding: 0 0.25rem 1.4rem 0.25rem;
+          color: var(--earth-light);
+          font-size: 0.95rem;
+          font-weight: 400;
+          line-height: 1.8;
+          animation: answer-in 0.3s ease both;
+        }
+
+        @keyframes answer-in {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .answer p + p { margin-top: 0.8rem; }
+
+        .answer strong {
+          color: var(--earth);
+          font-weight: 500;
+        }
+
+        .answer a {
+          color: var(--barn);
+          text-decoration: underline;
+          text-decoration-color: rgba(139, 58, 42, 0.3);
+          text-underline-offset: 3px;
+          transition: text-decoration-color 0.2s ease;
+        }
+
+        .answer a:hover {
+          text-decoration-color: var(--barn);
+        }
+
+        /* ── Still stuck callout ── */
+        .still-stuck {
+          background: linear-gradient(135deg, var(--straw) 0%, var(--warm-white) 100%);
+          border-left: 3px solid var(--barn);
+          border-radius: 0 8px 8px 0;
+          padding: 1.5rem 1.75rem;
+          margin-top: 3rem;
+          animation: section-in 0.5s ease 0.4s both;
+        }
+
+        .still-stuck p {
+          font-size: 0.95rem;
+          color: var(--earth);
+          font-weight: 400;
+          line-height: 1.75;
+        }
+
+        .still-stuck strong {
+          font-family: 'Playfair Display', Georgia, serif;
+          font-weight: 600;
+          color: var(--ink);
+          font-size: 1rem;
+        }
+
+        .still-stuck a {
+          color: var(--barn);
+          text-decoration: underline;
+          text-decoration-color: rgba(139, 58, 42, 0.3);
+          text-underline-offset: 3px;
+          transition: text-decoration-color 0.2s ease;
+        }
+
+        .still-stuck a:hover {
+          text-decoration-color: var(--barn);
+        }
+
+        /* ── Footer ── */
+        footer {
+          text-align: center;
+          padding: 2.5rem 1.5rem;
+          background-color: var(--straw);
+          border-top: 1px solid var(--straw-dark);
+          position: relative;
+        }
+
+        footer::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--straw-dark), transparent);
+        }
+
+        .footer-icon {
+          width: 20px;
+          height: 20px;
+          vertical-align: -4px;
+          border-radius: 4px;
+          margin-right: 0.3em;
+        }
+
+        footer p {
+          font-size: 0.85rem;
+          color: var(--muted);
+          font-weight: 400;
+          letter-spacing: 0.01em;
+        }
+
+        footer a {
+          color: var(--barn);
+          text-decoration: none;
+          transition: color 0.2s ease;
+        }
+
+        footer a:hover {
+          color: var(--barn-light);
+          text-decoration: underline;
+          text-underline-offset: 3px;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 480px) {
+          header { padding: 3.5rem 1.25rem 2.75rem; }
+          main { padding: 2.5rem 1.25rem 4rem; }
+          .header-egg { font-size: 2.6rem; }
+          summary { font-size: 0.97rem; }
+          .answer { font-size: 0.92rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <img class="header-icon" src="assets/icons/cute_hen_barn_red_icon.png" alt="Flock Manager" />
+    <h1>Frequently Asked Questions</h1>
+    <hr class="header-rule" />
+    <p>Flock Manager — everything you need to know</p>
+</header>
+
+<main>
+
+    <!-- GETTING STARTED -->
+    <section class="category">
+        <div class="category-label">Getting Started</div>
+
+        <details>
+            <summary>How do I add a second flock?</summary>
+            <div class="answer">
+                <p>Go to <strong>Settings → Manage Flocks</strong> and tap the + button to create a new flock. You can switch between flocks from the home screen or anywhere you see the flock selector at the top.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>How do I add my existing birds after setup?</summary>
+            <div class="answer">
+                <p>The onboarding flow adds your first bird, but you can add the rest anytime. Go to the <strong>Birds tab</strong> and tap the + button, or navigate to <strong>Settings → Flock Management</strong>. There's no limit to how many birds you can add.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Can I backfill egg data from before I installed the app?</summary>
+            <div class="answer">
+                <p>Yes. When logging eggs, tap "Today" to change it to any past date. Your analytics will reflect the historical data as if it were entered at the time.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Does the app work on both iPhone and Android?</summary>
+            <div class="answer">
+                <p>Yes — Flock Manager is available on both the <strong>Google Play Store</strong> (Android) and the <strong>Apple App Store</strong> (iOS). It doesn't sync anywhere automatically, but you can use the Export/Import feature to back up your data or transfer it to a new device.</p>
+            </div>
+        </details>
+    </section>
+
+    <!-- EGG LOGGING -->
+    <section class="category">
+        <div class="category-label">Logging Eggs</div>
+
+        <details>
+            <summary>What's the fastest way to log eggs?</summary>
+            <div class="answer">
+                <p>Tap the egg button at the bottom of the Home page. Just tap + to get your count and Save.</p>
+                <p>If you want to attribute eggs to individual birds, tap <strong>Log by Hen instead</strong> for a per-bird entry view.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>What is "Auto-distribute eggs"?</summary>
+            <div class="answer">
+                <p>When enabled, if the number of eggs you log exactly matches your number of active birds, the app will automatically attribute one egg to each bird — no extra steps. You can turn this on in <strong>Settings → Egg Logging</strong>. It's especially handy for small flocks where you can reliably tell who laid what.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>My rooster keeps showing up in the hen selection list. How do I fix that?</summary>
+            <div class="answer">
+                <p>Make sure your rooster's profile has the correct gender set. Go to <strong>Birds → [your rooster's profile] → Edit</strong> and confirm the gender is set to Male. He'll then be excluded from egg attribution and won't appear in the freeloaders list.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Can I log eggs for multiple flocks separately?</summary>
+            <div class="answer">
+                <p>Yes. The flock selector at the top of the egg log sheet lets you choose which flock you're logging for. You can view combined or per-flock analytics from the Analytics tab.</p>
+            </div>
+        </details>
+    </section>
+
+    <!-- BIRDS & FLOCKS -->
+    <section class="category">
+        <div class="category-label">Birds &amp; Flocks</div>
+
+        <details>
+            <summary>My hen isn't laying right now but she's not gone. What status should I use?</summary>
+            <div class="answer">
+                <p>Keep her as <strong>Inactive</strong> — that's the right status for who's still part of your flock but not currently laying. It keeps her out of the egg logging dropdown and out of stats without implying she's permanently gone.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>How do I filter by roosters or non-layers in the Birds tab?</summary>
+            <div class="answer">
+                <p>Roosters and non-laying hens are <strong>Inactive</strong> by default — "Active" means actively laying. Use the Status dropdown at the top of the Birds tab and select Inactive to see them.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Can I track health events for my birds?</summary>
+            <div class="answer">
+                <p>Yes. Open any bird's profile and tap <strong>Add Health Note</strong>. You can log different types of events — illness, injury, treatment, molting, broody behavior, and more — with a date and optional notes. Health notes appear on the bird's profile timeline so you have a full history at a glance.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Can I add photos to bird profiles?</summary>
+            <div class="answer">
+                <p>Yes — tap any bird's profile, then tap the photo area to add an image from your camera or photo library. Photos are stored privately on your device and never uploaded anywhere.</p>
+            </div>
+        </details>
+    </section>
+
+    <!-- EXPENSES & FINANCES -->
+    <section class="category">
+        <div class="category-label">Expenses &amp; Finances</div>
+
+        <details>
+            <summary>What does the Value tab show me?</summary>
+            <div class="answer">
+                <p>The Value tab is your flock's financial dashboard. It shows three key numbers: <strong>Egg Value</strong> (what your eggs would cost at the store), <strong>Your Cost per Dozen</strong> (expenses minus sale income, divided by eggs kept), and <strong>Net Impact</strong> (egg value minus total expenses). Tap any card to see the step-by-step math behind the number.</p>
+                <p>Set your local <strong>retail price per dozen</strong> in Settings so the app can compare your cost to the store — if you're coming out ahead, you're "beating the store."</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Can I track recurring expenses like monthly feed costs?</summary>
+            <div class="answer">
+                <p>You can mark any expense as recurring when you add it, and the app will remind you when it's due. Automatic recurring expense entry (where the cost is added for you) is planned for a future update.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>I sell some of my eggs. Can I track income too?</summary>
+            <div class="answer">
+                <p>Yes — tap the + button on the Value tab and choose <strong>Add Income</strong>. Log the amount, date, and optionally how many eggs were sold. Sale income reduces your effective cost per dozen and factors into your Net Impact calculation, so you get an accurate picture of your flock's finances.</p>
+            </div>
+        </details>
+    </section>
+
+    <!-- ANALYTICS & ACHIEVEMENTS -->
+    <section class="category">
+        <div class="category-label">Analytics &amp; Achievements</div>
+
+        <details>
+            <summary>What do the analytics charts show?</summary>
+            <div class="answer">
+                <p>The <strong>Stats tab</strong> shows your egg production trends over time — daily, weekly, or monthly — along with laying rate and comparison to a previous period. You can filter by flock and choose time ranges like Last 30 Days, This Year, or All Time.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>What are achievements and how do I earn them?</summary>
+            <div class="answer">
+                <p>Achievements are milestones that unlock automatically as you use the app — things like logging your first egg, reaching 1,000 eggs, or beating the store price. You can view all available achievements and your progress in <strong>Settings → Achievements</strong>. Your latest unlocked achievement also appears on the Home screen.</p>
+            </div>
+        </details>
+    </section>
+
+    <!-- TRIAL & PURCHASE -->
+    <section class="category">
+        <div class="category-label">Trial &amp; Purchase</div>
+
+        <details>
+            <summary>How does the free trial work?</summary>
+            <div class="answer">
+                <p>Flock Manager includes a <strong>14-day free trial</strong> with full access to every feature — no credit card required. After 14 days, the app enters read-only mode until you unlock it. You can always export your data regardless of trial or purchase status.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>How much does it cost, and is it a subscription?</summary>
+            <div class="answer">
+                <p><strong>$4.99, once, forever.</strong> There are no subscriptions, no annual renewals, and no "pro" tier. One purchase unlocks everything for the lifetime of the app.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>I got a new phone. Do I have to buy it again?</summary>
+            <div class="answer">
+                <p>No. Go to <strong>Settings → Restore Purchase</strong> to recover your access on a new device using the same App Store or Google Play account you originally purchased with.</p>
+            </div>
+        </details>
+    </section>
+
+    <!-- PRIVACY & DATA -->
+    <section class="category">
+        <div class="category-label">Privacy &amp; Data</div>
+
+        <details>
+            <summary>Where is my data stored?</summary>
+            <div class="answer">
+                <p>Everything is stored locally on your device — your flock data, bird photos, egg logs, and expenses never leave your phone. There's no account, no cloud sync, and no server on our end that holds your information.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Can I export my data?</summary>
+            <div class="answer">
+                <p>Yes. Go to <strong>Settings → Export Data</strong> to download a ZIP file containing all your records as CSV files. This works even if your trial has expired — your data always belongs to you.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Can I import data from a backup or another device?</summary>
+            <div class="answer">
+                <p>Yes. Go to <strong>Settings → Import Data</strong> and select a ZIP file previously exported from Flock Manager. The import will restore your flocks, birds, egg logs, expenses, income, and photos. This is the easiest way to transfer data to a new phone.</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>What happens to my data if I delete the app?</summary>
+            <div class="answer">
+                <p>It's deleted with it — since nothing is stored on our servers, uninstalling the app removes everything. We recommend exporting a backup first if you think you might want to reinstall later.</p>
+            </div>
+        </details>
+    </section>
+
+    <div class="still-stuck">
+        <p><strong>Still have a question?</strong> Email us at <a href="mailto:flockmanager.app@gmail.com">flockmanager.app@gmail.com</a> and we'll get back to you within 48 hours. We're a small team of chicken keepers ourselves, and we actually read every message.</p>
+    </div>
+
+</main>
+
+<footer>
+    <p>
+        <img class="footer-icon" src="assets/icons/cute_hen_barn_red_icon.png" alt="" />Flock Manager by Tyndall Studios &nbsp;·&nbsp;
+        <a href="privacy-policy.html">Privacy Policy</a> &nbsp;·&nbsp;
+        <a href="mailto:flockmanager.app@gmail.com">Contact</a>
+    </p>
+</footer>
+
+</body>
+</html>
