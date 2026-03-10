@@ -177,19 +177,17 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Transactions',
+                    'Transactions${_transactionCount(expensesAsync, incomeAsync, selectedRange, selectedFlockId, _selectedFilter)}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                         ),
                   ),
                 ),
-                SizedBox(
-                  width: 140,
+                Expanded(
                   child: DropdownMenu<_ListFilter>(
                     initialSelection: _selectedFilter,
                     expandedInsets: EdgeInsets.zero,
                     label: const Text('Category'),
-                    textStyle: Theme.of(context).textTheme.bodySmall,
                     dropdownMenuEntries: _ListFilter.values
                         .map((f) => DropdownMenuEntry(
                               value: f,
@@ -247,6 +245,28 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  String _transactionCount(
+    AsyncValue<List<Expense>> expensesAsync,
+    AsyncValue<List<Income>> incomeAsync,
+    FinanceDateRange selectedRange,
+    String? selectedFlockId,
+    _ListFilter filter,
+  ) {
+    final expenses = expensesAsync.value;
+    final income = incomeAsync.value;
+    if (expenses == null || income == null) return '';
+
+    final count = _buildFilteredLineItems(
+      expenses: expenses,
+      income: income,
+      selectedRange: selectedRange,
+      selectedFlockId: selectedFlockId,
+      filter: filter,
+    ).length;
+
+    return ' ($count)';
   }
 
   void _showAddDialog(BuildContext context) {
@@ -833,6 +853,53 @@ class _CategoryBreakdown extends ConsumerWidget {
 
 // ==================== Line Item List ====================
 
+List<_LineItem> _buildFilteredLineItems({
+  required List<Expense> expenses,
+  required List<Income> income,
+  required FinanceDateRange selectedRange,
+  required String? selectedFlockId,
+  required _ListFilter filter,
+}) {
+  final (rangeStart, rangeEnd) = selectedRange.dates;
+
+  var filteredExpenses = expenses.where((e) {
+    final d = e.date;
+    return !d.isBefore(rangeStart) && !d.isAfter(rangeEnd);
+  }).toList();
+
+  if (selectedFlockId != null) {
+    filteredExpenses = filteredExpenses
+        .where((e) => e.flockId == selectedFlockId || e.flockId == null)
+        .toList();
+  }
+
+  if (filter.isExpenseCategory) {
+    filteredExpenses = filteredExpenses
+        .where((e) => e.category == filter.expenseCategory)
+        .toList();
+  }
+
+  var filteredIncome = income.where((i) {
+    final d = i.date;
+    return !d.isBefore(rangeStart) && !d.isAfter(rangeEnd);
+  }).toList();
+
+  if (selectedFlockId != null) {
+    filteredIncome = filteredIncome
+        .where((i) => i.flockId == selectedFlockId || i.flockId == null)
+        .toList();
+  }
+
+  final items = <_LineItem>[
+    if (!filter.isIncomeOnly)
+      ...filteredExpenses.map((e) => _LineItem.expense(e)),
+    if (filter.isAll || filter.isIncomeOnly)
+      ...filteredIncome.map((i) => _LineItem.income(i)),
+  ];
+  items.sort((a, b) => b.date.compareTo(a.date));
+  return items;
+}
+
 class _LineItemList extends StatelessWidget {
   final AsyncValue<List<Expense>> expensesAsync;
   final AsyncValue<List<Income>> incomeAsync;
@@ -863,50 +930,13 @@ class _LineItemList extends StatelessWidget {
       );
     }
 
-    final expenses = expensesAsync.value ?? [];
-    final income = incomeAsync.value ?? [];
-    final (rangeStart, rangeEnd) = selectedRange.dates;
-
-    // Filter expenses by date range, flock, category
-    var filteredExpenses = expenses.where((e) {
-      final d = e.date;
-      return !d.isBefore(rangeStart) && !d.isAfter(rangeEnd);
-    }).toList();
-
-    if (selectedFlockId != null) {
-      filteredExpenses = filteredExpenses
-          .where((e) => e.flockId == selectedFlockId || e.flockId == null)
-          .toList();
-    }
-
-    if (filter.isExpenseCategory) {
-      filteredExpenses = filteredExpenses
-          .where((e) => e.category == filter.expenseCategory)
-          .toList();
-    }
-
-    // Filter income by date range and flock
-    var filteredIncome = income.where((i) {
-      final d = i.date;
-      return !d.isBefore(rangeStart) && !d.isAfter(rangeEnd);
-    }).toList();
-
-    if (selectedFlockId != null) {
-      filteredIncome = filteredIncome
-          .where((i) => i.flockId == selectedFlockId || i.flockId == null)
-          .toList();
-    }
-
-    // Build merged list based on filter
-    final items = <_LineItem>[
-      // Show expenses unless filter is Income-only
-      if (!filter.isIncomeOnly)
-        ...filteredExpenses.map((e) => _LineItem.expense(e)),
-      // Show income if filter is All or Income
-      if (filter.isAll || filter.isIncomeOnly)
-        ...filteredIncome.map((i) => _LineItem.income(i)),
-    ];
-    items.sort((a, b) => b.date.compareTo(a.date));
+    final items = _buildFilteredLineItems(
+      expenses: expensesAsync.value ?? [],
+      income: incomeAsync.value ?? [],
+      selectedRange: selectedRange,
+      selectedFlockId: selectedFlockId,
+      filter: filter,
+    );
 
     if (items.isEmpty) {
       return Padding(
@@ -1186,8 +1216,13 @@ void _showCostPerDozenBreakdown(
 
   _showMathBreakdown(
     context,
-    title: 'Your Cost per Dozen',
+    title: 'Your Cost per Dozen Eggs Kept',
     children: [
+      Text(
+        'What does it cost you per dozen eggs you keep for personal use?',
+        style: mutedStyle,
+      ),
+      const SizedBox(height: 12),
       Text(
         'Total expenses: ${_fmt(summary.totalExpenses, cs)}',
         style: bodyStyle,
@@ -1210,7 +1245,7 @@ void _showCostPerDozenBreakdown(
           TextSpan(children: [
             TextSpan(
                 text:
-                    '${_fmt(netCost, cs)} ÷ ${summary.eggsConsumed} eggs × 12 = '),
+                    '${_fmt(netCost, cs)} ÷ ${summary.eggsConsumed} eggs kept × 12 = '),
             TextSpan(
               text: '$cs${netCostPerDozen.toStringAsFixed(2)}/dz',
               style: TextStyle(
