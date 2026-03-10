@@ -383,6 +383,35 @@ final totalLoggedDaysProvider = FutureProvider<int>((ref) async {
   return repository.getDistinctLogDays();
 });
 
+// ==================== VALUE SCREEN MODE SETTING ====================
+
+const _keyValueScreenMode = 'value_screen_cash_flow_mode';
+
+/// Notifier for value screen mode (false = Egg Value, true = Cash Flow).
+class ValueScreenModeNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    _loadSaved();
+    return false;
+  }
+
+  Future<void> _loadSaved() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getBool(_keyValueScreenMode);
+    if (saved != null) state = saved;
+  }
+
+  Future<void> setMode(bool cashFlowMode) async {
+    state = cashFlowMode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyValueScreenMode, cashFlowMode);
+  }
+}
+
+/// Provider for value screen mode
+final valueScreenModeProvider =
+    NotifierProvider<ValueScreenModeNotifier, bool>(ValueScreenModeNotifier.new);
+
 // ==================== CURRENCY SYMBOL SETTING ====================
 
 const _keyCurrencySymbol = 'currency_symbol';

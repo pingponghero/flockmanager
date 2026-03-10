@@ -7,7 +7,7 @@ import '../../models/expense.dart';
 import '../../models/income.dart';
 import '../../models/enums.dart';
 import '../../models/egg_value_summary.dart';
-import '../../providers/egg_provider.dart' show currencySymbolProvider;
+import '../../providers/egg_provider.dart' show currencySymbolProvider, valueScreenModeProvider;
 import '../../providers/egg_value_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/flock_provider.dart';
@@ -76,6 +76,7 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
     final categoryAsync = ref.watch(selectedRangeExpensesByCategoryProvider);
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
     final canEdit = ref.watch(canEditProvider);
+    final cashFlowMode = ref.watch(valueScreenModeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -110,13 +111,13 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
             ),
           ),
 
-          // Period and category dropdowns
+          // Period + Mode toggle
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
                 Flexible(
-                  flex: 3,
+                  flex: 2,
                   child: DropdownMenu<FinanceDateRange>(
                     initialSelection: selectedRange,
                     expandedInsets: EdgeInsets.zero,
@@ -137,12 +138,58 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Flexible(
-                  flex: 2,
+                DropdownMenu<bool>(
+                  initialSelection: cashFlowMode,
+                  requestFocusOnTap: false,
+                  label: const Text('Mode'),
+                  dropdownMenuEntries: const [
+                    DropdownMenuEntry(value: false, label: 'Value'),
+                    DropdownMenuEntry(value: true, label: 'Cash'),
+                  ],
+                  onSelected: (value) {
+                    if (value != null) {
+                      ref.read(valueScreenModeProvider.notifier).setMode(value);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Mode-dependent hero + secondary cards
+          if (cashFlowMode) ...[
+            _CashFlowHeroCard(eggValueAsync: eggValueAsync),
+            const SizedBox(height: 8),
+            _CashFlowMetricCards(eggValueAsync: eggValueAsync),
+          ] else ...[
+            _EggValueCard(eggValueAsync: eggValueAsync),
+            const SizedBox(height: 8),
+            _MetricCards(eggValueAsync: eggValueAsync),
+          ],
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+
+          // Transactions section header + category filter
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Transactions',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                  ),
+                ),
+                SizedBox(
+                  width: 140,
                   child: DropdownMenu<_ListFilter>(
                     initialSelection: _selectedFilter,
                     expandedInsets: EdgeInsets.zero,
                     label: const Text('Category'),
+                    textStyle: Theme.of(context).textTheme.bodySmall,
                     dropdownMenuEntries: _ListFilter.values
                         .map((f) => DropdownMenuEntry(
                               value: f,
@@ -159,19 +206,10 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
               ],
             ),
           ),
-
-          // Hero card: Egg Value
-          _EggValueCard(eggValueAsync: eggValueAsync),
-          const SizedBox(height: 8),
-
-          // Side-by-side metric cards
-          _MetricCards(eggValueAsync: eggValueAsync),
           const SizedBox(height: 8),
 
           // Expense category breakdown (hidden when filtering to income)
-          if (_selectedFilter.isIncomeOnly)
-            const Divider(height: 1)
-          else
+          if (!_selectedFilter.isIncomeOnly)
           _CategoryBreakdown(
             categoryAsync: categoryAsync,
             selectedCategory: _selectedFilter.expenseCategory,
@@ -188,7 +226,7 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
               }
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
 
           // Merged chronological list
           _LineItemList(
@@ -485,6 +523,184 @@ class _MetricCards extends ConsumerWidget {
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ==================== Cash Flow Mode Widgets ====================
+
+class _CashFlowHeroCard extends ConsumerWidget {
+  final AsyncValue<EggValueSummary> eggValueAsync;
+
+  const _CashFlowHeroCard({required this.eggValueAsync});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = ref.watch(currencySymbolProvider);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: eggValueAsync.when(
+        loading: () => Card(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: Text(
+                '...',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ),
+          ),
+        ),
+        error: (_, __) => const SizedBox.shrink(),
+        data: (summary) {
+          if (summary.totalExpenses == 0 && summary.totalIncome == 0) {
+            return Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Center(
+                  child: Text(
+                    'No activity this period',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final primaryColor = Theme.of(context).colorScheme.primary;
+          final cashFlow = summary.cashFlow;
+          final cashFlowPrefix = cashFlow >= 0 ? '+' : '';
+
+          return GestureDetector(
+            onTap: () => _showCashFlowBreakdown(context, summary, cs),
+            child: Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cash Flow',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '$cashFlowPrefix${_fmt(cashFlow, cs)}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .displayMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: primaryColor,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CashFlowMetricCards extends ConsumerWidget {
+  final AsyncValue<EggValueSummary> eggValueAsync;
+
+  const _CashFlowMetricCards({required this.eggValueAsync});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = ref.watch(currencySymbolProvider);
+
+    return eggValueAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (summary) {
+        if (summary.totalExpenses == 0 && summary.totalIncome == 0) {
+          return const SizedBox.shrink();
+        }
+
+        final primaryColor = Theme.of(context).colorScheme.primary;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              // Income
+              Expanded(
+                child: Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Income',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _fmt(summary.totalIncome, cs),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: primaryColor,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Expenses
+              Expanded(
+                child: Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Expenses',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _fmt(summary.totalExpenses, cs),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: primaryColor,
+                              ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1027,15 +1243,37 @@ void _showNetImpactBreakdown(
   final isPositive = summary.isBeatingTheStore;
   final prefix = isPositive ? '+' : '-';
 
+  final consumedValue = summary.eggsConsumed * summary.retailPricePerEgg;
+  final saleValue = summary.eggProductionValue - consumedValue;
+
   _showMathBreakdown(
     context,
     title: 'Net Impact',
     children: [
+      // Egg value breakdown
       Text(
-        'Egg value: ${_fmt(summary.eggProductionValue, cs)}',
-        style: bodyStyle,
+        'Egg Value Breakdown',
+        style: Theme.of(context).textTheme.titleSmall,
       ),
+      const SizedBox(height: 8),
+      if (summary.eggsConsumed > 0)
+        Text(
+          '  Kept: ${NumberFormat('#,###').format(summary.eggsConsumed)} eggs × $cs${summary.retailPricePerDozen.toStringAsFixed(2)}/dz = ${_fmt(consumedValue, cs)}',
+          style: bodyStyle,
+        ),
+      if (summary.eggsSold > 0) ...[
+        const SizedBox(height: 4),
+        Text(
+          '  Sold: ${NumberFormat('#,###').format(summary.eggsSold)} eggs for ${_fmt(saleValue, cs)}',
+          style: bodyStyle,
+        ),
+      ],
       const SizedBox(height: 4),
+      Text(
+        '  Total egg value: ${_fmt(summary.eggProductionValue, cs)}',
+        style: bodyStyle?.copyWith(fontWeight: FontWeight.w600),
+      ),
+      const SizedBox(height: 8),
       Text(
         '– Total expenses: ${_fmt(summary.totalExpenses, cs)}',
         style: bodyStyle,
@@ -1055,8 +1293,55 @@ void _showNetImpactBreakdown(
       const SizedBox(height: 12),
       Text(
         isPositive
-            ? 'You\'re coming out ahead by ${_fmt(summary.netSavings, cs)} — your flock is paying for itself!'
-            : 'You\'re behind by ${_fmt(summary.netSavings.abs(), cs)} — but every egg brings you closer to break-even.',
+            ? 'Your flock\'s total value (including eggs you keep) exceeds your costs.'
+            : 'Your flock\'s total value is behind your costs — but every egg brings you closer.',
+        style: mutedStyle,
+      ),
+    ],
+  );
+}
+
+void _showCashFlowBreakdown(
+    BuildContext context, EggValueSummary summary, String cs) {
+  final primaryColor = Theme.of(context).colorScheme.primary;
+  final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+  final mutedStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontStyle: FontStyle.italic,
+      );
+
+  final cashFlowPrefix = summary.cashFlow >= 0 ? '+' : '';
+
+  _showMathBreakdown(
+    context,
+    title: 'Cash Flow',
+    children: [
+      Text(
+        'Total income: ${_fmt(summary.totalIncome, cs)}',
+        style: bodyStyle,
+      ),
+      const SizedBox(height: 4),
+      Text(
+        '– Total expenses: ${_fmt(summary.totalExpenses, cs)}',
+        style: bodyStyle,
+      ),
+      const Divider(height: 24),
+      Text.rich(
+        TextSpan(children: [
+          const TextSpan(text: 'Cash flow: '),
+          TextSpan(
+            text: '$cashFlowPrefix${_fmt(summary.cashFlow, cs)}',
+            style: TextStyle(
+                fontWeight: FontWeight.bold, color: primaryColor),
+          ),
+        ]),
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const SizedBox(height: 12),
+      Text(
+        summary.cashFlow >= 0
+            ? 'Your egg sales are covering your expenses!'
+            : 'Your egg sales haven\'t covered expenses yet. Net Impact includes the value of eggs you keep for personal use.',
         style: mutedStyle,
       ),
     ],
