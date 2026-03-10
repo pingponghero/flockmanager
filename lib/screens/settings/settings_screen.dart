@@ -1178,6 +1178,8 @@ class _AccountSection extends ConsumerWidget {
         return 'Trial Expired';
       case LicenseStatus.trialActive:
         return 'Free Trial';
+      case LicenseStatus.firstLaunch:
+        return 'Free Trial';
     }
   }
 
@@ -1190,6 +1192,8 @@ class _AccountSection extends ConsumerWidget {
       case LicenseStatus.trialActive:
         final days = trial.daysRemaining;
         return days == 1 ? '1 day remaining' : '$days days remaining';
+      case LicenseStatus.firstLaunch:
+        return '14 days remaining';
     }
   }
 

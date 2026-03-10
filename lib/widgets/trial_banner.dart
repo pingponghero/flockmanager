@@ -14,8 +14,10 @@ class TrialBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final trial = ref.watch(trialProvider);
 
-    // Don't show anything while loading or for premium users
-    if (trial.isLoading || trial.status == LicenseStatus.premium) {
+    // Don't show anything while loading, for premium users, or before trial starts
+    if (trial.isLoading ||
+        trial.status == LicenseStatus.premium ||
+        trial.status == LicenseStatus.firstLaunch) {
       return const SizedBox.shrink();
     }
 
@@ -68,8 +70,8 @@ class _TrialActiveBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 daysRemaining == 1
-                    ? '1 day left in trial'
-                    : '$daysRemaining days left in trial',
+                    ? '1 day left in free trial'
+                    : '$daysRemaining days left in free trial',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onPrimaryContainer,
                 ),
@@ -106,6 +108,7 @@ class _ExpiredBanner extends StatelessWidget {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
@@ -117,7 +120,7 @@ class _ExpiredBanner extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Trial expired - Unlock to continue',
+                    'Free trial ended',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: _barnRed,
@@ -125,6 +128,15 @@ class _ExpiredBanner extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You can still view your data, but adding or editing '
+              'birds, egg logs, expenses, income, medications, and '
+              'health notes is locked.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _barnRed.withValues(alpha: 0.9),
+                  ),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -135,15 +147,17 @@ class _ExpiredBanner extends StatelessWidget {
                   backgroundColor: _barnRed,
                 ),
                 icon: const Icon(Icons.arrow_forward),
-                label: Text('Get Lifetime Access - ${iapService.priceString}'),
+                label: Text('Unlock Forever - ${iapService.priceString}'),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              'One-time purchase. No subscription.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: _barnRed.withValues(alpha: 0.8),
-                  ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                'One-time purchase. No subscription.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: _barnRed.withValues(alpha: 0.8),
+                    ),
+              ),
             ),
           ],
         ),
@@ -191,9 +205,18 @@ void showTrialExpiredDialog(BuildContext context, WidgetRef ref) {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          // Body
+          // Body - clearly list what's restricted
           Text(
-            'Track your flock forever for ${iapService.priceString} - that\'s less than a dozen eggs at the farmers market!',
+            'Your 14-day free trial has ended. You can still view all '
+            'your data, but adding or editing birds, egg logs, expenses, '
+            'income, medications, and health notes requires unlocking.',
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Unlock forever for ${iapService.priceString} — that\'s less '
+            'than a dozen eggs at the farmers market!',
             style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
@@ -217,6 +240,86 @@ void showTrialExpiredDialog(BuildContext context, WidgetRef ref) {
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
             textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Shows the first-launch trial onboarding dialog.
+/// Clearly communicates: duration, what's lost after, and cost to unlock.
+void showTrialOnboardingDialog(BuildContext context, WidgetRef ref) {
+  final iapService = IAPService();
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icon
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Image.asset(
+                'assets/icons/cute_hen.png',
+                width: 40,
+                height: 40,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Welcome to Flock Manager!',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Enjoy a free 14-day trial with full access to all features.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'After the trial, you can still view all your data, '
+            'but adding or editing birds, egg logs, expenses, income, '
+            'medications, and health notes will require a one-time '
+            'purchase of ${iapService.priceString}.',
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'No subscription. No hidden fees.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await ref.read(trialProvider.notifier).startTrial();
+              },
+              child: const Text('Start 14-Day Free Trial'),
+            ),
           ),
         ],
       ),

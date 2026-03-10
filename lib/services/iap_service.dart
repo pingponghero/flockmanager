@@ -14,25 +14,36 @@ class IAPService {
   /// Product ID for the premium unlock.
   static const String premiumProductId = 'flock_manager_premium';
 
+  /// Product ID for the free trial (Price Tier 0, Non-Consumable).
+  /// Must be created in App Store Connect as "14-day Trial" at Price Tier 0.
+  static const String trialProductId = 'flock_manager_14_day_trial';
+
   /// Set of all product IDs.
-  static const Set<String> _productIds = {premiumProductId};
+  static const Set<String> _productIds = {premiumProductId, trialProductId};
 
   StreamSubscription<List<PurchaseDetails>>? _subscription;
 
-  /// Callback for when purchase status changes.
+  /// Callback for when premium is purchased.
   void Function(bool isPremium)? onPurchaseStatusChanged;
+
+  /// Callback for when the free trial is activated via IAP.
+  void Function(DateTime purchaseDate)? onTrialActivated;
 
   /// Callback for purchase errors.
   void Function(String error)? onPurchaseError;
 
   bool _isAvailable = false;
   ProductDetails? _premiumProduct;
+  ProductDetails? _trialProduct;
 
   /// Whether the store is available.
   bool get isAvailable => _isAvailable;
 
   /// The premium product details (price, title, etc.).
   ProductDetails? get premiumProduct => _premiumProduct;
+
+  /// The trial product details.
+  ProductDetails? get trialProduct => _trialProduct;
 
   /// Initialize the IAP service.
   Future<void> initialize() async {
@@ -69,10 +80,13 @@ class IAPService {
     }
 
     if (response.productDetails.isNotEmpty) {
-      // Find the premium product, or use the first product if not found
-      final products = response.productDetails;
-      final premium = products.where((p) => p.id == premiumProductId);
-      _premiumProduct = premium.isNotEmpty ? premium.first : products.first;
+      for (final product in response.productDetails) {
+        if (product.id == premiumProductId) {
+          _premiumProduct = product;
+        } else if (product.id == trialProductId) {
+          _trialProduct = product;
+        }
+      }
     }
   }
 
@@ -116,6 +130,12 @@ class IAPService {
 
     if (purchase.productID == premiumProductId) {
       onPurchaseStatusChanged?.call(true);
+    } else if (purchase.productID == trialProductId) {
+      final purchaseDate = purchase.transactionDate != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              int.parse(purchase.transactionDate!))
+          : DateTime.now();
+      onTrialActivated?.call(purchaseDate);
     }
 
     _completePurchase(purchase);
@@ -125,6 +145,30 @@ class IAPService {
   void _completePurchase(PurchaseDetails purchase) {
     if (purchase.pendingCompletePurchase) {
       _iap.completePurchase(purchase);
+    }
+  }
+
+  /// "Purchase" the free trial product (Tier 0).
+  /// This creates an App Store receipt that Apple uses to validate the trial.
+  Future<bool> purchaseTrial() async {
+    if (!_isAvailable) {
+      onPurchaseError?.call('Store not available');
+      return false;
+    }
+
+    if (_trialProduct == null) {
+      onPurchaseError?.call('Trial product not available');
+      return false;
+    }
+
+    final purchaseParam = PurchaseParam(productDetails: _trialProduct!);
+
+    try {
+      final success = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      return success;
+    } catch (e) {
+      onPurchaseError?.call(e.toString());
+      return false;
     }
   }
 

@@ -8,10 +8,11 @@ import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../providers/medication_provider.dart';
+import '../../providers/onboarding_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/egg_quick_log.dart';
-import '../../widgets/trial_banner.dart' show TrialBanner, showTrialExpiredDialog;
+import '../../widgets/trial_banner.dart' show TrialBanner, showTrialExpiredDialog, showTrialOnboardingDialog;
 import 'widgets/birthday_callouts.dart';
 import 'widgets/chicken_of_the_week.dart' show FlockSpotlight;
 import 'widgets/greeting_header.dart';
@@ -22,13 +23,36 @@ import 'widgets/spark_line_card.dart';
 import 'widgets/today_egg_card.dart';
 import 'widgets/withdrawal_warning.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _hasShownTrialDialog = false;
+
+  @override
+  Widget build(BuildContext context) {
     final selectedFlockId = ref.watch(selectedFlockIdProvider);
     final canEdit = ref.watch(canEditProvider);
+    final trial = ref.watch(trialProvider);
+
+    final onboarding = ref.watch(onboardingProvider);
+
+    // Show trial onboarding dialog on first launch (after app onboarding is done)
+    if (!_hasShownTrialDialog &&
+        !trial.isLoading &&
+        trial.status == LicenseStatus.firstLaunch &&
+        onboarding.isCompleted) {
+      _hasShownTrialDialog = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          showTrialOnboardingDialog(context, ref);
+        }
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
