@@ -54,6 +54,20 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
   bool _logByHenMode = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadLastEggCount();
+  }
+
+  Future<void> _loadLastEggCount() async {
+    final remember = await ref.read(rememberLastEggCountProvider.future);
+    if (remember && mounted) {
+      final lastCount = await getLastEggCount();
+      setState(() => _count = lastCount);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Initialize defaults
     if (!_isInitialized) {
@@ -349,6 +363,9 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
                 await markAchievementsAsShown(newAchievements);
               }
 
+              // Save last egg count
+              await saveLastEggCount(_count);
+
               // Show success message with bird names
               if (mounted) {
                 showAppSnackBar(
@@ -390,6 +407,9 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
           // Mark as shown AFTER dialog is displayed
           await markAchievementsAsShown(newAchievements);
         }
+
+        // Save last egg count
+        await saveLastEggCount(_count);
 
         // Show snackbar before closing (post-modal snackbars don't auto-dismiss)
         if (mounted) {

@@ -15,7 +15,7 @@ import '../../app/theme.dart';
 import '../../data/test_data.dart';
 import '../../database/database_helper.dart';
 import '../../providers/bird_provider.dart' show birdsProvider;
-import '../../providers/egg_provider.dart' show autoDistributeEggsProvider, eggLogsProvider;
+import '../../providers/egg_provider.dart' show autoDistributeEggsProvider, currencySymbolProvider, eggLogsProvider, rememberLastEggCountProvider;
 import '../../providers/egg_value_provider.dart';
 import '../../providers/expense_provider.dart' show expensesProvider;
 import '../../providers/flock_provider.dart' show flocksProvider, selectedFlockIdProvider;
@@ -163,7 +163,9 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Card(
-            child: ref.watch(autoDistributeEggsProvider).when(
+            child: Column(
+              children: [
+                ref.watch(autoDistributeEggsProvider).when(
                   loading: () => const ListTile(
                     leading: SizedBox(
                       width: 24,
@@ -187,6 +189,33 @@ class SettingsScreen extends ConsumerWidget {
                     },
                   ),
                 ),
+                const Divider(height: 1),
+                ref.watch(rememberLastEggCountProvider).when(
+                  loading: () => const ListTile(
+                    leading: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    title: Text('Remember last egg count'),
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (remember) => SwitchListTile(
+                    secondary: const Icon(Icons.history),
+                    title: const Text('Remember last egg count'),
+                    subtitle: const Text(
+                      'Pre-fill quick log with the last number of eggs logged',
+                    ),
+                    value: remember,
+                    onChanged: (value) {
+                      ref
+                          .read(rememberLastEggCountProvider.notifier)
+                          .setRemember(value);
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -198,6 +227,8 @@ class SettingsScreen extends ConsumerWidget {
                 ),
           ),
           const SizedBox(height: 12),
+          const _CurrencySymbolCard(),
+          const SizedBox(height: 8),
           const _RetailPriceCard(),
           const SizedBox(height: 24),
 
@@ -226,28 +257,27 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Theme Mode',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 12),
-                  _ThemeModeOption(
-                    icon: Icons.settings_brightness,
-                    label: 'System',
-                    isSelected: currentThemeMode == ThemeMode.system,
-                    onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.system),
-                  ),
-                  _ThemeModeOption(
-                    icon: Icons.light_mode,
-                    label: 'Light',
-                    isSelected: currentThemeMode == ThemeMode.light,
-                    onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.light),
-                  ),
-                  _ThemeModeOption(
-                    icon: Icons.dark_mode,
-                    label: 'Dark',
-                    isSelected: currentThemeMode == ThemeMode.dark,
-                    onTap: () => ref.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark),
+                  DropdownMenu<ThemeMode>(
+                    initialSelection: currentThemeMode,
+                    expandedInsets: EdgeInsets.zero,
+                    label: const Text('Theme Mode'),
+                    leadingIcon: Icon(
+                      currentThemeMode == ThemeMode.light
+                          ? Icons.light_mode
+                          : currentThemeMode == ThemeMode.dark
+                              ? Icons.dark_mode
+                              : Icons.settings_brightness,
+                    ),
+                    dropdownMenuEntries: const [
+                      DropdownMenuEntry(value: ThemeMode.system, label: 'System'),
+                      DropdownMenuEntry(value: ThemeMode.light, label: 'Light'),
+                      DropdownMenuEntry(value: ThemeMode.dark, label: 'Dark'),
+                    ],
+                    onSelected: (value) {
+                      if (value != null) {
+                        ref.read(themeModeProvider.notifier).setThemeMode(value);
+                      }
+                    },
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -698,6 +728,7 @@ void showRetailPriceDialog(
   final controller = TextEditingController(
     text: currentPrice.toStringAsFixed(2),
   );
+  final currency = ref.read(currencySymbolProvider);
 
   showDialog(
     context: context,
@@ -717,8 +748,8 @@ void showRetailPriceDialog(
               FilteringTextInputFormatter.allow(
                   RegExp(r'^\d{0,2}\.?\d{0,2}')),
             ],
-            decoration: const InputDecoration(
-              prefixText: '\$ ',
+            decoration: InputDecoration(
+              prefixText: currency.isNotEmpty ? '$currency ' : null,
               labelText: 'Price per dozen',
               hintText: '4.50',
             ),
@@ -746,12 +777,74 @@ void showRetailPriceDialog(
   );
 }
 
+class _CurrencySymbolCard extends ConsumerWidget {
+  const _CurrencySymbolCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final symbol = ref.watch(currencySymbolProvider);
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.attach_money),
+        title: const Text('Currency Symbol'),
+        subtitle: const Text('Shown next to all monetary values'),
+        trailing: Text(
+          symbol.isEmpty ? 'None' : symbol,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+        ),
+        onTap: () => _showCurrencyDialog(context, ref, symbol),
+      ),
+    );
+  }
+
+  void _showCurrencyDialog(
+      BuildContext context, WidgetRef ref, String currentSymbol) {
+    final controller = TextEditingController(text: currentSymbol);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Currency Symbol'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Symbol',
+            hintText: '\$, €, £, etc.',
+          ),
+          autofocus: true,
+          maxLength: 1,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              ref.read(currencySymbolProvider.notifier).setSymbol(controller.text);
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _RetailPriceCard extends ConsumerWidget {
   const _RetailPriceCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final retailPrice = ref.watch(retailPricePerDozenProvider);
+    final currency = ref.watch(currencySymbolProvider);
 
     return Card(
       child: ListTile(
@@ -759,7 +852,7 @@ class _RetailPriceCard extends ConsumerWidget {
         title: const Text('Store Egg Price'),
         subtitle: const Text('Retail price per dozen for comparison'),
         trailing: Text(
-          '\$${retailPrice.toStringAsFixed(2)}/doz',
+          '$currency${retailPrice.toStringAsFixed(2)}/doz',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.primary,
@@ -842,59 +935,6 @@ class _PaletteOption extends StatelessWidget {
   }
 }
 
-class _ThemeModeOption extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ThemeModeOption({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                      fontWeight: isSelected ? FontWeight.w600 : null,
-                    ),
-              ),
-            ),
-            if (isSelected)
-              Icon(
-                Icons.check,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _ColorSwatch extends StatelessWidget {
   final Color color;

@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/theme.dart';
 
-const _paletteKey = 'selected_palette';
+const _paletteKey = 'selected_palette_name';
 const _themeModeKey = 'theme_mode';
 
 /// Provider for the selected app palette
@@ -12,7 +12,7 @@ class ThemeNotifier extends Notifier<AppPalette> {
   @override
   AppPalette build() {
     _loadSavedPalette();
-    return AppPalette.barnRed; // Default palette
+    return AppPalette.eggInspired; // Default palette
   }
 
   Future<void> _loadSavedPalette() async {
