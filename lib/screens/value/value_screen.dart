@@ -7,6 +7,7 @@ import '../../models/expense.dart';
 import '../../models/income.dart';
 import '../../models/enums.dart';
 import '../../models/egg_value_summary.dart';
+import '../../providers/egg_provider.dart' show currencySymbolProvider;
 import '../../providers/egg_value_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/flock_provider.dart';
@@ -265,6 +266,8 @@ class _EggValueCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = ref.watch(currencySymbolProvider);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: eggValueAsync.when(
@@ -329,7 +332,7 @@ class _EggValueCard extends ConsumerWidget {
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              _$(summary.eggProductionValue),
+                              _fmt(summary.eggProductionValue, cs),
                               style: Theme.of(context)
                                   .textTheme
                                   .displayMedium
@@ -349,14 +352,14 @@ class _EggValueCard extends ConsumerWidget {
                         children: [
                           if (summary.eggsConsumed > 0)
                             Text(
-                              '${NumberFormat('#,###').format(summary.eggsConsumed)} eggs valued\n@ \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz',
+                              '${NumberFormat('#,###').format(summary.eggsConsumed)} eggs valued\n@ $cs${summary.retailPricePerDozen.toStringAsFixed(2)}/dz',
                               style: mutedStyle,
                               textAlign: TextAlign.right,
                             ),
                           if (summary.eggsSold > 0) ...[
                             const SizedBox(height: 6),
                             Text(
-                              '${NumberFormat('#,###').format(summary.eggsSold)} sold\n@ \$${(summary.totalIncome / summary.eggsSold * 12).toStringAsFixed(2)}/dz avg',
+                              '${NumberFormat('#,###').format(summary.eggsSold)} sold\n@ $cs${(summary.totalIncome / summary.eggsSold * 12).toStringAsFixed(2)}/dz avg',
                               style: mutedStyle,
                               textAlign: TextAlign.right,
                             ),
@@ -376,13 +379,15 @@ class _EggValueCard extends ConsumerWidget {
 
 // ==================== Side-by-side Metric Cards ====================
 
-class _MetricCards extends StatelessWidget {
+class _MetricCards extends ConsumerWidget {
   final AsyncValue<EggValueSummary> eggValueAsync;
 
   const _MetricCards({required this.eggValueAsync});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = ref.watch(currencySymbolProvider);
+
     return eggValueAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
@@ -403,7 +408,7 @@ class _MetricCards extends StatelessWidget {
               Expanded(
                 child: GestureDetector(
                   onTap: () =>
-                      _showCostPerDozenBreakdown(context, summary),
+                      _showCostPerDozenBreakdown(context, summary, cs),
                   child: Card(
                     clipBehavior: Clip.antiAlias,
                     child: Padding(
@@ -420,9 +425,9 @@ class _MetricCards extends StatelessWidget {
                               children: [
                                 TextSpan(
                                   text: summary.totalExpenses == 0 && summary.eggCount > 0
-                                      ? '\$0.00'
+                                      ? '${cs}0.00'
                                       : netCostPerDozen != null
-                                          ? '\$${netCostPerDozen.toStringAsFixed(2)}'
+                                          ? '$cs${netCostPerDozen.toStringAsFixed(2)}'
                                           : 'N/A',
                                   style: Theme.of(context)
                                       .textTheme
@@ -456,7 +461,7 @@ class _MetricCards extends StatelessWidget {
               Expanded(
                 child: GestureDetector(
                   onTap: () =>
-                      _showNetImpactBreakdown(context, summary),
+                      _showNetImpactBreakdown(context, summary, cs),
                   child: Card(
                     clipBehavior: Clip.antiAlias,
                     child: Padding(
@@ -469,7 +474,7 @@ class _MetricCards extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${isPositive ? '+' : '-'}${_$(summary.netSavings.abs())}',
+                            '${isPositive ? '+' : '-'}${_fmt(summary.netSavings.abs(), cs)}',
                             style: Theme.of(context)
                                 .textTheme
                                 .headlineSmall
@@ -494,7 +499,7 @@ class _MetricCards extends StatelessWidget {
 
 // ==================== Category Breakdown ====================
 
-class _CategoryBreakdown extends StatelessWidget {
+class _CategoryBreakdown extends ConsumerWidget {
   final AsyncValue<Map<ExpenseCategory, double>> categoryAsync;
   final ExpenseCategory? selectedCategory;
   final ValueChanged<ExpenseCategory> onCategoryTap;
@@ -506,7 +511,9 @@ class _CategoryBreakdown extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = ref.watch(currencySymbolProvider);
+
     return categoryAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
@@ -580,7 +587,7 @@ class _CategoryBreakdown extends StatelessWidget {
                           SizedBox(
                             width: 60,
                             child: Text(
-                              '\$${entry.value.toStringAsFixed(0)}',
+                              '$cs${entry.value.toStringAsFixed(0)}',
                               textAlign: TextAlign.right,
                               style: Theme.of(context)
                                   .textTheme
@@ -812,7 +819,7 @@ class _ExpenseCard extends ConsumerWidget {
             ],
           ),
           trailing: Text(
-            '-\$${expense.amount.toStringAsFixed(2)}',
+            '-${ref.watch(currencySymbolProvider)}${expense.amount.toStringAsFixed(2)}',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -884,10 +891,12 @@ void _showMathBreakdown(
   );
 }
 
-String _$(double value) => NumberFormat.currency(symbol: '\$').format(value);
+String _fmt(double value, String symbol) =>
+    NumberFormat.currency(symbol: symbol).format(value);
 
 void _showEggValueBreakdown(
     BuildContext context, WidgetRef ref, EggValueSummary summary) {
+  final cs = ref.read(currencySymbolProvider);
   final primaryColor = Theme.of(context).colorScheme.primary;
   final bodyStyle = Theme.of(context).textTheme.bodyMedium;
   final mutedStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -904,20 +913,20 @@ void _showEggValueBreakdown(
     children: [
       if (summary.eggsConsumed > 0)
         Text(
-          '${summary.eggsConsumed} eggs kept × \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz = ${_$(consumedValue)}',
+          '${summary.eggsConsumed} eggs kept × $cs${summary.retailPricePerDozen.toStringAsFixed(2)}/dz = ${_fmt(consumedValue, cs)}',
           style: bodyStyle,
         ),
       if (summary.eggsSold > 0) ...[
         const SizedBox(height: 4),
         Text(
-          '${summary.eggsSold} sold · ${_$(saleValue)} income',
+          '${summary.eggsSold} sold · ${_fmt(saleValue, cs)} income',
           style: bodyStyle,
         ),
       ],
       if (summary.eggsSold > 0) ...[
         const Divider(height: 24),
         Text(
-          'Total: ${_$(summary.eggProductionValue)}',
+          'Total: ${_fmt(summary.eggProductionValue, cs)}',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: primaryColor,
@@ -927,7 +936,7 @@ void _showEggValueBreakdown(
       const SizedBox(height: 12),
       if (!summary.isBeatingTheStore)
         Text(
-          'Your eggs are worth ${_$(summary.eggProductionValue)} — keep tracking to see the full picture.',
+          'Your eggs are worth ${_fmt(summary.eggProductionValue, cs)} — keep tracking to see the full picture.',
           style: mutedStyle,
         ),
       const SizedBox(height: 8),
@@ -937,7 +946,7 @@ void _showEggValueBreakdown(
           showRetailPriceDialog(context, ref, summary.retailPricePerDozen);
         },
         child: Text(
-          'Store price set to \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz · Change',
+          'Store price set to $cs${summary.retailPricePerDozen.toStringAsFixed(2)}/dz · Change',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
               ),
@@ -948,7 +957,7 @@ void _showEggValueBreakdown(
 }
 
 void _showCostPerDozenBreakdown(
-    BuildContext context, EggValueSummary summary) {
+    BuildContext context, EggValueSummary summary, String cs) {
   final primaryColor = Theme.of(context).colorScheme.primary;
   final bodyStyle = Theme.of(context).textTheme.bodyMedium;
   final mutedStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -964,18 +973,18 @@ void _showCostPerDozenBreakdown(
     title: 'Your Cost per Dozen',
     children: [
       Text(
-        'Total expenses: ${_$(summary.totalExpenses)}',
+        'Total expenses: ${_fmt(summary.totalExpenses, cs)}',
         style: bodyStyle,
       ),
       if (summary.totalIncome > 0) ...[
         const SizedBox(height: 4),
         Text(
-          '– Sale income: ${_$(summary.totalIncome)}',
+          '– Sale income: ${_fmt(summary.totalIncome, cs)}',
           style: bodyStyle,
         ),
         const SizedBox(height: 4),
         Text(
-          '= Net cost: ${_$(netCost)}',
+          '= Net cost: ${_fmt(netCost, cs)}',
           style: bodyStyle?.copyWith(fontWeight: FontWeight.w600),
         ),
       ],
@@ -985,9 +994,9 @@ void _showCostPerDozenBreakdown(
           TextSpan(children: [
             TextSpan(
                 text:
-                    '${_$(netCost)} ÷ ${summary.eggsConsumed} eggs × 12 = '),
+                    '${_fmt(netCost, cs)} ÷ ${summary.eggsConsumed} eggs × 12 = '),
             TextSpan(
-              text: '\$${netCostPerDozen.toStringAsFixed(2)}/dz',
+              text: '$cs${netCostPerDozen.toStringAsFixed(2)}/dz',
               style: TextStyle(
                   fontWeight: FontWeight.bold, color: primaryColor),
             ),
@@ -997,8 +1006,8 @@ void _showCostPerDozenBreakdown(
         const SizedBox(height: 12),
         Text(
           netCostPerDozen < summary.retailPricePerDozen
-              ? 'That\'s less than the \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz store price — nice work!'
-              : 'That\'s more than the \$${summary.retailPricePerDozen.toStringAsFixed(2)}/dz store price — but your eggs are fresher!',
+              ? 'That\'s less than the $cs${summary.retailPricePerDozen.toStringAsFixed(2)}/dz store price — nice work!'
+              : 'That\'s more than the $cs${summary.retailPricePerDozen.toStringAsFixed(2)}/dz store price — but your eggs are fresher!',
           style: mutedStyle,
         ),
       ],
@@ -1006,7 +1015,8 @@ void _showCostPerDozenBreakdown(
   );
 }
 
-void _showNetImpactBreakdown(BuildContext context, EggValueSummary summary) {
+void _showNetImpactBreakdown(
+    BuildContext context, EggValueSummary summary, String cs) {
   final primaryColor = Theme.of(context).colorScheme.primary;
   final bodyStyle = Theme.of(context).textTheme.bodyMedium;
   final mutedStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -1022,12 +1032,12 @@ void _showNetImpactBreakdown(BuildContext context, EggValueSummary summary) {
     title: 'Net Impact',
     children: [
       Text(
-        'Egg value: ${_$(summary.eggProductionValue)}',
+        'Egg value: ${_fmt(summary.eggProductionValue, cs)}',
         style: bodyStyle,
       ),
       const SizedBox(height: 4),
       Text(
-        '– Total expenses: ${_$(summary.totalExpenses)}',
+        '– Total expenses: ${_fmt(summary.totalExpenses, cs)}',
         style: bodyStyle,
       ),
       const Divider(height: 24),
@@ -1035,7 +1045,7 @@ void _showNetImpactBreakdown(BuildContext context, EggValueSummary summary) {
         TextSpan(children: [
           const TextSpan(text: 'Net Impact: '),
           TextSpan(
-            text: '$prefix${_$(summary.netSavings.abs())}',
+            text: '$prefix${_fmt(summary.netSavings.abs(), cs)}',
             style: TextStyle(
                 fontWeight: FontWeight.bold, color: primaryColor),
           ),
@@ -1045,8 +1055,8 @@ void _showNetImpactBreakdown(BuildContext context, EggValueSummary summary) {
       const SizedBox(height: 12),
       Text(
         isPositive
-            ? 'You\'re coming out ahead by ${_$(summary.netSavings)} — your flock is paying for itself!'
-            : 'You\'re behind by ${_$(summary.netSavings.abs())} — but every egg brings you closer to break-even.',
+            ? 'You\'re coming out ahead by ${_fmt(summary.netSavings, cs)} — your flock is paying for itself!'
+            : 'You\'re behind by ${_fmt(summary.netSavings.abs(), cs)} — but every egg brings you closer to break-even.',
         style: mutedStyle,
       ),
     ],
@@ -1150,7 +1160,7 @@ class _IncomeCard extends ConsumerWidget {
             ],
           ),
           trailing: Text(
-            '+\$${income.amount.toStringAsFixed(2)}',
+            '+${ref.watch(currencySymbolProvider)}${income.amount.toStringAsFixed(2)}',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.primary,

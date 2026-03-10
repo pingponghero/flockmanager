@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../providers/egg_provider.dart' show currencySymbolProvider;
 import '../../../providers/egg_value_provider.dart';
 
 class MonthlySavingsCard extends ConsumerWidget {
@@ -46,7 +47,7 @@ class MonthlySavingsCard extends ConsumerWidget {
                         const TextSpan(text: 'Your eggs cost '),
                         TextSpan(
                           text:
-                              '\$${netCostPerDozen.toStringAsFixed(2)}/dz',
+                              '${ref.watch(currencySymbolProvider)}${netCostPerDozen.toStringAsFixed(2)}/dz',
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.bold,

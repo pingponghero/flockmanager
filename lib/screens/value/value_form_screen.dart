@@ -8,11 +8,17 @@ import '../../models/expense.dart';
 import '../../models/income.dart';
 import '../../models/enums.dart';
 import '../../providers/achievements_provider.dart';
+import '../../providers/egg_provider.dart' show currencySymbolProvider;
 import '../../providers/expense_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
+
+String? _currencyPrefix(WidgetRef ref) {
+  final cs = ref.watch(currencySymbolProvider);
+  return cs.isNotEmpty ? '$cs ' : null;
+}
 
 /// Form screen for adding/editing expenses
 class ExpenseFormScreen extends ConsumerStatefulWidget {
@@ -166,9 +172,9 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
             // Amount
             TextFormField(
               controller: _amountController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Amount',
-                prefixText: '\$ ',
+                prefixText: _currencyPrefix(ref),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
@@ -459,9 +465,9 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
             // Amount
             TextFormField(
               controller: _amountController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Amount received',
-                prefixText: '\$ ',
+                prefixText: _currencyPrefix(ref),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
@@ -488,7 +494,7 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
               decoration: InputDecoration(
                 labelText: 'Number of eggs sold (optional)',
                 helperText: pricePerEgg != null
-                    ? 'That\'s \$${pricePerEgg.toStringAsFixed(2)} per egg'
+                    ? 'That\'s ${ref.watch(currencySymbolProvider)}${pricePerEgg.toStringAsFixed(2)} per egg'
                     : null,
               ),
               keyboardType: TextInputType.number,

@@ -383,6 +383,73 @@ final totalLoggedDaysProvider = FutureProvider<int>((ref) async {
   return repository.getDistinctLogDays();
 });
 
+// ==================== CURRENCY SYMBOL SETTING ====================
+
+const _keyCurrencySymbol = 'currency_symbol';
+
+/// Notifier for user-configured currency symbol.
+class CurrencySymbolNotifier extends Notifier<String> {
+  @override
+  String build() {
+    _loadSaved();
+    return '\$';
+  }
+
+  Future<void> _loadSaved() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_keyCurrencySymbol);
+    if (saved != null) state = saved;
+  }
+
+  Future<void> setSymbol(String symbol) async {
+    state = symbol;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCurrencySymbol, symbol);
+  }
+}
+
+/// Provider for the currency symbol setting
+final currencySymbolProvider =
+    NotifierProvider<CurrencySymbolNotifier, String>(CurrencySymbolNotifier.new);
+
+// ==================== REMEMBER LAST EGG COUNT SETTING ====================
+
+const _keyRememberLastEggCount = 'remember_last_egg_count';
+const _keyLastEggCount = 'last_egg_count';
+
+/// Notifier for remember last egg count setting
+class RememberLastEggCountNotifier extends AsyncNotifier<bool> {
+  @override
+  Future<bool> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyRememberLastEggCount) ?? false;
+  }
+
+  Future<void> setRemember(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyRememberLastEggCount, value);
+    state = AsyncData(value);
+  }
+}
+
+/// Provider for remember last egg count setting
+final rememberLastEggCountProvider =
+    AsyncNotifierProvider<RememberLastEggCountNotifier, bool>(() {
+  return RememberLastEggCountNotifier();
+});
+
+/// Get the last logged egg count from shared preferences
+Future<int> getLastEggCount() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getInt(_keyLastEggCount) ?? 0;
+}
+
+/// Save the last logged egg count to shared preferences
+Future<void> saveLastEggCount(int count) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setInt(_keyLastEggCount, count);
+}
+
 // ==================== EGG DISTRIBUTION SETTINGS ====================
 
 const _keyAutoDistributeEggs = 'auto_distribute_eggs';
