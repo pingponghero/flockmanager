@@ -141,6 +141,65 @@ class BirdStatusEventRepository {
     return result.first['count'] as int? ?? 0;
   }
 
+  /// Get active bird counts for multiple dates in a single pass.
+  /// Returns a map of date -> active count. Dates should be mid-month
+  /// or similar reference points; each is queried as end-of-day.
+  Future<Map<DateTime, int>> getActiveCountsOnDates(
+    String? flockId,
+    List<DateTime> dates,
+  ) async {
+    if (dates.isEmpty) return {};
+    final db = await _db.database;
+    final result = <DateTime, int>{};
+
+    // Build a single query using UNION ALL for each date
+    final parts = <String>[];
+    final args = <Object?>[];
+
+    for (final date in dates) {
+      final dateStr = date.toIso8601String();
+      if (flockId != null) {
+        parts.add('''
+          SELECT ? as query_date, COUNT(DISTINCT bird_id) as count
+          FROM bird_status_events e1
+          WHERE flock_id = ?
+            AND event_date <= ?
+            AND status = 'active'
+            AND event_date = (
+              SELECT MAX(event_date)
+              FROM bird_status_events e2
+              WHERE e2.bird_id = e1.bird_id
+                AND e2.event_date <= ?
+            )
+        ''');
+        args.addAll([dateStr, flockId, dateStr, dateStr]);
+      } else {
+        parts.add('''
+          SELECT ? as query_date, COUNT(DISTINCT bird_id) as count
+          FROM bird_status_events e1
+          WHERE event_date <= ?
+            AND status = 'active'
+            AND event_date = (
+              SELECT MAX(event_date)
+              FROM bird_status_events e2
+              WHERE e2.bird_id = e1.bird_id
+                AND e2.event_date <= ?
+            )
+        ''');
+        args.addAll([dateStr, dateStr, dateStr]);
+      }
+    }
+
+    final query = parts.join(' UNION ALL ');
+    final rows = await db.rawQuery(query, args);
+
+    for (var i = 0; i < rows.length && i < dates.length; i++) {
+      result[dates[i]] = rows[i]['count'] as int? ?? 0;
+    }
+
+    return result;
+  }
+
   /// Get the flock size history - active bird count at the end of each day
   /// that had an event. Useful for charts.
   Future<List<({DateTime date, int count})>> getFlockSizeHistory(
