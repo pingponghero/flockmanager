@@ -3,7 +3,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flock_manager/database/database_helper.dart';
 import 'package:flock_manager/models/enums.dart';
-import 'package:flock_manager/repositories/expense_repository.dart';
+import 'package:flock_manager/repositories/finance_repository.dart';
 
 class MockDatabaseHelper extends Mock implements DatabaseHelper {}
 
@@ -12,7 +12,7 @@ class MockDatabase extends Mock implements Database {}
 void main() {
   late MockDatabaseHelper mockDbHelper;
   late MockDatabase mockDatabase;
-  late ExpenseRepository repository;
+  late FinanceRepository repository;
 
   final start = DateTime(2024, 1, 1);
   final end = DateTime(2024, 12, 31);
@@ -23,7 +23,7 @@ void main() {
     mockDbHelper = MockDatabaseHelper();
     mockDatabase = MockDatabase();
     when(() => mockDbHelper.database).thenAnswer((_) async => mockDatabase);
-    repository = ExpenseRepository(db: mockDbHelper);
+    repository = FinanceRepository(db: mockDbHelper);
   });
 
   group('getTotalExpenses', () {

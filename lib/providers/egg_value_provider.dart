@@ -73,7 +73,7 @@ EggValueSummary buildEggValueSummary({
 /// Respects the selected flock filter.
 final selectedRangeEggValueProvider =
     FutureProvider<EggValueSummary>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   final eggRepository = ref.read(eggRepositoryProvider);
   final range = ref.watch(financeDateRangeProvider);
   final retailPrice = ref.watch(retailPricePerDozenProvider);
@@ -116,7 +116,7 @@ final selectedRangeEggValueProvider =
 /// Egg value summary for the current month (used on home screen).
 /// Respects the selected flock filter.
 final monthEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   final eggRepository = ref.read(eggRepositoryProvider);
   final retailPrice = ref.watch(retailPricePerDozenProvider);
   final selectedFlockId = ref.watch(selectedFlockIdProvider);
@@ -160,7 +160,7 @@ final monthEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
 
 /// Egg value summary for all time (used for home screen cost per dozen).
 final allTimeEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   final eggRepository = ref.read(eggRepositoryProvider);
   final retailPrice = ref.watch(retailPricePerDozenProvider);
 
