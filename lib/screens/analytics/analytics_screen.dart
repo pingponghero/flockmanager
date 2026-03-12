@@ -357,6 +357,9 @@ class _ProductionChart extends StatelessWidget {
     final maxY = chartData
         .map((e) => e.value)
         .reduce((a, b) => math.max(a, b));
+    final minY = chartData
+        .map((e) => e.value)
+        .reduce((a, b) => math.min(a, b));
 
     return Card(
       child: Padding(
@@ -441,7 +444,7 @@ class _ProductionChart extends StatelessWidget {
                   minX: 0,
                   maxX: (chartData.length - 1).toDouble(),
                   minY: 0,
-                  maxY: maxY + (maxY * 0.2).ceilToDouble(),
+                  maxY: maxY + math.max(minY, (maxY * 0.2).ceilToDouble()),
                   lineBarsData: [
                     LineChartBarData(
                       spots: chartData.asMap().entries.map((entry) {
