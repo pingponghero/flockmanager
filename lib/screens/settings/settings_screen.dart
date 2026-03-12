@@ -23,6 +23,7 @@ import '../../providers/medication_provider.dart' show medicationsProvider;
 import '../../providers/notification_provider.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/forecast_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../services/export_service.dart';
 import '../../services/iap_service.dart';
@@ -230,6 +231,8 @@ class SettingsScreen extends ConsumerWidget {
           const _CurrencySymbolCard(),
           const SizedBox(height: 8),
           const _RetailPriceCard(),
+          const SizedBox(height: 8),
+          const _LatitudeCard(),
           const SizedBox(height: 24),
 
           // Notifications Section
@@ -866,6 +869,134 @@ class _RetailPriceCard extends ConsumerWidget {
   void _showPriceDialog(
       BuildContext context, WidgetRef ref, double currentPrice) {
     showRetailPriceDialog(context, ref, currentPrice);
+  }
+}
+
+class _LatitudeCard extends ConsumerWidget {
+  const _LatitudeCard();
+
+  static const _northLabels = {
+    0: 'Equator',
+    25: '~Miami, FL',
+    30: '~Houston, TX',
+    35: '~Tokyo, Japan',
+    39: '~Kansas City, MO',
+    42: '~Boston, MA',
+    45: '~Minneapolis, MN',
+    50: '~Vancouver, BC',
+    55: '~Edmonton, AB',
+  };
+
+  static const _southLabels = {
+    0: 'Equator',
+    25: '~São Paulo, Brazil',
+    30: '~Porto Alegre, Brazil',
+    35: '~Buenos Aires, Argentina',
+    39: '~Bahía Blanca, Argentina',
+    42: '~Christchurch, NZ',
+    45: '~Queenstown, NZ',
+    50: '~Punta Arenas, Chile',
+    55: '~Ushuaia, Argentina',
+  };
+
+  String _nearestLabel(int latitude) {
+    if (latitude == 0) return '0° Equator';
+
+    final absLat = latitude.abs();
+    final hemisphere = latitude < 0 ? 'S' : 'N';
+    final labels = latitude < 0 ? _southLabels : _northLabels;
+
+    var bestKey = 39;
+    var bestDiff = 100;
+    for (final key in labels.keys) {
+      if (key == 0) continue;
+      final diff = (key - absLat).abs();
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestKey = key;
+      }
+    }
+    return '$latitude°$hemisphere ${labels[bestKey]}';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final latitudeAsync = ref.watch(userLatitudeProvider);
+    final latitude = latitudeAsync.value ?? 35;
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.location_on),
+        title: const Text('Latitude'),
+        subtitle: const Text('For daylight-based egg forecasting'),
+        trailing: Text(
+          '$latitude°',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+        ),
+        onTap: () => _showLatitudeDialog(context, ref, latitude),
+      ),
+    );
+  }
+
+  void _showLatitudeDialog(
+      BuildContext context, WidgetRef ref, int currentLatitude) {
+    var latitude = currentLatitude.toDouble();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Set Your Latitude'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _nearestLabel(latitude.round()),
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Slider(
+                value: latitude,
+                min: -60,
+                max: 60,
+                divisions: 120,
+                label: '${latitude.round()}°',
+                onChanged: (value) {
+                  setState(() => latitude = value);
+                },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Affects seasonal egg production forecasts.\n'
+                'Higher latitudes = more daylight variation.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                ref
+                    .read(userLatitudeProvider.notifier)
+                    .setLatitude(latitude.round());
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

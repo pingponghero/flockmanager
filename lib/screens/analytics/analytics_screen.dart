@@ -11,6 +11,8 @@ import '../../models/egg_log.dart';
 import '../../providers/analytics_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
+import '../../providers/forecast_provider.dart';
+import '../../utils/daylight_calculator.dart';
 import '../../providers/flock_provider.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../utils/edge_insets.dart';
@@ -171,6 +173,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                           ),
                           const SizedBox(height: 24),
                         ],
+
+                        // Forecast card
+                        const _ForecastCard(),
+                        const SizedBox(height: 24),
 
                         // Per-bird breakdown (collapsible)
                         if (analytics.birdStats.isNotEmpty) ...[
@@ -946,5 +952,475 @@ class _ActivityTile extends ConsumerWidget {
     } else {
       return DateFormat.MMMd().format(dateTime);
     }
+  }
+}
+
+class _ForecastCard extends ConsumerWidget {
+  const _ForecastCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final forecastAsync = ref.watch(forecastProvider);
+    final period = ref.watch(analyticsPeriodProvider);
+
+    return forecastAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (forecast) {
+        if (!forecast.hasEnoughData) return const SizedBox.shrink();
+
+        final year = DateTime.now().year;
+
+        // Choose which projection to highlight based on period
+        final isYearView = period == AnalyticsPeriod.year ||
+            period == AnalyticsPeriod.allTime;
+
+        final (label, value, subtitle) = switch (period) {
+          AnalyticsPeriod.week => (
+              'Next 7 Days',
+              '${forecast.projectedWeek} eggs',
+              '${forecast.currentPerHenRate.toStringAsFixed(2)}/hen/day · ${forecast.activeHens} hens',
+            ),
+          AnalyticsPeriod.last30Days ||
+          AnalyticsPeriod.month =>
+            (
+              'Next 30 Days',
+              '${forecast.projectedMonth} eggs',
+              '${forecast.currentPerHenRate.toStringAsFixed(2)}/hen/day · ${forecast.activeHens} hens',
+            ),
+          AnalyticsPeriod.year ||
+          AnalyticsPeriod.allTime =>
+            (
+              '$year Forecast',
+              '${NumberFormat('#,###').format(forecast.projectedYear)} eggs',
+              'daylight-adjusted · ${forecast.activeHens} hens',
+            ),
+        };
+
+        return GestureDetector(
+          onTap: () => _showForecastDetails(context, forecast, year, period),
+          child: Card(
+            color: Colors.amber.withValues(alpha: 0.1),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.auto_graph,
+                        color: Colors.amber[800],
+                        size: 32,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              label,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            Text(
+                              value,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    color: Colors.amber[800],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            Text(
+                              subtitle,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.amber[800],
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                  // Monthly breakdown for year/all-time views
+                  if (isYearView && forecast.monthlyForecasts.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _MonthlyForecastBars(months: forecast.monthlyForecasts),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showForecastDetails(
+    BuildContext context,
+    ForecastResult forecast,
+    int year,
+    AnalyticsPeriod period,
+  ) {
+    final now = DateTime.now();
+    final monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+
+    final isYearView =
+        period == AnalyticsPeriod.year || period == AnalyticsPeriod.allTime;
+
+    // Count months with actual data
+    final monthsWithData =
+        forecast.monthlyForecasts.where((m) => m.isActual).length;
+    final totalDaysRecorded = forecast.monthlyForecasts
+        .fold(0, (sum, m) => sum + m.daysRecorded);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(24),
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 32,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurfaceVariant
+                      .withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Text(
+              'How this forecast works',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+
+            // Data summary
+            _DetailSection(
+              icon: Icons.data_usage,
+              title: 'Your Data',
+              body: '$totalDaysRecorded days of egg logs across '
+                  '$monthsWithData month${monthsWithData == 1 ? '' : 's'} '
+                  'in $year. You have ${forecast.activeHens} active '
+                  'hen${forecast.activeHens == 1 ? '' : 's'}.',
+            ),
+            const SizedBox(height: 12),
+
+            // Per-hen rate
+            _DetailSection(
+              icon: Icons.calculate,
+              title: 'Per-Hen Rate',
+              body: 'Your flock currently lays '
+                  '${forecast.currentPerHenRate.toStringAsFixed(2)} '
+                  'eggs per hen per day. We use per-hen rates instead '
+                  'of raw totals so the forecast stays accurate even '
+                  'if your flock size changes.',
+            ),
+            const SizedBox(height: 12),
+
+            // Short-term explanation
+            if (!isYearView) ...[
+              _DetailSection(
+                icon: Icons.straighten,
+                title: 'Short-Term Projection',
+                body: 'This forecast multiplies your current per-hen '
+                    'rate by your ${forecast.activeHens} active hens. '
+                    'It assumes recent production continues at the same '
+                    'pace — accurate for the next few weeks.',
+              ),
+              const SizedBox(height: 12),
+              _DetailSection(
+                icon: Icons.wb_sunny,
+                title: 'Daylight',
+                body: 'For longer-range forecasts, switch to "This Year" '
+                    'or "All Time" to see daylight-adjusted projections '
+                    'that account for seasonal changes in production.',
+              ),
+            ],
+
+            // Daylight adjustment (year views)
+            if (isYearView) ...[
+              _DetailSection(
+                icon: Icons.wb_sunny,
+                title: 'Daylight Adjustment',
+                body: 'Chickens lay more eggs in longer days. At your '
+                    'latitude (${forecast.latitude}°), daylight ranges from '
+                    '${_minDaylight(forecast.latitude)} to '
+                    '${_maxDaylight(forecast.latitude)} hours. For months '
+                    'without data yet, we find the month with the most '
+                    'similar daylight hours and scale your per-hen rate '
+                    'accordingly.',
+              ),
+              const SizedBox(height: 24),
+
+              // Monthly table
+              Text(
+                'Monthly Breakdown',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+
+              // Header row
+              Row(
+                children: [
+                  const SizedBox(width: 48, child: Text('Month', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                  const Expanded(child: Text('Eggs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                  const SizedBox(width: 60, child: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                  const SizedBox(width: 48, child: Text('Light', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                  const SizedBox(width: 56, child: Text('Source', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
+                ],
+              ),
+              const Divider(),
+
+              ...forecast.monthlyForecasts.map((m) {
+                final isPast = m.month < now.month;
+                final isCurrent = m.month == now.month;
+                final eggs = isPast ? m.actualEggs : m.forecastEggs;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 48,
+                        child: Text(
+                          monthNames[m.month - 1],
+                          style: TextStyle(
+                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '$eggs',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 60,
+                        child: Text(
+                          m.perHenRate > 0 ? m.perHenRate.toStringAsFixed(2) : '-',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 48,
+                        child: Text(
+                          '${m.daylightHours.toStringAsFixed(1)}h',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 56,
+                        child: Text(
+                          isPast
+                              ? 'actual'
+                              : isCurrent
+                                  ? 'partial'
+                                  : 'forecast',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontStyle: isPast ? FontStyle.normal : FontStyle.italic,
+                            color: isPast
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.amber[800],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+
+              const SizedBox(height: 16),
+              // Total row
+              const Divider(),
+              Row(
+                children: [
+                  const SizedBox(
+                    width: 48,
+                    child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                  Expanded(
+                    child: Text(
+                      '${NumberFormat('#,###').format(forecast.projectedYear)}',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 60),
+                  const SizedBox(width: 48),
+                  const SizedBox(width: 56),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _minDaylight(int latitude) {
+    final curve = DaylightCalculator.getMonthlyDaylightCurve(latitude);
+    return curve.reduce(math.min).toStringAsFixed(1);
+  }
+
+  String _maxDaylight(int latitude) {
+    final curve = DaylightCalculator.getMonthlyDaylightCurve(latitude);
+    return curve.reduce(math.max).toStringAsFixed(1);
+  }
+}
+
+class _DetailSection extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+
+  const _DetailSection({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                body,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MonthlyForecastBars extends StatelessWidget {
+  final List<MonthForecast> months;
+
+  const _MonthlyForecastBars({required this.months});
+
+  static const _monthLabels = [
+    'J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final maxEggs = months
+        .map((m) => math.max(m.actualEggs, m.forecastEggs))
+        .fold(0, (a, b) => math.max(a, b));
+
+    if (maxEggs == 0) return const SizedBox.shrink();
+
+    final now = DateTime.now();
+    final currentMonth = now.month;
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return SizedBox(
+      height: 100,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: List.generate(12, (i) {
+          final m = months[i];
+          final eggs = m.month < currentMonth ? m.actualEggs : m.forecastEggs;
+          final fraction = maxEggs > 0 ? eggs / maxEggs : 0.0;
+          final isActual = m.month < currentMonth;
+          final isCurrent = m.month == currentMonth;
+
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    height: (fraction * 70).clamp(2.0, 70.0),
+                    decoration: BoxDecoration(
+                      color: isActual
+                          ? primary
+                          : isCurrent
+                              ? primary.withValues(alpha: 0.5)
+                              : Colors.amber[300],
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(2)),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _monthLabels[i],
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight:
+                          isCurrent ? FontWeight.bold : FontWeight.normal,
+                      color: isCurrent
+                          ? primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
   }
 }
