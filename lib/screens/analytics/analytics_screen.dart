@@ -163,8 +163,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Trend indicator (not shown for All Time - no meaningful comparison)
-                        if (selectedPeriod != AnalyticsPeriod.allTime) ...[
+                        // Trend indicator (not shown for All Time or when no comparison data exists)
+                        if (selectedPeriod != AnalyticsPeriod.allTime &&
+                            analytics.hasPreviousPeriodData) ...[
                           _TrendCard(
                             periodChange: analytics.periodChange,
                             hasPreviousPeriodData: analytics.hasPreviousPeriodData,
@@ -440,7 +441,7 @@ class _ProductionChart extends StatelessWidget {
                   minX: 0,
                   maxX: (chartData.length - 1).toDouble(),
                   minY: 0,
-                  maxY: maxY + (maxY * 0.1).ceilToDouble(),
+                  maxY: maxY + (maxY * 0.2).ceilToDouble(),
                   lineBarsData: [
                     LineChartBarData(
                       spots: chartData.asMap().entries.map((entry) {
@@ -451,12 +452,24 @@ class _ProductionChart extends StatelessWidget {
                       }).toList(),
                       isCurved: true,
                       curveSmoothness: 0.3,
+                      preventCurveOverShooting: true,
                       color: Theme.of(context).colorScheme.primary,
                       barWidth: 3,
                       isStrokeCapRound: true,
                       dotData: FlDotData(
                         show: chartData.length <= 14,
                         getDotPainter: (spot, percent, barData, index) {
+                          final isProjected = index < chartData.length &&
+                              chartData[index].isProjected;
+                          if (isProjected) {
+                            return FlDotCirclePainter(
+                              radius: 4,
+                              color: Theme.of(context).colorScheme.surface,
+                              strokeWidth: 2,
+                              strokeColor:
+                                  Theme.of(context).colorScheme.primary,
+                            );
+                          }
                           return FlDotCirclePainter(
                             radius: 3,
                             color: Theme.of(context).colorScheme.primary,
@@ -527,7 +540,8 @@ class _ProductionChart extends StatelessWidget {
     final dateFormat = _spansMultipleYears ? DateFormat.yMMMd() : DateFormat.MMMd();
 
     if (granularity == ChartGranularity.daily) {
-      return '${dateFormat.format(point.startDate)}\n${point.totalEggs} eggs';
+      final suffix = point.isProjected ? ' (projected)' : '';
+      return '${dateFormat.format(point.startDate)}\n${point.totalEggs} eggs$suffix';
     } else {
       // Show range and both total and average
       final dateRange = point.startDate == point.endDate
@@ -1173,9 +1187,8 @@ class _ForecastCard extends ConsumerWidget {
                     'latitude (${forecast.latitude}°), daylight ranges from '
                     '${_minDaylight(forecast.latitude)} to '
                     '${_maxDaylight(forecast.latitude)} hours. For months '
-                    'without data yet, we find the month with the most '
-                    'similar daylight hours and scale your per-hen rate '
-                    'accordingly.',
+                    'without data yet, we blend your existing months\' rates '
+                    'weighted by how similar their daylight hours are.',
               ),
               const SizedBox(height: 24),
 

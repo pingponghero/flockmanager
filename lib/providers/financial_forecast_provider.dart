@@ -74,22 +74,31 @@ final financialForecastProvider =
       : await repo.getAllIncome();
 
   // ---- Historical flock sizes (for per-bird feed normalization) ----
+  // Use the flock-size timeline for accurate daily bird counts instead of
+  // mid-month snapshots, which can be wildly wrong when flock size changes.
 
-  final sampleDates = <DateTime>[];
-  var sampleDate = DateTime(firstDate.year, firstDate.month, 15);
-  while (sampleDate.isBefore(today)) {
-    sampleDates.add(sampleDate);
-    sampleDate = DateTime(sampleDate.year, sampleDate.month + 1, 15);
+  final timeline = await statusRepo.getFlockSizeTimeline(
+    selectedFlockId,
+    firstDate,
+    today,
+  );
+
+  // Compute average flock size over the observation period by sampling
+  // every day and averaging the non-zero values.
+  var flockSizeSum = 0;
+  var flockSizeDays = 0;
+  for (var d = firstDate;
+      !d.isAfter(today);
+      d = d.add(const Duration(days: 1))) {
+    final size = BirdStatusEventRepository.flockSizeOnDate(timeline, d);
+    if (size > 0) {
+      flockSizeSum += size;
+      flockSizeDays++;
+    }
   }
-
-  final flockSizes = sampleDates.isNotEmpty
-      ? await statusRepo.getActiveCountsOnDates(selectedFlockId, sampleDates)
-      : <DateTime, int>{};
-
-  final sizeValues = flockSizes.values.where((s) => s > 0).toList();
-  final avgFlockSize = sizeValues.isEmpty
-      ? eggForecast.activeHens.toDouble()
-      : sizeValues.fold(0, (s, v) => s + v) / sizeValues.length;
+  final avgFlockSize = flockSizeDays > 0
+      ? flockSizeSum / flockSizeDays
+      : eggForecast.activeHens.toDouble();
 
   // ---- Per-category forecasts ----
 

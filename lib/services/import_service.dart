@@ -5,6 +5,8 @@ import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:uuid/uuid.dart';
+
 import '../database/database_helper.dart';
 import '../models/import_result.dart';
 
@@ -102,6 +104,7 @@ class ImportService {
         await txn.delete('income');
         await txn.delete('expenses');
         await txn.delete('egg_logs');
+        await txn.delete('bird_status_events');
         await txn.delete('bird_photos');
         await txn.delete('birds');
         await txn.delete('flocks');
@@ -216,6 +219,47 @@ class ImportService {
         for (final healthNote in data.healthNotes) {
           await txn.insert('health_notes', healthNote);
           healthNotesCount++;
+        }
+
+        // Insert bird_status_events — from CSV if available, otherwise
+        // reconstruct from bird created_at/status/status_date fields.
+        if (data.birdStatusEvents.isNotEmpty) {
+          for (final event in data.birdStatusEvents) {
+            await txn.insert('bird_status_events', event);
+          }
+        } else {
+          // Reconstruct: each bird gets an 'active' event at created_at,
+          // plus a status-change event if currently non-active.
+          const uuid = Uuid();
+          for (final bird in data.birds) {
+            final birdId = bird['id'] as String;
+            final flockId = bird['flock_id'] as String;
+            final createdAt = bird['created_at'] as String;
+            final status = bird['status'] as String? ?? 'active';
+            final statusDate = bird['status_date'] as String?;
+
+            await txn.insert('bird_status_events', {
+              'id': uuid.v4(),
+              'bird_id': birdId,
+              'flock_id': flockId,
+              'status': 'active',
+              'event_date': createdAt,
+              'notes': null,
+              'created_at': createdAt,
+            });
+
+            if (status != 'active' && statusDate != null) {
+              await txn.insert('bird_status_events', {
+                'id': uuid.v4(),
+                'bird_id': birdId,
+                'flock_id': flockId,
+                'status': status,
+                'event_date': statusDate,
+                'notes': bird['status_notes'] as String?,
+                'created_at': statusDate,
+              });
+            }
+          }
         }
         _reportProgress(0.95);
       });
@@ -389,6 +433,17 @@ class ImportService {
       );
     }
 
+    List<Map<String, dynamic>> birdStatusEvents = [];
+    final birdStatusEventsFile = File('${tempDir.path}/bird_status_events.csv');
+    if (await birdStatusEventsFile.exists()) {
+      birdStatusEvents = await _parseCsv(
+        birdStatusEventsFile,
+        'bird_status_events.csv',
+        ['id', 'bird_id', 'flock_id', 'status', 'event_date', 'notes', 'created_at'],
+        ['id', 'bird_id', 'flock_id', 'status', 'event_date', 'created_at'],
+      );
+    }
+
     return _ParsedData(
       flocks: flocks,
       birds: birds,
@@ -397,6 +452,7 @@ class ImportService {
       income: income,
       medicationLogs: medicationLogs,
       healthNotes: healthNotes,
+      birdStatusEvents: birdStatusEvents,
     );
   }
 
@@ -711,6 +767,7 @@ class _ParsedData {
   final List<Map<String, dynamic>> income;
   final List<Map<String, dynamic>> medicationLogs;
   final List<Map<String, dynamic>> healthNotes;
+  final List<Map<String, dynamic>> birdStatusEvents;
 
   _ParsedData({
     required this.flocks,
@@ -720,6 +777,7 @@ class _ParsedData {
     required this.income,
     required this.medicationLogs,
     required this.healthNotes,
+    required this.birdStatusEvents,
   });
 }
 

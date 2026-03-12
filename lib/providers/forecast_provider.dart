@@ -8,6 +8,12 @@ import '../repositories/egg_repository.dart';
 import '../utils/daylight_calculator.dart';
 import 'flock_provider.dart';
 
+// A hen lays at most 1 egg/day; flock averages above 1.0 indicate
+// data anomalies (small flock size during the measurement window,
+// data entry errors, etc.) and must be capped to prevent the
+// daylight-twin matcher from propagating impossible rates.
+const _maxPerHenRate = 1.0;
+
 // ==================== Latitude Provider ====================
 
 const _latitudeKey = 'user_latitude';
@@ -175,24 +181,39 @@ final forecastProvider = FutureProvider<ForecastResult>((ref) async {
     }
   }
 
-  // Batch-fetch mid-month flock sizes for all 12 months in one query
-  final midMonthDates = [
-    for (var m = 1; m <= 12; m++) DateTime(currentYear, m, 15),
-  ];
-  final flockSizes = await statusEventRepo.getActiveCountsOnDates(
+  // Build flock-size timeline from events — gives exact bird count
+  // on any date, accounting for within-month flock changes.
+  final earliestDate = dailyMap.keys.reduce(
+      (a, b) => a.isBefore(b) ? a : b);
+  final timeline = await statusEventRepo.getFlockSizeTimeline(
     selectedFlockId,
-    midMonthDates,
+    earliestDate,
+    now,
   );
 
   for (var m = 1; m <= 12; m++) {
     final monthTotal = monthTotals[m - 1];
     final daysRecorded = monthDaysRecorded[m - 1];
-    final avgFlockSize = flockSizes[midMonthDates[m - 1]] ?? 0;
+
+    // Compute actual bird-days: sum flock size on every day up to today.
+    // Past months use all days; current month caps at today (can't count
+    // future days in the denominator for a month still in progress).
+    // This correctly handles within-month flock changes (e.g. adding 9
+    // hens mid-February) instead of using a single mid-month snapshot.
+    final lastDay = (currentYear == now.year && m == now.month)
+        ? now.day
+        : daysPerMonth[m - 1];
+    var birdDays = 0;
+    for (var d = 1; d <= lastDay; d++) {
+      final date = DateTime(currentYear, m, d);
+      birdDays +=
+          BirdStatusEventRepository.flockSizeOnDate(timeline, date);
+    }
 
     // Calculate per-hen rate if we have enough data (10+ days)
-    if (daysRecorded >= 10 && monthTotal > 0 && avgFlockSize > 0) {
-      final birdDays = avgFlockSize * daysRecorded;
-      actualRates[m - 1] = monthTotal / birdDays;
+    if (daysRecorded >= 10 && monthTotal > 0 && birdDays > 0) {
+      actualRates[m - 1] =
+          (monthTotal / birdDays).clamp(0.0, _maxPerHenRate);
     }
 
     final isComplete = m < now.month || (m == now.month && daysRecorded >= 15);
@@ -221,12 +242,8 @@ final forecastProvider = FutureProvider<ForecastResult>((ref) async {
     ..sort();
 
   // Collect per-hen rates from all prior years, keyed by month.
-  // Pre-aggregate totals, then batch-fetch all needed flock sizes.
+  // Uses the same flock-size timeline for accurate bird-days computation.
   final priorRates = <int, List<({double rate, int year})>>{};
-
-  // First pass: aggregate egg totals per prior-year month
-  final priorMonthData = <(int year, int monthIdx), ({int total, int days})>{};
-  final priorMidMonthDates = <DateTime>[];
 
   for (final year in priorYears) {
     final yearDaysPerMonth = _daysPerMonth(year);
@@ -235,6 +252,7 @@ final forecastProvider = FutureProvider<ForecastResult>((ref) async {
       if (actualRates.containsKey(m - 1)) continue; // current year wins
 
       var monthTotal = 0;
+      var birdDays = 0;
       var daysRecorded = 0;
       for (var d = 1; d <= yearDaysPerMonth[m - 1]; d++) {
         final date = DateTime(year, m, d);
@@ -243,33 +261,14 @@ final forecastProvider = FutureProvider<ForecastResult>((ref) async {
           monthTotal += count;
           daysRecorded++;
         }
+        birdDays +=
+            BirdStatusEventRepository.flockSizeOnDate(timeline, date);
       }
 
-      if (daysRecorded >= 10 && monthTotal > 0) {
-        final midMonth = DateTime(year, m, 15);
-        priorMonthData[(year, m - 1)] =
-            (total: monthTotal, days: daysRecorded);
-        priorMidMonthDates.add(midMonth);
+      if (daysRecorded >= 10 && monthTotal > 0 && birdDays > 0) {
+        final rate = (monthTotal / birdDays).clamp(0.0, _maxPerHenRate);
+        priorRates.putIfAbsent(m - 1, () => []).add((rate: rate, year: year));
       }
-    }
-  }
-
-  // Batch-fetch all prior-year flock sizes in one query
-  final priorFlockSizes = await statusEventRepo.getActiveCountsOnDates(
-    selectedFlockId,
-    priorMidMonthDates,
-  );
-
-  // Build prior rates from pre-aggregated data + batch flock sizes
-  for (final entry in priorMonthData.entries) {
-    final (year, monthIdx) = entry.key;
-    final data = entry.value;
-    final midMonth = DateTime(year, monthIdx + 1, 15);
-    final flockSize = priorFlockSizes[midMonth] ?? 0;
-    if (flockSize > 0) {
-      final birdDays = flockSize * data.days;
-      final rate = data.total / birdDays;
-      priorRates.putIfAbsent(monthIdx, () => []).add((rate: rate, year: year));
     }
   }
 
@@ -298,7 +297,7 @@ final forecastProvider = FutureProvider<ForecastResult>((ref) async {
 
     final totalRecent = recentDays.values.fold(0, (s, c) => s + c);
     final dailyRate = totalRecent / recentDays.length;
-    final perHenRate = dailyRate / activeHens;
+    final perHenRate = (dailyRate / activeHens).clamp(0.0, _maxPerHenRate);
 
     return ForecastResult(
       currentPerHenRate: perHenRate,
@@ -392,7 +391,16 @@ final forecastProvider = FutureProvider<ForecastResult>((ref) async {
 
 // ==================== Helpers ====================
 
-/// Get forecast per-hen rate for a target month using daylight-twin matching.
+/// Get forecast per-hen rate for a target month using daylight-weighted blending.
+///
+/// Instead of picking a single "daylight twin", blends ALL months with actual
+/// data, weighting each by inverse daylight distance. This prevents a single
+/// noisy month (e.g. January with only 2 hens) from dominating forecasts for
+/// months with similar daylight (November, December).
+///
+/// Each month's rate is daylight-adjusted before blending: scaled by the
+/// dampened ratio (targetDL / monthDL)^0.6 so that a high-daylight month's
+/// rate is correctly reduced when forecasting a low-daylight target.
 double _getForecastPerHenRate(
   int monthIndex,
   Map<int, double> actualRates,
@@ -401,26 +409,30 @@ double _getForecastPerHenRate(
   if (actualRates.isEmpty) return 0;
 
   final targetDL = daylightCurve[monthIndex];
-  int? bestMonth;
-  var bestDiff = double.infinity;
+
+  // Smoothing constant (hours). Prevents division by zero and controls
+  // how sharply the weight drops off with daylight distance.
+  // 1.0h means months within ~1 hour are weighted roughly equally.
+  const smoothing = 1.0;
+
+  var weightedSum = 0.0;
+  var totalWeight = 0.0;
 
   for (final m in actualRates.keys) {
-    final diff = (daylightCurve[m] - targetDL).abs();
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      bestMonth = m;
-    }
+    final monthDL = daylightCurve[m];
+    final diff = (monthDL - targetDL).abs();
+    final weight = 1.0 / (diff + smoothing);
+
+    // Dampened daylight ratio — 0.6 exponent prevents overcorrection.
+    final ratio = math.pow(targetDL / monthDL, 0.6);
+    final adjustedRate = actualRates[m]! * ratio;
+
+    weightedSum += adjustedRate * weight;
+    totalWeight += weight;
   }
 
-  if (bestMonth != null) {
-    final matchedRate = actualRates[bestMonth]!;
-    final matchedDL = daylightCurve[bestMonth];
-    // Dampened ratio — 0.6 exponent prevents overcorrection.
-    // Near the equator, daylight is ~flat so ratio ≈ 1.0 and the
-    // matched rate passes through unscaled. That's correct: flat
-    // daylight means flat production, so no seasonal adjustment needed.
-    final ratio = math.pow(targetDL / matchedDL, 0.6);
-    return matchedRate * ratio;
+  if (totalWeight > 0) {
+    return (weightedSum / totalWeight).clamp(0.0, _maxPerHenRate);
   }
 
   return 0;

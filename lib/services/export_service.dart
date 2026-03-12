@@ -195,6 +195,31 @@ class ExportService {
           'health_notes.csv', healthNotesBytes.length, healthNotesBytes));
     }
 
+    _reportProgress(0.65);
+
+    // Export bird_status_events — exclude events for deleted birds
+    // (deleted birds are hard-deleted and should not be exported)
+    final birdIds = birdsData.map((b) => b['id'] as String).toSet();
+    final birdStatusEventsData = (await db.query('bird_status_events'))
+        .where((e) =>
+            e['status'] != 'deleted' &&
+            birdIds.contains(e['bird_id'] as String))
+        .toList();
+    counts['bird_status_events'] = birdStatusEventsData.length;
+    if (birdStatusEventsData.isNotEmpty) {
+      final birdStatusEventsBytes = _createCsv(birdStatusEventsData, [
+        'id',
+        'bird_id',
+        'flock_id',
+        'status',
+        'event_date',
+        'notes',
+        'created_at',
+      ]);
+      archive.addFile(ArchiveFile('bird_status_events.csv',
+          birdStatusEventsBytes.length, birdStatusEventsBytes));
+    }
+
     _reportProgress(0.7);
 
     // Export photos
