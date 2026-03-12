@@ -4,10 +4,10 @@ import '../models/income.dart';
 import '../models/enums.dart';
 
 /// Repository for expense and income data access operations.
-class ExpenseRepository {
+class FinanceRepository {
   final DatabaseHelper _db;
 
-  ExpenseRepository({DatabaseHelper? db}) : _db = db ?? DatabaseHelper.instance;
+  FinanceRepository({DatabaseHelper? db}) : _db = db ?? DatabaseHelper.instance;
 
   // ==================== EXPENSES ====================
 
@@ -58,12 +58,13 @@ class ExpenseRepository {
   }
 
   /// Get expenses for a specific flock.
+  /// Includes shared expenses (null flock_id) and flock-specific.
   Future<List<Expense>> getExpensesByFlock(String flockId) async {
     final db = await _db.database;
 
     final maps = await db.query(
       'expenses',
-      where: 'flock_id = ?',
+      where: 'flock_id = ? OR flock_id IS NULL',
       whereArgs: [flockId],
       orderBy: 'date DESC, created_at DESC',
     );
@@ -86,8 +87,11 @@ class ExpenseRepository {
     return Expense.fromMap(maps.first);
   }
 
-  /// Insert a new expense.
+  /// Insert a new expense. Amount must be positive.
   Future<void> insertExpense(Expense expense) async {
+    if (expense.amount <= 0) {
+      throw ArgumentError('Expense amount must be positive');
+    }
     final db = await _db.database;
     await db.insert('expenses', expense.toMap());
   }
@@ -231,6 +235,16 @@ class ExpenseRepository {
     return categories;
   }
 
+  /// Get the earliest expense date, or null if no expenses exist.
+  Future<DateTime?> getFirstExpenseDate() async {
+    final db = await _db.database;
+    final result = await db.rawQuery(
+      'SELECT MIN(date) as first_date FROM expenses',
+    );
+    final dateStr = result.first['first_date'] as String?;
+    return dateStr != null ? DateTime.parse(dateStr) : null;
+  }
+
   // ==================== INCOME ====================
 
   /// Get all income records, ordered by date descending.
@@ -265,6 +279,31 @@ class ExpenseRepository {
     return maps.map((map) => Income.fromMap(map)).toList();
   }
 
+  /// Get income for a specific flock.
+  /// Includes shared income (null flock_id) and flock-specific.
+  Future<List<Income>> getIncomeByFlock(String flockId) async {
+    final db = await _db.database;
+
+    final maps = await db.query(
+      'income',
+      where: 'flock_id = ? OR flock_id IS NULL',
+      whereArgs: [flockId],
+      orderBy: 'date DESC, created_at DESC',
+    );
+
+    return maps.map((map) => Income.fromMap(map)).toList();
+  }
+
+  /// Get the earliest income date, or null if no income exists.
+  Future<DateTime?> getFirstIncomeDate() async {
+    final db = await _db.database;
+    final result = await db.rawQuery(
+      'SELECT MIN(date) as first_date FROM income',
+    );
+    final dateStr = result.first['first_date'] as String?;
+    return dateStr != null ? DateTime.parse(dateStr) : null;
+  }
+
   /// Get a single income record by ID.
   Future<Income?> getIncomeById(String id) async {
     final db = await _db.database;
@@ -280,8 +319,11 @@ class ExpenseRepository {
     return Income.fromMap(maps.first);
   }
 
-  /// Insert a new income record.
+  /// Insert a new income record. Amount must be positive.
   Future<void> insertIncome(Income income) async {
+    if (income.amount <= 0) {
+      throw ArgumentError('Income amount must be positive');
+    }
     final db = await _db.database;
     await db.insert('income', income.toMap());
   }

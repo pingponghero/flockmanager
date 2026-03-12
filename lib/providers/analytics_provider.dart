@@ -114,6 +114,7 @@ class ChartDataPoint {
   final double value; // count for daily, average for weekly/monthly
   final int totalEggs; // total eggs in the period (for tooltip)
   final int dayCount; // number of days in the period
+  final bool isProjected; // true if today's value is a forecast (no eggs logged yet)
 
   const ChartDataPoint({
     required this.startDate,
@@ -121,6 +122,7 @@ class ChartDataPoint {
     required this.value,
     required this.totalEggs,
     required this.dayCount,
+    this.isProjected = false,
   });
 
   String get label {
@@ -316,11 +318,34 @@ final analyticsProvider = FutureProvider<AnalyticsSummary>((ref) async {
   );
 
   // Calculate chart data with appropriate granularity
-  final (chartData, chartGranularity) = _aggregateChartData(
+  var (chartData, chartGranularity) = _aggregateChartData(
     dailyCounts,
     period,
     dateRange,
   );
+
+  // For daily granularity, if today is the last point and has 0 eggs,
+  // substitute a projected value so charts don't show a misleading dip.
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  if (chartGranularity == ChartGranularity.daily &&
+      chartData.isNotEmpty &&
+      chartData.last.startDate == today &&
+      chartData.last.value == 0 &&
+      dailyAverage > 0) {
+    final projected = dailyAverage.floor().toDouble();
+    chartData = [
+      ...chartData.sublist(0, chartData.length - 1),
+      ChartDataPoint(
+        startDate: today,
+        endDate: today,
+        value: projected,
+        totalEggs: projected.toInt(),
+        dayCount: 1,
+        isProjected: true,
+      ),
+    ];
+  }
 
   return AnalyticsSummary(
     totalEggs: totalEggs,

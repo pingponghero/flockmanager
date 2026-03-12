@@ -3,14 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
 import '../models/enums.dart';
-import '../repositories/expense_repository.dart';
+import '../repositories/finance_repository.dart';
 import 'egg_provider.dart';
 import 'egg_value_provider.dart';
+import 'financial_forecast_provider.dart';
 import 'flock_provider.dart';
 
 /// Repository provider
-final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
-  return ExpenseRepository();
+final financeRepositoryProvider = Provider<FinanceRepository>((ref) {
+  return FinanceRepository();
 });
 
 // ==================== EXPENSE PROVIDERS ====================
@@ -23,26 +24,26 @@ class ExpensesNotifier extends AsyncNotifier<List<Expense>> {
   }
 
   Future<List<Expense>> _fetchExpenses() async {
-    final repository = ref.read(expenseRepositoryProvider);
+    final repository = ref.read(financeRepositoryProvider);
     return repository.getAllExpenses();
   }
 
   Future<void> addExpense(Expense expense) async {
-    final repository = ref.read(expenseRepositoryProvider);
+    final repository = ref.read(financeRepositoryProvider);
     await repository.insertExpense(expense);
     ref.invalidateSelf();
     _invalidateFinancialProviders();
   }
 
   Future<void> updateExpense(Expense expense) async {
-    final repository = ref.read(expenseRepositoryProvider);
+    final repository = ref.read(financeRepositoryProvider);
     await repository.updateExpense(expense);
     ref.invalidateSelf();
     _invalidateFinancialProviders();
   }
 
   Future<void> deleteExpense(String id) async {
-    final repository = ref.read(expenseRepositoryProvider);
+    final repository = ref.read(financeRepositoryProvider);
     await repository.deleteExpense(id);
     ref.invalidateSelf();
     _invalidateFinancialProviders();
@@ -68,6 +69,7 @@ class ExpensesNotifier extends AsyncNotifier<List<Expense>> {
     ref.invalidate(selectedRangeDailyExpensesProvider);
     ref.invalidate(selectedRangeDailyIncomeProvider);
     ref.invalidate(selectedRangeExpensesByCategoryProvider);
+    ref.invalidate(financialForecastProvider);
   }
 }
 
@@ -86,26 +88,26 @@ class IncomeNotifier extends AsyncNotifier<List<Income>> {
   }
 
   Future<List<Income>> _fetchIncome() async {
-    final repository = ref.read(expenseRepositoryProvider);
+    final repository = ref.read(financeRepositoryProvider);
     return repository.getAllIncome();
   }
 
   Future<void> addIncome(Income income) async {
-    final repository = ref.read(expenseRepositoryProvider);
+    final repository = ref.read(financeRepositoryProvider);
     await repository.insertIncome(income);
     ref.invalidateSelf();
     _invalidateFinancialProviders();
   }
 
   Future<void> updateIncome(Income income) async {
-    final repository = ref.read(expenseRepositoryProvider);
+    final repository = ref.read(financeRepositoryProvider);
     await repository.updateIncome(income);
     ref.invalidateSelf();
     _invalidateFinancialProviders();
   }
 
   Future<void> deleteIncome(String id) async {
-    final repository = ref.read(expenseRepositoryProvider);
+    final repository = ref.read(financeRepositoryProvider);
     await repository.deleteIncome(id);
     ref.invalidateSelf();
     _invalidateFinancialProviders();
@@ -129,6 +131,7 @@ class IncomeNotifier extends AsyncNotifier<List<Income>> {
     ref.invalidate(selectedRangeDailyExpensesProvider);
     ref.invalidate(selectedRangeDailyIncomeProvider);
     ref.invalidate(selectedRangeExpensesByCategoryProvider);
+    ref.invalidate(financialForecastProvider);
   }
 }
 
@@ -197,7 +200,7 @@ DateTime _startOfAllTime() {
 
 /// Total expenses for selected date range
 final selectedRangeExpensesProvider = FutureProvider<double>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   final range = ref.watch(financeDateRangeProvider);
   final (start, end) = range.dates;
   return repository.getTotalExpenses(start, end);
@@ -205,7 +208,7 @@ final selectedRangeExpensesProvider = FutureProvider<double>((ref) async {
 
 /// Total income for selected date range
 final selectedRangeIncomeProvider = FutureProvider<double>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   final range = ref.watch(financeDateRangeProvider);
   final (start, end) = range.dates;
   return repository.getTotalIncome(start, end);
@@ -220,7 +223,7 @@ final selectedRangeProfitLossProvider = FutureProvider<double>((ref) async {
 
 /// Cost per egg for selected date range
 final selectedRangeCostPerEggProvider = FutureProvider<double?>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   final eggRepository = ref.read(eggRepositoryProvider);
   final range = ref.watch(financeDateRangeProvider);
   final (start, end) = range.dates;
@@ -234,31 +237,31 @@ final selectedRangeCostPerEggProvider = FutureProvider<double?>((ref) async {
 
 /// This month's total expenses
 final monthExpensesProvider = FutureProvider<double>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   return repository.getTotalExpenses(_startOfMonth(), _endOfMonth());
 });
 
 /// This month's total income
 final monthIncomeProvider = FutureProvider<double>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   return repository.getTotalIncome(_startOfMonth(), _endOfMonth());
 });
 
 /// All-time total expenses
 final totalExpensesProvider = FutureProvider<double>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   return repository.getTotalExpensesAllTime();
 });
 
 /// All-time total income
 final totalIncomeProvider = FutureProvider<double>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   return repository.getTotalIncomeAllTime();
 });
 
 /// Cost per egg: total expenses / total eggs
 final costPerEggProvider = FutureProvider<double?>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   final eggRepository = ref.read(eggRepositoryProvider);
 
   final totalExpenses = await repository.getTotalExpensesAllTime();
@@ -270,7 +273,7 @@ final costPerEggProvider = FutureProvider<double?>((ref) async {
 
 /// Profit/loss: income - expenses (all time)
 final profitLossProvider = FutureProvider<double>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
 
   final totalIncome = await repository.getTotalIncomeAllTime();
   final totalExpenses = await repository.getTotalExpensesAllTime();
@@ -280,7 +283,7 @@ final profitLossProvider = FutureProvider<double>((ref) async {
 
 /// This month's profit/loss
 final monthProfitLossProvider = FutureProvider<double>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
 
   final income = await repository.getTotalIncome(_startOfMonth(), _endOfMonth());
   final expenses = await repository.getTotalExpenses(_startOfMonth(), _endOfMonth());
@@ -290,13 +293,13 @@ final monthProfitLossProvider = FutureProvider<double>((ref) async {
 
 /// Expenses grouped by category for this month
 final expensesByCategoryProvider = FutureProvider<Map<ExpenseCategory, double>>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   return repository.getExpensesByCategories(_startOfMonth(), _endOfMonth());
 });
 
 /// All-time expenses by category
 final allTimeExpensesByCategoryProvider = FutureProvider<Map<ExpenseCategory, double>>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   return repository.getExpensesByCategories(_startOfAllTime(), DateTime.now());
 });
 
@@ -314,20 +317,20 @@ final recentIncomeProvider = FutureProvider<List<Income>>((ref) async {
 
 /// Get expense by ID
 final expenseByIdProvider = FutureProvider.family<Expense?, String>((ref, id) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   return repository.getExpenseById(id);
 });
 
 /// Get income by ID
 final incomeByIdProvider = FutureProvider.family<Income?, String>((ref, id) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   return repository.getIncomeById(id);
 });
 
 /// Expenses grouped by category for the selected date range, respecting flock filter.
 final selectedRangeExpensesByCategoryProvider =
     FutureProvider<Map<ExpenseCategory, double>>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   final range = ref.watch(financeDateRangeProvider);
   final selectedFlockId = ref.watch(selectedFlockIdProvider);
   final (start, end) = range.dates;
@@ -344,7 +347,7 @@ final selectedRangeExpensesByCategoryProvider =
 /// Daily expense totals for the selected finance date range (for sparklines).
 final selectedRangeDailyExpensesProvider =
     FutureProvider<Map<DateTime, double>>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   final range = ref.watch(financeDateRangeProvider);
   final (start, end) = range.dates;
   return repository.getDailyExpenses(start, end);
@@ -353,7 +356,7 @@ final selectedRangeDailyExpensesProvider =
 /// Daily income totals for the selected finance date range (for sparklines).
 final selectedRangeDailyIncomeProvider =
     FutureProvider<Map<DateTime, double>>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
   final range = ref.watch(financeDateRangeProvider);
   final (start, end) = range.dates;
   return repository.getDailyIncome(start, end);
@@ -361,7 +364,7 @@ final selectedRangeDailyIncomeProvider =
 
 /// Break-even price per egg (expenses / eggs sold)
 final breakEvenPriceProvider = FutureProvider<double?>((ref) async {
-  final repository = ref.read(expenseRepositoryProvider);
+  final repository = ref.read(financeRepositoryProvider);
 
   final totalExpenses = await repository.getTotalExpensesAllTime();
   final totalEggsSold = await repository.getTotalEggsSold(_startOfAllTime(), DateTime.now());

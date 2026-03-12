@@ -723,7 +723,7 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
 
   // Get repositories for additional queries
   final eggRepo = ref.read(eggRepositoryProvider);
-  final expenseRepo = ref.read(expenseRepositoryProvider);
+  final expenseRepo = ref.read(financeRepositoryProvider);
 
   // Calculate breed count (unique non-null breeds)
   final breeds = birds

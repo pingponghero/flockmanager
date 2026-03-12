@@ -12,6 +12,7 @@ class SparkLineCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final countsAsync = ref.watch(last7DaysEggCountsProvider);
+    final avgAsync = ref.watch(weeklyAverageEggCountProvider);
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -46,9 +47,18 @@ class SparkLineCard extends ConsumerWidget {
 
                   // Get last 7 days in order
                   final now = DateTime.now();
+                  final today = DateTime(now.year, now.month, now.day);
+                  final avg = avgAsync.value ?? 0.0;
+                  final projectedToday = avg.floor();
+
                   final days = List.generate(7, (i) {
                     final date = DateTime(now.year, now.month, now.day - 6 + i);
-                    return MapEntry(date, counts[date] ?? 0);
+                    final actual = counts[date] ?? 0;
+                    final isToday = date == today;
+                    // If today has 0 eggs logged, show projected value
+                    final isProjected = isToday && actual == 0 && projectedToday > 0;
+                    final display = isProjected ? projectedToday : actual;
+                    return (date: date, value: display, isProjected: isProjected);
                   });
 
                   final maxCount = days
@@ -60,7 +70,7 @@ class SparkLineCard extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: days.map((entry) {
-                      final isToday = entry.key.day == now.day;
+                      final isToday = entry.date == today;
                       final height = maxHeight == 0
                           ? 0.0
                           : (entry.value / maxHeight * 48);
@@ -77,25 +87,35 @@ class SparkLineCard extends ConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: isToday ? FontWeight.bold : null,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: entry.isProjected
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withValues(alpha: 0.5)
+                                        : Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                               const SizedBox(height: 2),
                               Container(
                                 height: height.clamp(4.0, 48.0),
                                 decoration: BoxDecoration(
-                                  color: isToday
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context)
+                                  color: entry.isProjected
+                                      ? Theme.of(context)
                                           .colorScheme
                                           .primary
-                                          .withValues(alpha: 0.4),
+                                          .withValues(alpha: 0.2)
+                                      : isToday
+                                          ? Theme.of(context).colorScheme.primary
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                              .withValues(alpha: 0.4),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                DateFormat.E().format(entry.key).substring(0, 1),
+                                DateFormat.E().format(entry.date).substring(0, 1),
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: isToday ? FontWeight.bold : null,

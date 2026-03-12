@@ -200,6 +200,106 @@ class BirdStatusEventRepository {
     return result;
   }
 
+  /// Build a flock-size step function from the event table.
+  ///
+  /// Returns a chronologically sorted list of (date, activeCount) pairs.
+  /// Between two adjacent entries the flock size is constant at the
+  /// earlier entry's count.  The first entry gives the size at [start].
+  ///
+  /// Loads all events up to [end] once and reconstructs the timeline
+  /// in Dart — the event table is small enough for this to be fast.
+  Future<List<({DateTime date, int count})>> getFlockSizeTimeline(
+    String? flockId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final db = await _db.database;
+
+    // Load all events up to `end` (need pre-start events for initial state)
+    final List<Map<String, dynamic>> maps;
+    if (flockId != null) {
+      maps = await db.query(
+        'bird_status_events',
+        where: 'flock_id = ? AND event_date <= ?',
+        whereArgs: [flockId, end.toIso8601String()],
+        orderBy: 'event_date ASC',
+      );
+    } else {
+      maps = await db.query(
+        'bird_status_events',
+        where: 'event_date <= ?',
+        whereArgs: [end.toIso8601String()],
+        orderBy: 'event_date ASC',
+      );
+    }
+
+    final events = maps.map((m) => BirdStatusEvent.fromMap(m)).toList();
+    final startDay = DateTime(start.year, start.month, start.day);
+
+    // Phase 1: replay events up to `start` to establish initial state.
+    final birdState = <String, String>{}; // birdId → current status
+    var activeCount = 0;
+    var i = 0;
+
+    for (; i < events.length; i++) {
+      final e = events[i];
+      final day = DateTime(
+          e.eventDate.year, e.eventDate.month, e.eventDate.day);
+      if (day.isAfter(startDay)) break;
+
+      final prev = birdState[e.birdId];
+      birdState[e.birdId] = e.status;
+      if (e.status == 'active' && prev != 'active') activeCount++;
+      if (e.status != 'active' && prev == 'active') activeCount--;
+    }
+
+    final timeline = <({DateTime date, int count})>[];
+    timeline.add((date: startDay, count: activeCount));
+
+    // Phase 2: record change points after `start`.
+    for (; i < events.length; i++) {
+      final e = events[i];
+      final day = DateTime(
+          e.eventDate.year, e.eventDate.month, e.eventDate.day);
+
+      final prev = birdState[e.birdId];
+      birdState[e.birdId] = e.status;
+      if (e.status == 'active' && prev != 'active') activeCount++;
+      if (e.status != 'active' && prev == 'active') activeCount--;
+
+      // Merge same-day events into one entry
+      if (timeline.last.date == day) {
+        timeline[timeline.length - 1] = (date: day, count: activeCount);
+      } else {
+        timeline.add((date: day, count: activeCount));
+      }
+    }
+
+    return timeline;
+  }
+
+  /// Look up flock size on [date] from a pre-built timeline.
+  /// Uses binary search — O(log n) per lookup.
+  static int flockSizeOnDate(
+    List<({DateTime date, int count})> timeline,
+    DateTime date,
+  ) {
+    final day = DateTime(date.year, date.month, date.day);
+    var lo = 0;
+    var hi = timeline.length - 1;
+    var result = 0; // before any events → 0
+    while (lo <= hi) {
+      final mid = (lo + hi) ~/ 2;
+      if (timeline[mid].date.isAfter(day)) {
+        hi = mid - 1;
+      } else {
+        result = timeline[mid].count;
+        lo = mid + 1;
+      }
+    }
+    return result;
+  }
+
   /// Get the flock size history - active bird count at the end of each day
   /// that had an event. Useful for charts.
   Future<List<({DateTime date, int count})>> getFlockSizeHistory(
