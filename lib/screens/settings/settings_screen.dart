@@ -25,6 +25,7 @@ import '../../providers/onboarding_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/forecast_provider.dart';
 import '../../providers/trial_provider.dart';
+import '../../providers/export_reminder_provider.dart';
 import '../../services/export_service.dart';
 import '../../services/iap_service.dart';
 import '../../services/import_service.dart';
@@ -317,7 +318,7 @@ class SettingsScreen extends ConsumerWidget {
                   title: const Text('Export Data'),
                   subtitle: const Text('Save all flock data and photos as a backup file'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _exportData(context),
+                  onTap: () => _exportData(context, ref),
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -437,7 +438,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _exportData(BuildContext context) async {
+  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
     final navigator = Navigator.of(context, rootNavigator: true);
     var dialogOpen = false;
 
@@ -480,6 +481,10 @@ class SettingsScreen extends ConsumerWidget {
     try {
       final exportService = ExportService();
       final zipPath = await exportService.exportToZip();
+
+      // Record export date for the backup reminder nudge
+      await recordExportDate();
+      ref.invalidate(showExportNudgeProvider);
 
       closeDialog();
 
