@@ -2,7 +2,25 @@
 
 A cross-platform mobile app for backyard chicken keepers to track flocks, log eggs, monitor expenses, and manage bird health.
 
-**Current Version:** 2.0.0
+[![Get it on Google Play](https://img.shields.io/badge/Google%20Play-Download-414141?logo=google-play&logoColor=white)](https://play.google.com/store/apps/details?id=com.tyndallstudios.flockmanager&hl=en_US)
+[![Download on the App Store](https://img.shields.io/badge/App%20Store-Download-0D96F6?logo=apple&logoColor=white)](https://apps.apple.com/us/app/flock-manager/id6758640804)
+
+Built for my own backyard flock in Asheville, NC.
+
+**Current Version:** 2.3.1
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/v2.0.1/home_page.png" width="230" alt="Home screen with flock spotlight, today's eggs, and 7-day production" />
+  <img src="docs/screenshots/v2.0.1/quick_log.png" width="230" alt="Quick egg log bottom sheet" />
+  <img src="docs/screenshots/v2.0.1/stats.png" width="230" alt="Production analytics and trends" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/v2.0.1/value.png" width="230" alt="Egg value analytics vs. store prices" />
+  <img src="docs/screenshots/v2.0.1/profile.png" width="230" alt="Bird profile with photo, breed, and history" />
+  <img src="docs/screenshots/v2.0.1/breed_guide.png" width="230" alt="Built-in breed reference guide" />
+</p>
 
 ## Tech Stack
 
@@ -14,8 +32,10 @@ A cross-platform mobile app for backyard chicken keepers to track flocks, log eg
 - **Charts:** fl_chart
 - **Photos:** image_picker
 - **Preferences:** shared_preferences
-- **Notifications:** awesome_notifications
+- **Notifications:** awesome_notifications + timezone
+- **Export/Import:** archive, share_plus, file_picker
 - **In-App Purchases:** in_app_purchase
+- **Models:** freezed
 
 ## Getting Started
 
@@ -78,7 +98,7 @@ lib/
 │   ├── router.dart           # GoRouter configuration
 │   └── theme.dart            # ThemeData, colors, text styles
 ├── data/                     # Static reference data
-│   ├── breeds.dart           # 50 chicken breeds
+│   ├── breeds.dart           # 50+ chicken breeds
 │   ├── medications.dart      # Medication reference guide
 │   └── test_data.dart        # Sample data for development/screenshots
 ├── models/                   # Freezed data classes
@@ -102,6 +122,7 @@ lib/
 | `flocks` | Flock groups (e.g., "Backyard Hens") |
 | `birds` | Individual birds with breed, age, status |
 | `bird_photos` | Multiple photos per bird |
+| `bird_status_events` | History of status changes per bird |
 | `egg_logs` | Daily egg production records |
 | `expenses` | Cost tracking by category |
 | `income` | Egg sales and other income |
@@ -112,11 +133,15 @@ lib/
 
 ```dart
 enum BirdStatus { active, deceased, sold, givenAway }
+enum BirdSex { male, female }
+enum BirdSpecies { chicken, duck, turkey, guinea, quail, other }
 enum EggSize { small, medium, large, jumbo }
 enum EggQuality { normal, softShell, doubleYolk, abnormal, fairy }
 enum ExpenseCategory { feed, bedding, supplies, medical, equipment, other }
+enum CategoryType { regular, irregular }
 enum HealthNoteType { observation, symptom, treatment, vetVisit, other }
 enum RecurringInterval { weekly, monthly }
+enum ForecastTier { ... }
 ```
 
 ## Testing
@@ -134,7 +159,9 @@ Test structure:
 - `test/database/` - Database schema tests
 - `test/repositories/` - Repository CRUD tests (flock, bird, egg)
 - `test/providers/` - Provider and analytics class tests
+- `test/services/` - Service layer tests
 - `test/utils/` - Utility function tests (distribution helper, egg log grouper)
+- `test/widgets/` - Widget tests
 - `test/helpers/` - Test utilities and mocks
 
 ## Key Features
@@ -143,8 +170,9 @@ Test structure:
 - **Egg Distribution** - Evenly distribute eggs to individual birds for small flocks (2-10 birds)
 - **Daily Reminders** - Configurable notifications to remind you to log eggs
 - **Flock Management** - Organize birds into multiple flocks
-- **Bird Profiles** - Track individual birds with photos, breed, hatch date, and status
+- **Bird Profiles** - Track individual birds with photos, breed, hatch date, sex, and status
 - **Egg Value Analytics** - Compare your flock's egg production value against store prices with cost per dozen, net impact, and savings calculations
+- **Financial Forecasting** - Project costs and egg value forward based on historical trends
 - **Tappable Summary Cards** - Tap financial cards for step-by-step math breakdowns
 - **Expense & Income Tracking** - Monitor costs by category and log egg sales with flock filtering
 - **Medication Tracking** - Log treatments with egg withdrawal period alerts
@@ -152,10 +180,12 @@ Test structure:
 - **Achievements** - 50+ badges across production, financial, health, and engagement categories
 - **Analytics** - View production trends, per-bird statistics, and cost analysis
 - **Data Export/Import** - Backup and restore your data with photo support
-- **Breed Reference** - Built-in guide to 50 chicken breeds with egg color, temperament, and production info
+- **Breed Reference** - Built-in guide to 50+ chicken breeds with egg color, temperament, and production info
 - **Medication Reference** - Common treatments with dosages and withdrawal periods
 - **Theme Customization** - Three color palettes (Barn Red, Sage, Egg-Inspired)
 
 ## License
 
-[Add license here]
+All rights reserved. You're welcome to read the code, but
+no rights to use, copy, modify, or redistribute it are granted.
+See [LICENSE](LICENSE) for details.
