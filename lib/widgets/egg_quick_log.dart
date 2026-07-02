@@ -88,6 +88,13 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
             ? EggLogByHenContent(
                 onSwitchToQuickLog: () =>
                     setState(() => _logByHenMode = false),
+                initialDate: _date,
+                flockId: _selectedFlockId,
+                // Carry over a bird already selected in the quick log so
+                // the entered count isn't silently dropped on mode switch.
+                initialCounts: _selectedBirdId != null && _count > 0
+                    ? {_selectedBirdId!: _count}
+                    : null,
               )
             : _buildQuickLogContent(context, isKeyboardOpen),
       ),

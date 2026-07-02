@@ -20,7 +20,24 @@ import 'achievement_celebration_dialog.dart';
 class EggLogByHenContent extends ConsumerStatefulWidget {
   final VoidCallback onSwitchToQuickLog;
 
-  const EggLogByHenContent({super.key, required this.onSwitchToQuickLog});
+  /// Date carried over from the quick log (defaults to today).
+  final DateTime? initialDate;
+
+  /// Counts carried over from the quick log (e.g. a bird already selected
+  /// with a count entered) so switching modes doesn't silently drop input.
+  final Map<String, int>? initialCounts;
+
+  /// Flock selected in the quick log; falls back to the globally selected
+  /// flock when null.
+  final String? flockId;
+
+  const EggLogByHenContent({
+    super.key,
+    required this.onSwitchToQuickLog,
+    this.initialDate,
+    this.initialCounts,
+    this.flockId,
+  });
 
   @override
   ConsumerState<EggLogByHenContent> createState() =>
@@ -28,8 +45,9 @@ class EggLogByHenContent extends ConsumerStatefulWidget {
 }
 
 class _EggLogByHenContentState extends ConsumerState<EggLogByHenContent> {
-  DateTime _date = DateTime.now();
-  final Map<String, int> _counts = {}; // birdId -> egg count
+  late DateTime _date = widget.initialDate ?? DateTime.now();
+  late final Map<String, int> _counts =
+      Map.of(widget.initialCounts ?? {}); // birdId -> egg count
   bool _isSaving = false;
 
   int get _totalEggs => _counts.values.fold(0, (a, b) => a + b);
@@ -38,7 +56,8 @@ class _EggLogByHenContentState extends ConsumerState<EggLogByHenContent> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedFlockId = ref.watch(selectedFlockIdProvider);
+    final selectedFlockId =
+        widget.flockId ?? ref.watch(selectedFlockIdProvider);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -135,7 +154,8 @@ class _EggLogByHenContentState extends ConsumerState<EggLogByHenContent> {
   }
 
   Future<void> _saveAll() async {
-    final selectedFlockId = ref.read(selectedFlockIdProvider);
+    final selectedFlockId =
+        widget.flockId ?? ref.read(selectedFlockIdProvider);
 
     // Build distribution: birdId -> count (skip zeros)
     final distribution = Map<String, int>.from(_counts)

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/enums.dart';
 import '../models/medication_log.dart';
 import '../models/health_note.dart';
 import '../repositories/medication_repository.dart';
@@ -89,9 +90,17 @@ final medicationsByBirdProvider = FutureProvider.family<List<MedicationLog>, Str
   final bird = await ref.read(birdByIdProvider(birdId).future);
   if (bird == null) return birdMeds;
 
-  // Get flock-wide medications (where birdId is null)
+  // Get flock-wide medications (where birdId is null). A bird that has
+  // left the flock (deceased/sold/given away) shouldn't accrue flock-wide
+  // treatments started after its departure date.
   final flockMeds = await repository.getMedicationsByFlock(bird.flockId);
-  final flockWideMeds = flockMeds.where((m) => m.birdId == null).toList();
+  Iterable<MedicationLog> flockWideFilter =
+      flockMeds.where((m) => m.birdId == null);
+  if (bird.status != BirdStatus.active && bird.statusDate != null) {
+    flockWideFilter =
+        flockWideFilter.where((m) => !m.startDate.isAfter(bird.statusDate!));
+  }
+  final flockWideMeds = flockWideFilter.toList();
 
   // Combine and sort by start date
   final allMeds = [...birdMeds, ...flockWideMeds];

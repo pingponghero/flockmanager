@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../providers/achievements_provider.dart';
+import '../../providers/egg_provider.dart' show currencySymbolProvider;
 import '../../utils/edge_insets.dart';
 
 class AchievementsScreen extends ConsumerWidget {
@@ -153,7 +155,7 @@ class _CategorySection extends StatelessWidget {
   }
 }
 
-class _AchievementTile extends StatelessWidget {
+class _AchievementTile extends ConsumerWidget {
   final Achievement achievement;
   final bool earned;
   final AchievementProgress? progress;
@@ -165,7 +167,7 @@ class _AchievementTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final showProgress = !earned && progress != null && progress!.current > 0;
 
     return GestureDetector(
@@ -216,7 +218,7 @@ class _AchievementTile extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                achievement.description,
+                achievement.describeWith(ref.watch(currencySymbolProvider)),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       fontSize: 9,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -326,12 +328,14 @@ void showAchievementDetails(
             const SizedBox(height: 8),
             // Description (only if earned)
             if (earned)
-              Text(
-                achievement.description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                textAlign: TextAlign.center,
+              Consumer(
+                builder: (context, ref, _) => Text(
+                  achievement.describeWith(ref.watch(currencySymbolProvider)),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
               )
             else
               Text(
@@ -400,6 +404,25 @@ void showAchievementDetails(
                 ],
               ),
             ),
+            // Earned date (when recorded)
+            if (earned)
+              Consumer(
+                builder: (context, ref, _) {
+                  final earnedDate = ref
+                      .watch(achievementEarnedDatesProvider)
+                      .value?[achievement.id];
+                  if (earnedDate == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Earned ${DateFormat.yMMMd().format(earnedDate)}',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  );
+                },
+              ),
             ...trailing,
             const SizedBox(height: 16),
           ],

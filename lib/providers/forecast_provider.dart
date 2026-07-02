@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../repositories/bird_repository.dart';
 import '../repositories/bird_status_event_repository.dart';
 import '../repositories/egg_repository.dart';
 import '../utils/daylight_calculator.dart';
@@ -143,11 +144,16 @@ final forecastProvider = FutureProvider<ForecastResult>((ref) async {
 
   if (logs.isEmpty) return ForecastResult.empty;
 
-  // Get current active hen count
-  final activeHens = await statusEventRepo.getActiveCountOnDate(
-    selectedFlockId,
-    DateTime.now(),
-  );
+  // Get current active hen count from the birds table — the source of
+  // truth for *today's* flock size. The event timeline (used below for
+  // historical bird-days) can disagree for birds imported from backups
+  // with incomplete status history, which would count deceased birds
+  // as active and inflate projections.
+  final birdRepo = BirdRepository();
+  final activeBirds = selectedFlockId != null
+      ? await birdRepo.getActiveBirdsByFlock(selectedFlockId)
+      : await birdRepo.getActiveBirds();
+  final activeHens = activeBirds.length;
 
   if (activeHens == 0) return ForecastResult.empty;
 

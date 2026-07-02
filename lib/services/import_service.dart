@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -238,25 +240,37 @@ class ImportService {
             final status = bird['status'] as String? ?? 'active';
             final statusDate = bird['status_date'] as String?;
 
-            await txn.insert('bird_status_events', {
-              'id': uuid.v4(),
-              'bird_id': birdId,
-              'flock_id': flockId,
-              'status': 'active',
-              'event_date': createdAt,
-              'notes': null,
-              'created_at': createdAt,
-            });
+            // For non-active birds the terminal event must be the LATEST
+            // event, or the bird stays 'active' in the reconstructed
+            // timeline forever and inflates forecasts/statistics. Backups
+            // of imported historical data can have status_date before
+            // created_at, and may lack status_date entirely.
+            final terminalDate = statusDate ?? createdAt;
+            final activeBeforeTerminal = status == 'active' ||
+                DateTime.parse(terminalDate)
+                    .isAfter(DateTime.parse(createdAt));
 
-            if (status != 'active' && statusDate != null) {
+            if (activeBeforeTerminal) {
+              await txn.insert('bird_status_events', {
+                'id': uuid.v4(),
+                'bird_id': birdId,
+                'flock_id': flockId,
+                'status': 'active',
+                'event_date': createdAt,
+                'notes': null,
+                'created_at': createdAt,
+              });
+            }
+
+            if (status != 'active') {
               await txn.insert('bird_status_events', {
                 'id': uuid.v4(),
                 'bird_id': birdId,
                 'flock_id': flockId,
                 'status': status,
-                'event_date': statusDate,
+                'event_date': terminalDate,
                 'notes': bird['status_notes'] as String?,
-                'created_at': statusDate,
+                'created_at': terminalDate,
               });
             }
           }
@@ -418,8 +432,16 @@ class ImportService {
           'id', 'bird_id', 'flock_id', 'medication_name', 'dosage',
           'start_date', 'end_date', 'withdrawal_days', 'notes', 'created_at'
         ],
-        ['id', 'flock_id', 'medication_name', 'start_date', 'created_at'],
+        ['flock_id', 'medication_name', 'start_date', 'created_at'],
       );
+      // Backups from affected versions can contain a medication row with a
+      // blank id (form bug) — repair it instead of failing the import.
+      for (final medLog in medicationLogs) {
+        final id = medLog['id'] as String?;
+        if (id == null || id.isEmpty) {
+          medLog['id'] = const Uuid().v4();
+        }
+      }
     }
 
     List<Map<String, dynamic>> healthNotes = [];
@@ -470,7 +492,7 @@ class ImportService {
       content = content.substring(1);
     }
 
-    final lines = _parseCsvLines(content);
+    final lines = parseCsvLines(content);
     if (lines.isEmpty) {
       throw ImportException('$filename is empty');
     }
@@ -524,40 +546,44 @@ class ImportService {
   }
 
   /// Parse CSV content into rows of columns.
-  List<List<String>> _parseCsvLines(String content) {
-    final lines = <List<String>>[];
-    final rows = content.split('\n');
-
-    for (final row in rows) {
-      final trimmed = row.trim();
-      if (trimmed.isEmpty) continue;
-
-      final columns = _parseCsvRow(trimmed);
-      lines.add(columns);
-    }
-
-    return lines;
-  }
-
-  /// Parse a single CSV row handling quotes correctly.
-  List<String> _parseCsvRow(String row) {
-    final columns = <String>[];
+  ///
+  /// Parses the whole content in a single pass so that quoted fields
+  /// containing newlines (multiline notes/descriptions) stay in one row.
+  /// Handles both \n and \r\n line endings.
+  @visibleForTesting
+  List<List<String>> parseCsvLines(String content) {
+    final rows = <List<String>>[];
+    var columns = <String>[];
     var current = StringBuffer();
     var inQuotes = false;
+    var rowHasContent = false;
     var i = 0;
 
-    while (i < row.length) {
-      final char = row[i];
+    void endColumn() {
+      columns.add(current.toString());
+      current = StringBuffer();
+    }
+
+    void endRow() {
+      endColumn();
+      // Skip rows that are entirely empty (e.g. trailing newline)
+      if (rowHasContent || columns.length > 1) {
+        rows.add(columns);
+      }
+      columns = <String>[];
+      rowHasContent = false;
+    }
+
+    while (i < content.length) {
+      final char = content[i];
 
       if (inQuotes) {
         if (char == '"') {
-          // Check for escaped quote
-          if (i + 1 < row.length && row[i + 1] == '"') {
-            current.write('"');
+          if (i + 1 < content.length && content[i + 1] == '"') {
+            current.write('"'); // Escaped quote
             i += 2;
           } else {
-            // End of quoted field
-            inQuotes = false;
+            inQuotes = false; // End of quoted field
             i++;
           }
         } else {
@@ -567,22 +593,33 @@ class ImportService {
       } else {
         if (char == '"') {
           inQuotes = true;
+          rowHasContent = true;
           i++;
         } else if (char == ',') {
-          columns.add(current.toString());
-          current = StringBuffer();
+          endColumn();
+          rowHasContent = true;
+          i++;
+        } else if (char == '\r' || char == '\n') {
+          // \r\n counts as a single row terminator
+          if (char == '\r' && i + 1 < content.length && content[i + 1] == '\n') {
+            i++;
+          }
+          endRow();
           i++;
         } else {
           current.write(char);
+          rowHasContent = true;
           i++;
         }
       }
     }
 
-    // Add last column
-    columns.add(current.toString());
+    // Final row without trailing newline
+    if (rowHasContent || columns.isNotEmpty) {
+      endRow();
+    }
 
-    return columns;
+    return rows;
   }
 
   /// Parse a CSV value to the appropriate type.

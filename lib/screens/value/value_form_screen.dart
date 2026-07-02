@@ -43,6 +43,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
 
   bool _isLoading = false;
   bool _isInitialized = false;
+  bool _flockPrefilled = false;
 
   bool get _isEditing => widget.expenseId != null;
 
@@ -242,6 +243,12 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
               error: (_, __) => const SizedBox.shrink(),
               data: (flocks) {
                 if (flocks.isEmpty) return const SizedBox.shrink();
+                // Prefill when only one flock exists (matches egg logging);
+                // 'Shared' stays the default with multiple flocks.
+                if (!_isEditing && !_flockPrefilled && flocks.length == 1) {
+                  _flockPrefilled = true;
+                  _selectedFlockId ??= flocks.first.id;
+                }
                 return DropdownMenu<String?>(
                   initialSelection: _selectedFlockId,
                   expandedInsets: EdgeInsets.zero,
@@ -328,6 +335,7 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
 
   bool _isLoading = false;
   bool _isInitialized = false;
+  bool _flockPrefilled = false;
 
   bool get _isEditing => widget.incomeId != null;
 
@@ -534,6 +542,12 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
               error: (_, __) => const SizedBox.shrink(),
               data: (flocks) {
                 if (flocks.isEmpty) return const SizedBox.shrink();
+                // Prefill when only one flock exists (matches egg logging);
+                // 'Shared' stays the default with multiple flocks.
+                if (!_isEditing && !_flockPrefilled && flocks.length == 1) {
+                  _flockPrefilled = true;
+                  _selectedFlockId ??= flocks.first.id;
+                }
                 return DropdownMenu<String?>(
                   initialSelection: _selectedFlockId,
                   expandedInsets: EdgeInsets.zero,
