@@ -821,10 +821,10 @@ class _CurrencySymbolCard extends ConsumerWidget {
           controller: controller,
           decoration: const InputDecoration(
             labelText: 'Symbol',
-            hintText: '\$, €, £, etc.',
+            hintText: '\$, €, Kč, CZK, etc.',
           ),
           autofocus: true,
-          maxLength: 1,
+          maxLength: 3,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium,
         ),
@@ -835,7 +835,7 @@ class _CurrencySymbolCard extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () {
-              ref.read(currencySymbolProvider.notifier).setSymbol(controller.text);
+              ref.read(currencySymbolProvider.notifier).setSymbol(controller.text.trim());
               Navigator.pop(context);
             },
             child: const Text('Save'),
