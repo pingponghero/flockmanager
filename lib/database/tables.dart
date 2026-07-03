@@ -88,8 +88,20 @@ class Tables {
       description TEXT,
       egg_count INTEGER,
       flock_id TEXT,
+      type TEXT NOT NULL DEFAULT 'sale',
+      recipient_id TEXT,
       created_at TEXT NOT NULL,
-      FOREIGN KEY (flock_id) REFERENCES flocks(id)
+      FOREIGN KEY (flock_id) REFERENCES flocks(id),
+      FOREIGN KEY (recipient_id) REFERENCES recipients(id)
+    )
+  ''';
+
+  static const String recipients = '''
+    CREATE TABLE recipients (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      notes TEXT,
+      created_at TEXT NOT NULL
     )
   ''';
 
@@ -143,6 +155,7 @@ class Tables {
     birdPhotos,
     eggLogs,
     expenses,
+    recipients, // before income (income.recipient_id references it)
     income,
     medicationLogs,
     healthNotes,

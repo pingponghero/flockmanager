@@ -140,6 +140,20 @@ class ExportService {
 
     _reportProgress(0.4);
 
+    // Export recipients (if not empty) — before income, which references them
+    final recipientsData = await db.query('recipients');
+    counts['recipients'] = recipientsData.length;
+    if (recipientsData.isNotEmpty) {
+      final recipientsBytes = createCsv(recipientsData, [
+        'id',
+        'name',
+        'notes',
+        'created_at',
+      ]);
+      archive.addFile(ArchiveFile(
+          'recipients.csv', recipientsBytes.length, recipientsBytes));
+    }
+
     // Export income (if not empty)
     final incomeData = await db.query('income');
     counts['income'] = incomeData.length;
@@ -151,6 +165,8 @@ class ExportService {
         'description',
         'egg_count',
         'flock_id',
+        'type',
+        'recipient_id',
         'created_at',
       ]);
       archive.addFile(

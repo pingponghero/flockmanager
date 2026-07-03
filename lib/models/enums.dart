@@ -175,6 +175,22 @@ enum HealthNoteType {
   }
 }
 
+/// Type of an income record: eggs sold for money, or gifted for free.
+/// Gifts always have amount 0 and are excluded from sale statistics.
+enum IncomeType {
+  sale,
+  gift;
+
+  String get displayName {
+    switch (this) {
+      case IncomeType.sale:
+        return 'Sale';
+      case IncomeType.gift:
+        return 'Gift';
+    }
+  }
+}
+
 /// Recurring interval for expenses
 enum RecurringInterval {
   weekly,

@@ -75,13 +75,14 @@ void main() {
       expect(Tables.birdStatusEvents, isNot(contains('FOREIGN KEY')));
     });
 
-    test('allTables contains all 9 tables', () {
-      expect(Tables.allTables.length, 9);
+    test('allTables contains all 10 tables', () {
+      expect(Tables.allTables.length, 10);
       expect(Tables.allTables, contains(Tables.flocks));
       expect(Tables.allTables, contains(Tables.birds));
       expect(Tables.allTables, contains(Tables.birdPhotos));
       expect(Tables.allTables, contains(Tables.eggLogs));
       expect(Tables.allTables, contains(Tables.expenses));
+      expect(Tables.allTables, contains(Tables.recipients));
       expect(Tables.allTables, contains(Tables.income));
       expect(Tables.allTables, contains(Tables.medicationLogs));
       expect(Tables.allTables, contains(Tables.healthNotes));
@@ -103,6 +104,12 @@ void main() {
 
       expect(birdsIndex, lessThan(birdPhotosIndex));
       expect(birdsIndex, lessThan(healthNotesIndex));
+
+      // recipients must come before income (income.recipient_id references it)
+      final recipientsIndex = Tables.allTables.indexOf(Tables.recipients);
+      final incomeIndex = Tables.allTables.indexOf(Tables.income);
+
+      expect(recipientsIndex, lessThan(incomeIndex));
     });
   });
 }

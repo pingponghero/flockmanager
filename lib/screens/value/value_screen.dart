@@ -11,6 +11,7 @@ import '../../providers/egg_provider.dart' show currencySymbolProvider, valueScr
 import '../../providers/egg_value_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../providers/flock_provider.dart';
+import '../../providers/recipient_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
@@ -292,6 +293,15 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
                 context.push('/expenses/income/new');
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.card_giftcard),
+              title: const Text('Record Gift'),
+              subtitle: const Text('Eggs given away for free'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/expenses/gift/new');
+              },
+            ),
           ],
         ),
       ),
@@ -418,6 +428,14 @@ class _EggValueCard extends ConsumerWidget {
                             const SizedBox(height: 6),
                             Text(
                               '${NumberFormat('#,###').format(summary.eggsSold)} sold\n@ $cs${(summary.totalIncome / summary.eggsSold * 12).toStringAsFixed(2)}/dz avg',
+                              style: mutedStyle,
+                              textAlign: TextAlign.right,
+                            ),
+                          ],
+                          if (summary.eggsGifted > 0) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              '${NumberFormat('#,###').format(summary.eggsGifted)} gifted',
                               style: mutedStyle,
                               textAlign: TextAlign.right,
                             ),
@@ -1169,6 +1187,13 @@ void _showEggValueBreakdown(
           style: bodyStyle,
         ),
       ],
+      if (summary.eggsGifted > 0) ...[
+        const SizedBox(height: 4),
+        Text(
+          '${summary.eggsGifted} gifted · not counted in value or sale stats',
+          style: bodyStyle,
+        ),
+      ],
       if (summary.eggsSold > 0) ...[
         const Divider(height: 24),
         Text(
@@ -1391,6 +1416,10 @@ class _IncomeCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isGift = income.isGift;
+    final recipientName = income.recipientId != null
+        ? ref.watch(recipientByIdProvider(income.recipientId!)).value?.name
+        : null;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
@@ -1407,9 +1436,10 @@ class _IncomeCard extends ConsumerWidget {
           return await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('Delete Income'),
-              content: const Text(
-                  'Are you sure you want to delete this income record?'),
+              title: Text(isGift ? 'Delete Gift' : 'Delete Income'),
+              content: Text(isGift
+                  ? 'Are you sure you want to delete this gift record?'
+                  : 'Are you sure you want to delete this income record?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
@@ -1425,19 +1455,22 @@ class _IncomeCard extends ConsumerWidget {
         },
         onDismissed: (_) {
           ref.read(incomeProvider.notifier).deleteIncome(income.id);
-          showAppSnackBar(context, 'Income deleted');
+          showAppSnackBar(context, isGift ? 'Gift deleted' : 'Income deleted');
         },
         child: ListTile(
           leading: CircleAvatar(
             backgroundColor:
                 Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             child: Icon(
-              Icons.egg,
+              isGift ? Icons.card_giftcard : Icons.egg,
               color: Theme.of(context).colorScheme.primary,
               size: 20,
             ),
           ),
-          title: Text(income.description ?? 'Egg Sale'),
+          title: Text(income.description ??
+              (recipientName != null
+                  ? '${isGift ? 'Gift to' : 'Sale to'} $recipientName'
+                  : (isGift ? 'Egg Gift' : 'Egg Sale'))),
           subtitle: Row(
             children: [
               Text(DateFormat.yMMMd().format(income.date)),
@@ -1480,7 +1513,9 @@ class _IncomeCard extends ConsumerWidget {
             ],
           ),
           trailing: Text(
-            '+${ref.watch(currencySymbolProvider)}${income.amount.toStringAsFixed(2)}',
+            isGift
+                ? 'Gift'
+                : '+${ref.watch(currencySymbolProvider)}${income.amount.toStringAsFixed(2)}',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.primary,

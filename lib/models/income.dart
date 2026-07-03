@@ -1,6 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import 'enums.dart';
+
 part 'income.freezed.dart';
 
 @freezed
@@ -14,6 +16,8 @@ abstract class Income with _$Income {
     String? description,
     int? eggCount,
     String? flockId,
+    @Default(IncomeType.sale) IncomeType type,
+    String? recipientId,
     required DateTime createdAt,
   }) = _Income;
 
@@ -24,6 +28,8 @@ abstract class Income with _$Income {
     String? description,
     int? eggCount,
     String? flockId,
+    IncomeType type = IncomeType.sale,
+    String? recipientId,
   }) {
     return Income(
       id: const Uuid().v4(),
@@ -32,6 +38,8 @@ abstract class Income with _$Income {
       description: description,
       eggCount: eggCount,
       flockId: flockId,
+      type: type,
+      recipientId: recipientId,
       createdAt: DateTime.now(),
     );
   }
@@ -45,6 +53,11 @@ abstract class Income with _$Income {
       description: map['description'] as String?,
       eggCount: map['egg_count'] as int?,
       flockId: map['flock_id'] as String?,
+      type: IncomeType.values.firstWhere(
+        (t) => t.name == (map['type'] as String? ?? 'sale'),
+        orElse: () => IncomeType.sale,
+      ),
+      recipientId: map['recipient_id'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
@@ -58,9 +71,13 @@ abstract class Income with _$Income {
       'description': description,
       'egg_count': eggCount,
       'flock_id': flockId,
+      'type': type.name,
+      'recipient_id': recipientId,
       'created_at': createdAt.toIso8601String(),
     };
   }
+
+  bool get isGift => type == IncomeType.gift;
 
   /// Calculate price per egg if egg count is available
   double? get pricePerEgg {

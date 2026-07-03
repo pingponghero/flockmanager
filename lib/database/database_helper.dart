@@ -16,7 +16,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String _databaseName = 'flock_manager.db';
-  static const int _databaseVersion = 5;
+  static const int _databaseVersion = 6;
 
   /// Get the database instance, initializing if needed.
   Future<Database> get database async {
@@ -176,6 +176,22 @@ class DatabaseHelper {
             'created_at': eventDate,
           });
         }
+      }
+    }
+
+    // Migration to version 6: gifted eggs + recipient directory.
+    // Adds income.type ('sale' | 'gift') and income.recipient_id, and the
+    // recipients table. Existing income rows default to 'sale'.
+    if (oldVersion < 6) {
+      await db.execute(Tables.recipients
+          .replaceFirst('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS'));
+      final cols = await db.rawQuery('PRAGMA table_info(income)');
+      final hasType = cols.any((c) => c['name'] == 'type');
+      if (!hasType) {
+        await db.execute(
+            "ALTER TABLE income ADD COLUMN type TEXT NOT NULL DEFAULT 'sale'");
+        await db.execute(
+            'ALTER TABLE income ADD COLUMN recipient_id TEXT REFERENCES recipients(id)');
       }
     }
   }

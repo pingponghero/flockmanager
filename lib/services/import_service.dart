@@ -104,6 +104,7 @@ class ImportService {
         await txn.delete('health_notes');
         await txn.delete('medication_logs');
         await txn.delete('income');
+        await txn.delete('recipients');
         await txn.delete('expenses');
         await txn.delete('egg_logs');
         await txn.delete('bird_status_events');
@@ -202,6 +203,11 @@ class ImportService {
           expensesCount++;
         }
         _reportProgress(0.8);
+
+        // Insert recipients (before income, which references them)
+        for (final recipient in data.recipients) {
+          await txn.insert('recipients', recipient);
+        }
 
         // Insert income
         for (final inc in data.income) {
@@ -407,13 +413,27 @@ class ImportService {
       );
     }
 
+    List<Map<String, dynamic>> recipients = [];
+    final recipientsFile = File('${tempDir.path}/recipients.csv');
+    if (await recipientsFile.exists()) {
+      recipients = await _parseCsv(
+        recipientsFile,
+        'recipients.csv',
+        ['id', 'name', 'notes', 'created_at'],
+        ['id', 'name', 'created_at'],
+      );
+    }
+
     List<Map<String, dynamic>> income = [];
     final incomeFile = File('${tempDir.path}/income.csv');
     if (await incomeFile.exists()) {
       income = await _parseCsv(
         incomeFile,
         'income.csv',
-        ['id', 'date', 'amount', 'description', 'egg_count', 'flock_id', 'created_at'],
+        [
+          'id', 'date', 'amount', 'description', 'egg_count', 'flock_id',
+          'type', 'recipient_id', 'created_at'
+        ],
         ['id', 'date', 'amount', 'created_at'],
       );
     }
@@ -471,6 +491,7 @@ class ImportService {
       birds: birds,
       eggLogs: eggLogs,
       expenses: expenses,
+      recipients: recipients,
       income: income,
       medicationLogs: medicationLogs,
       healthNotes: healthNotes,
@@ -723,6 +744,13 @@ class ImportService {
             'Could not read $filename row $row: invalid health note type value: $value');
       }
     }
+    if (column == 'type' && filename.contains('income')) {
+      const validValues = ['sale', 'gift'];
+      if (!validValues.contains(value)) {
+        throw ImportException(
+            'Could not read $filename row $row: invalid income type value: $value');
+      }
+    }
 
     return value;
   }
@@ -765,6 +793,19 @@ class ImportService {
       }
     }
 
+    // Validate income recipient references
+    final recipientIds =
+        data.recipients.map((r) => r['id'] as String).toSet();
+    for (final inc in data.income) {
+      final recipientId = inc['recipient_id'] as String?;
+      if (recipientId != null &&
+          recipientId.isNotEmpty &&
+          !recipientIds.contains(recipientId)) {
+        throw ImportException(
+            "income.csv references a recipient that doesn't exist: $recipientId");
+      }
+    }
+
     // Validate medication log references
     for (final medLog in data.medicationLogs) {
       final flockId = medLog['flock_id'] as String;
@@ -801,6 +842,7 @@ class _ParsedData {
   final List<Map<String, dynamic>> birds;
   final List<Map<String, dynamic>> eggLogs;
   final List<Map<String, dynamic>> expenses;
+  final List<Map<String, dynamic>> recipients;
   final List<Map<String, dynamic>> income;
   final List<Map<String, dynamic>> medicationLogs;
   final List<Map<String, dynamic>> healthNotes;
@@ -811,6 +853,7 @@ class _ParsedData {
     required this.birds,
     required this.eggLogs,
     required this.expenses,
+    required this.recipients,
     required this.income,
     required this.medicationLogs,
     required this.healthNotes,

@@ -14,6 +14,7 @@ import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
+import '../../widgets/recipient_selector.dart';
 
 String? _currencyPrefix(WidgetRef ref) {
   final cs = ref.watch(currencySymbolProvider);
@@ -314,11 +315,19 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
   }
 }
 
-/// Form screen for adding/editing income
+/// Form screen for adding/editing income (egg sales) and gifts.
 class IncomeFormScreen extends ConsumerStatefulWidget {
   final String? incomeId;
 
-  const IncomeFormScreen({super.key, this.incomeId});
+  /// Type preselected when creating a new record (e.g. the Record Gift
+  /// action). Ignored when editing — the record's own type is used.
+  final IncomeType initialType;
+
+  const IncomeFormScreen({
+    super.key,
+    this.incomeId,
+    this.initialType = IncomeType.sale,
+  });
 
   @override
   ConsumerState<IncomeFormScreen> createState() => _IncomeFormScreenState();
@@ -332,12 +341,15 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
 
   DateTime _selectedDate = DateTime.now();
   String? _selectedFlockId;
+  late IncomeType _type = widget.initialType;
+  String? _selectedRecipientId;
 
   bool _isLoading = false;
   bool _isInitialized = false;
   bool _flockPrefilled = false;
 
   bool get _isEditing => widget.incomeId != null;
+  bool get _isGift => _type == IncomeType.gift;
 
   @override
   void dispose() {
@@ -356,6 +368,8 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
     _eggCountController.text = income.eggCount?.toString() ?? '';
     _selectedDate = income.date;
     _selectedFlockId = income.flockId;
+    _type = income.type;
+    _selectedRecipientId = income.recipientId;
   }
 
   Future<void> _selectDate() async {
@@ -376,7 +390,8 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final amount = double.parse(_amountController.text);
+      // Gifts are always zero-amount so they never touch income totals.
+      final amount = _isGift ? 0.0 : double.parse(_amountController.text);
       final eggCount = _eggCountController.text.isEmpty
           ? null
           : int.tryParse(_eggCountController.text);
@@ -390,6 +405,8 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
             description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
             eggCount: eggCount,
             flockId: _selectedFlockId,
+            type: _type,
+            recipientId: _selectedRecipientId,
           );
           await ref.read(incomeProvider.notifier).updateIncome(updated);
         }
@@ -400,6 +417,8 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
           description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
           eggCount: eggCount,
           flockId: _selectedFlockId,
+          type: _type,
+          recipientId: _selectedRecipientId,
         );
         await ref.read(incomeProvider.notifier).addIncome(income);
       }
@@ -451,7 +470,9 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Income' : 'Record Sale'),
+        title: Text(_isEditing
+            ? (_isGift ? 'Edit Gift' : 'Edit Income')
+            : (_isGift ? 'Record Gift' : 'Record Sale')),
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _save,
@@ -470,38 +491,64 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
         child: ListView(
           padding: pagePadding(context),
           children: [
-            // Amount
-            TextFormField(
-              controller: _amountController,
-              decoration: InputDecoration(
-                labelText: 'Amount received',
-                prefixText: _currencyPrefix(ref),
-              ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            // Sale / Gift selector
+            SegmentedButton<IncomeType>(
+              segments: const [
+                ButtonSegment(
+                  value: IncomeType.sale,
+                  label: Text('Sale'),
+                  icon: Icon(Icons.attach_money),
+                ),
+                ButtonSegment(
+                  value: IncomeType.gift,
+                  label: Text('Gift'),
+                  icon: Icon(Icons.card_giftcard),
+                ),
               ],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter an amount';
-                }
-                final amount = double.tryParse(value);
-                if (amount == null || amount <= 0) {
-                  return 'Please enter a valid amount';
-                }
-                return null;
+              selected: {_type},
+              onSelectionChanged: (selection) {
+                setState(() => _type = selection.first);
               },
-              autofocus: !_isEditing,
-              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
 
-            // Egg count
+            // Amount (sales only — gifts are always free)
+            if (!_isGift) ...[
+              TextFormField(
+                controller: _amountController,
+                decoration: InputDecoration(
+                  labelText: 'Amount received',
+                  prefixText: _currencyPrefix(ref),
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                ],
+                validator: (value) {
+                  if (_isGift) return null;
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter an amount';
+                  }
+                  final amount = double.tryParse(value);
+                  if (amount == null || amount <= 0) {
+                    return 'Please enter a valid amount';
+                  }
+                  return null;
+                },
+                autofocus: !_isEditing,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Egg count (required for gifts so gifted-egg stats work)
             TextFormField(
               controller: _eggCountController,
               decoration: InputDecoration(
-                labelText: 'Number of eggs sold (optional)',
-                helperText: pricePerEgg != null
+                labelText: _isGift
+                    ? 'Number of eggs gifted'
+                    : 'Number of eggs sold (optional)',
+                helperText: !_isGift && pricePerEgg != null
                     ? 'That\'s ${ref.watch(currencySymbolProvider)}${pricePerEgg.toStringAsFixed(2)} per egg'
                     : null,
               ),
@@ -509,7 +556,22 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
               inputFormatters: [
                 FilteringTextInputFormatter.digitsOnly,
               ],
+              validator: (value) {
+                if (!_isGift) return null;
+                final count = int.tryParse(value ?? '');
+                if (count == null || count <= 0) {
+                  return 'Please enter how many eggs were gifted';
+                }
+                return null;
+              },
               onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+
+            // Recipient
+            RecipientSelector(
+              selectedRecipientId: _selectedRecipientId,
+              onChanged: (id) => setState(() => _selectedRecipientId = id),
             ),
             const SizedBox(height: 16),
 
@@ -528,9 +590,11 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
             // Description
             TextFormField(
               controller: _descriptionController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Description (optional)',
-                hintText: 'e.g., Farmers market, neighbor',
+                hintText: _isGift
+                    ? 'e.g., Thank-you for watching the coop'
+                    : 'e.g., Farmers market, neighbor',
               ),
               maxLines: 2,
             ),

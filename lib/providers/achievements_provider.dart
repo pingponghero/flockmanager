@@ -86,6 +86,10 @@ class AchievementContext {
   final int expenseCount;
   final int incomeCount;
 
+  // Gifting
+  final int giftedEggs;
+  final int giftRecipientCount;
+
   // Health
   final int medicationLogCount;
   final int completedMedicationCount;
@@ -136,6 +140,8 @@ class AchievementContext {
     required this.retailPricePerDozen,
     required this.expenseCount,
     required this.incomeCount,
+    this.giftedEggs = 0,
+    this.giftRecipientCount = 0,
     required this.medicationLogCount,
     required this.completedMedicationCount,
     required this.birdsWithHealthNotes,
@@ -425,6 +431,33 @@ final achievements = <Achievement>[
     color: Colors.teal,
     category: 'Nest Egg',
     check: (ctx) => ctx.totalIncome > ctx.totalExpenses && ctx.totalIncome > 50 && ctx.totalExpenses > 0,
+  ),
+  Achievement(
+    id: 'first_gift',
+    name: 'Sharing the Bounty',
+    description: 'Gift your first eggs',
+    icon: Icons.card_giftcard,
+    color: Colors.pink,
+    category: 'Nest Egg',
+    check: (ctx) => ctx.giftedEggs >= 1,
+  ),
+  Achievement(
+    id: 'gift_basket',
+    name: 'Gift Basket',
+    description: '100 eggs gifted',
+    icon: Icons.redeem,
+    color: Colors.purple,
+    category: 'Nest Egg',
+    check: (ctx) => ctx.giftedEggs >= 100,
+  ),
+  Achievement(
+    id: 'community_coop',
+    name: 'Community Coop',
+    description: 'Gift eggs to 3+ different recipients',
+    icon: Icons.diversity_1,
+    color: Colors.orange,
+    category: 'Nest Egg',
+    check: (ctx) => ctx.giftRecipientCount >= 3,
   ),
 
   // ==================== HEALTH & MEDICATION ====================
@@ -730,6 +763,11 @@ final achievementProgressProvider = FutureProvider<Map<String, AchievementProgre
     // Financial
     'budget_tracker': AchievementProgress(context.expenseCount, 10),
 
+    // Gifting
+    'first_gift': AchievementProgress(context.giftedEggs, 1),
+    'gift_basket': AchievementProgress(context.giftedEggs, 100),
+    'community_coop': AchievementProgress(context.giftRecipientCount, 3),
+
     // Health
     'flock_doctor': AchievementProgress(context.completedMedicationCount, 5),
 
@@ -872,6 +910,10 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
   final expenses = await expenseRepo.getAllExpenses();
   final incomes = await expenseRepo.getAllIncome();
 
+  // Gifting stats
+  final giftedEggs = await expenseRepo.getEggsGiftedAllTime();
+  final giftRecipientCount = await expenseRepo.getGiftRecipientCount();
+
   // Get medication stats
   final medications = await ref.watch(medicationsProvider.future);
   final completedMeds = medications.where((m) =>
@@ -922,6 +964,8 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
     retailPricePerDozen: eggValueSummary.retailPricePerDozen,
     expenseCount: expenses.length,
     incomeCount: incomes.length,
+    giftedEggs: giftedEggs,
+    giftRecipientCount: giftRecipientCount,
     medicationLogCount: medications.length,
     completedMedicationCount: completedMeds,
     birdsWithHealthNotes: birdsWithHealthNotes,
