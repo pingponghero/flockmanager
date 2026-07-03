@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../models/medication_log.dart';
 import '../../data/medications.dart';
 import '../../providers/medication_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
@@ -293,6 +294,17 @@ class _MedicationCard extends ConsumerWidget {
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                builder: (context) => AddMedicationSheet(existing: medication),
+              );
+            },
+            child: const Text('Edit'),
+          ),
         ],
       ),
     );
@@ -394,6 +406,9 @@ class _HistoryTab extends ConsumerWidget {
               },
               onDismissed: (_) {
                 ref.read(medicationsProvider.notifier).deleteMedication(med.id);
+                ref
+                    .read(notificationSettingsProvider.notifier)
+                    .onMedicationDeleted(med.id);
               },
               child: _MedicationCard(medication: med),
             );

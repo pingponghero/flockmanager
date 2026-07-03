@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased (branch: bundle-a-reliability-editing)
+
+Reliability & editing bundle (#26, #29, #30, #36).
+
+### Fixed
+
+- **Reminders never fired** (#26) — three compounding causes:
+  - Alarms were scheduled with `preciseAlarm: false, allowWhileIdle: false`,
+    so Doze/OEM battery management (notably Samsung) deferred them
+    indefinitely. All reminders now use exact, idle-allowed alarms with a
+    graceful fallback when the exact-alarm permission is missing; the
+    `SCHEDULE_EXACT_ALARM` permission was added to the Android manifest.
+  - The exact-alarm permission was never requested for users who already
+    had notifications allowed. It is now checked/requested separately, and
+    Settings shows a warning row with an "Allow" shortcut when missing.
+  - **Medication end/withdrawal notifications were never scheduled when a
+    medication was saved** — the scheduling providers existed but had no
+    callers. Saving/editing a medication now (re)schedules its
+    notifications; deleting cancels them.
+  - The daily egg reminder was a one-shot that died the first day the app
+    wasn't opened to re-arm it; it's now a repeating daily alarm (still
+    suppressed for today once eggs are logged).
+  - Settings gains a "Send Test Notification" tile for end-to-end
+    verification on-device.
+- **Distributed (per-hen) egg entries** (#29) — now deleted with the same
+  swipe-left gesture as every other entry (the odd trash-icon button is
+  gone), and the expanded per-bird rows open the standard egg edit form.
+- **Medication log entries are now editable** (#30) — the detail dialog
+  gains an Edit action opening the medication sheet pre-filled.
+- **Streak dialog** (#36) — now says what the number means ("days in a row
+  you've logged your flock") and links to Egg History instead of
+  dead-ending.
+
 ## 2.5.0 (+26) — unreleased (branch: 24-27-gifted-eggs-and-recipients)
 
 Implements the two most-requested beta features (#24, #27).

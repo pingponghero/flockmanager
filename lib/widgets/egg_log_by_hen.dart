@@ -51,7 +51,6 @@ class _EggLogByHenContentState extends ConsumerState<EggLogByHenContent> {
   bool _isSaving = false;
 
   int get _totalEggs => _counts.values.fold(0, (a, b) => a + b);
-  int get _hensWithEggs => _counts.values.where((c) => c > 0).length;
 
   @override
   Widget build(BuildContext context) {
@@ -648,8 +647,6 @@ class _StickyFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       child: Column(

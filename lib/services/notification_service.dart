@@ -91,7 +91,6 @@ class NotificationService {
   Future<bool> requestPermissions() async {
     final isAllowed = await AwesomeNotifications().isNotificationAllowed();
     if (!isAllowed) {
-      // Request both alert and precise alarm permissions upfront
       final granted = await AwesomeNotifications().requestPermissionToSendNotifications(
         permissions: [
           NotificationPermission.Alert,
@@ -104,12 +103,39 @@ class NotificationService {
       if (!granted) return false;
     }
 
+    // Exact alarms are a separate special permission on Android 12+ and can
+    // be missing even when notifications are allowed (the old code never
+    // asked in that case, so reminders were scheduled inexactly and OEM
+    // battery managers deferred them indefinitely).
+    if (!await hasExactAlarmPermission()) {
+      await AwesomeNotifications().requestPermissionToSendNotifications(
+        permissions: [NotificationPermission.PreciseAlarms],
+      );
+    }
+
     return true;
   }
 
   /// Check if notifications are permitted.
   Future<bool> areNotificationsEnabled() async {
     return await AwesomeNotifications().isNotificationAllowed();
+  }
+
+  /// Whether the exact-alarm special permission is granted (Android 12+).
+  /// Reminders still work without it but fire at imprecise times — or not
+  /// at all under aggressive OEM battery management.
+  Future<bool> hasExactAlarmPermission() async {
+    final allowed = await AwesomeNotifications().checkPermissionList(
+      permissions: [NotificationPermission.PreciseAlarms],
+    );
+    return allowed.contains(NotificationPermission.PreciseAlarms);
+  }
+
+  /// Open the system page to grant exact alarms.
+  Future<void> requestExactAlarmPermission() async {
+    await AwesomeNotifications().requestPermissionToSendNotifications(
+      permissions: [NotificationPermission.PreciseAlarms],
+    );
   }
 
   /// Schedule a notification when a medication treatment ends.
@@ -222,34 +248,76 @@ class NotificationService {
     await AwesomeNotifications().cancel(notificationId);
   }
 
-  /// Schedule a daily egg reminder notification.
-  /// If [tomorrow] is true, schedules for tomorrow regardless of current time.
+  /// Schedule the daily egg reminder notification.
+  ///
+  /// The base schedule is a *repeating* daily alarm, so the reminder keeps
+  /// firing even when the app isn't opened for days (the previous one-shot
+  /// chain died the first day the app wasn't launched to re-arm it).
+  ///
+  /// If [tomorrow] is true (eggs already logged today), the repeating alarm
+  /// is replaced with a one-shot for tomorrow so today's reminder is
+  /// suppressed; the repeating schedule is re-established on the next app
+  /// launch via evaluateEggReminder.
   Future<void> scheduleEggReminder(TimeOfDay time, {bool tomorrow = false}) async {
     // Cancel any existing egg reminder first
     await cancelEggReminder();
 
-    final now = DateTime.now();
-    var scheduledDate = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      time.hour,
-      time.minute,
-    );
+    if (tomorrow) {
+      final now = DateTime.now();
+      final scheduledDate = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        time.hour,
+        time.minute,
+      ).add(const Duration(days: 1));
 
-    // If time has passed today or tomorrow is requested, schedule for tomorrow
-    if (tomorrow || scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+      await _scheduleNotification(
+        id: _eggReminderId,
+        channelKey: _eggReminderChannelKey,
+        title: 'Time to check for eggs!',
+        body: "You haven't logged any eggs today 🥚",
+        scheduledDate: scheduledDate,
+        payload: {'type': 'egg_reminder'},
+      );
+      return;
     }
 
-    await _scheduleNotification(
+    final content = NotificationContent(
       id: _eggReminderId,
       channelKey: _eggReminderChannelKey,
       title: 'Time to check for eggs!',
       body: "You haven't logged any eggs today 🥚",
-      scheduledDate: scheduledDate,
+      notificationLayout: NotificationLayout.Default,
       payload: {'type': 'egg_reminder'},
+      wakeUpScreen: true,
     );
+
+    try {
+      await AwesomeNotifications().createNotification(
+        content: content,
+        schedule: NotificationCalendar(
+          hour: time.hour,
+          minute: time.minute,
+          second: 0,
+          repeats: true,
+          preciseAlarm: true,
+          allowWhileIdle: true,
+        ),
+      );
+    } catch (_) {
+      await AwesomeNotifications().createNotification(
+        content: content,
+        schedule: NotificationCalendar(
+          hour: time.hour,
+          minute: time.minute,
+          second: 0,
+          repeats: true,
+          preciseAlarm: false,
+          allowWhileIdle: true,
+        ),
+      );
+    }
   }
 
   /// Cancel the egg reminder notification.
@@ -281,6 +349,12 @@ class NotificationService {
   }
 
   /// Internal method to schedule a notification.
+  ///
+  /// Uses precise, Doze-proof alarms: with `preciseAlarm: false` +
+  /// `allowWhileIdle: false` (the old behavior) alarms are deferred by
+  /// Doze/OEM battery management and on some devices never fire at all.
+  /// Falls back to an inexact idle-allowed alarm if the exact-alarm
+  /// permission is missing.
   Future<void> _scheduleNotification({
     required int id,
     required String channelKey,
@@ -290,23 +364,37 @@ class NotificationService {
     Map<String, String>? payload,
     NotificationCategory? category,
   }) async {
-    await AwesomeNotifications().createNotification(
-      content: NotificationContent(
-        id: id,
-        channelKey: channelKey,
-        title: title,
-        body: body,
-        notificationLayout: NotificationLayout.Default,
-        payload: payload,
-        wakeUpScreen: true,
-        category: category,
-      ),
-      schedule: NotificationCalendar.fromDate(
-        date: scheduledDate,
-        preciseAlarm: false,
-        allowWhileIdle: false,
-      ),
+    final content = NotificationContent(
+      id: id,
+      channelKey: channelKey,
+      title: title,
+      body: body,
+      notificationLayout: NotificationLayout.Default,
+      payload: payload,
+      wakeUpScreen: true,
+      category: category,
     );
-  }
 
+    try {
+      await AwesomeNotifications().createNotification(
+        content: content,
+        schedule: NotificationCalendar.fromDate(
+          date: scheduledDate,
+          preciseAlarm: true,
+          allowWhileIdle: true,
+        ),
+      );
+    } catch (_) {
+      // Exact-alarm permission not granted — schedule inexactly rather
+      // than not at all.
+      await AwesomeNotifications().createNotification(
+        content: content,
+        schedule: NotificationCalendar.fromDate(
+          date: scheduledDate,
+          preciseAlarm: false,
+          allowWhileIdle: true,
+        ),
+      );
+    }
+  }
 }

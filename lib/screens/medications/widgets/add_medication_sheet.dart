@@ -8,12 +8,16 @@ import '../../../providers/achievements_provider.dart';
 import '../../../providers/bird_provider.dart';
 import '../../../providers/flock_provider.dart';
 import '../../../providers/medication_provider.dart';
+import '../../../providers/notification_provider.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/achievement_celebration_dialog.dart';
 import 'legal_status_badge.dart';
 
 class AddMedicationSheet extends ConsumerStatefulWidget {
-  const AddMedicationSheet({super.key});
+  /// When set, the sheet edits this medication log instead of creating one.
+  final MedicationLog? existing;
+
+  const AddMedicationSheet({super.key, this.existing});
 
   @override
   ConsumerState<AddMedicationSheet> createState() => _AddMedicationSheetState();
@@ -31,6 +35,24 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
   int _withdrawalDays = 0;
+
+  bool get _isEditing => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existing;
+    if (existing != null) {
+      _nameController.text = existing.medicationName;
+      _dosageController.text = existing.dosage ?? '';
+      _notesController.text = existing.notes ?? '';
+      _selectedFlockId = existing.flockId;
+      _selectedBirdId = existing.birdId;
+      _startDate = existing.startDate;
+      _endDate = existing.endDate;
+      _withdrawalDays = existing.withdrawalDays ?? 0;
+    }
+  }
 
   @override
   void dispose() {
@@ -71,7 +93,7 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
                 child: Row(
                   children: [
                     Text(
-                      'Add Medication',
+                      _isEditing ? 'Edit Medication' : 'Add Medication',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const Spacer(),
@@ -413,19 +435,39 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
       return;
     }
 
-    final medication = MedicationLog.create(
-      flockId: _selectedFlockId!,
-      birdId: _selectedBirdId,
-      medicationName: _nameController.text,
-      dosage: _dosageController.text.isEmpty ? null : _dosageController.text,
-      startDate: _startDate,
-      endDate: _endDate,
-      withdrawalDays: _withdrawalDays,
-      notes: _notesController.text.isEmpty ? null : _notesController.text,
-    );
+    final medication = _isEditing
+        ? widget.existing!.copyWith(
+            flockId: _selectedFlockId!,
+            birdId: _selectedBirdId,
+            medicationName: _nameController.text,
+            dosage: _dosageController.text.isEmpty ? null : _dosageController.text,
+            startDate: _startDate,
+            endDate: _endDate,
+            withdrawalDays: _withdrawalDays,
+            notes: _notesController.text.isEmpty ? null : _notesController.text,
+          )
+        : MedicationLog.create(
+            flockId: _selectedFlockId!,
+            birdId: _selectedBirdId,
+            medicationName: _nameController.text,
+            dosage: _dosageController.text.isEmpty ? null : _dosageController.text,
+            startDate: _startDate,
+            endDate: _endDate,
+            withdrawalDays: _withdrawalDays,
+            notes: _notesController.text.isEmpty ? null : _notesController.text,
+          );
 
     try {
-      await ref.read(medicationsProvider.notifier).addMedication(medication);
+      if (_isEditing) {
+        await ref.read(medicationsProvider.notifier).updateMedication(medication);
+      } else {
+        await ref.read(medicationsProvider.notifier).addMedication(medication);
+      }
+
+      // (Re)schedule end-of-treatment / withdrawal notifications
+      await ref
+          .read(notificationSettingsProvider.notifier)
+          .onMedicationSaved(medication);
 
       if (mounted) {
         // Check for new achievements
@@ -433,7 +475,11 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
 
         if (mounted) {
           Navigator.pop(context);
-          showAppSnackBar(context, '${medication.medicationName} logged');
+          showAppSnackBar(
+              context,
+              _isEditing
+                  ? '${medication.medicationName} updated'
+                  : '${medication.medicationName} logged');
 
           if (newAchievements.isNotEmpty) {
             await AchievementCelebrationDialog.showMultiple(context, newAchievements);
