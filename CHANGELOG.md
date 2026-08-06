@@ -1,8 +1,33 @@
 # Changelog
 
-## Unreleased (branch: bundle-a-reliability-editing)
+## 2.5.0 (+26) — 2026-08-06
 
-Reliability & editing bundle (#26, #29, #30, #36).
+Gifts, recipients, and a reliability & editing pass
+(#24, #26, #27, #29, #30, #36).
+
+### Added
+
+- **Gifted eggs** (#24) — a first-class Gift category alongside sales:
+  - "Record Gift" action on the Value tab; the sale/income form has a
+    Sale | Gift selector. Gifts are always zero-amount and require an egg
+    count.
+  - Gifted eggs are **excluded from sold-egg counts and average sale
+    price**, and are not valued at retail in the egg-value math (they are
+    tracked as their own bucket: logged = consumed + sold + gifted).
+  - Gifted totals shown on the Egg Value card and its breakdown sheet.
+  - DB migration v6 adds `income.type` / `income.recipient_id` (existing
+    rows default to `sale`) and the `recipients` table.
+- **Recipient directory** (#27) — manage the people you sell/gift eggs to:
+  - Settings → Recipients: add, rename, delete (deleting keeps the
+    sale/gift records, unlinked), with per-recipient statistics
+    (eggs sold, revenue, eggs gifted).
+  - Recipient picker on the sale/gift form with inline "New recipient…".
+  - Sale/gift list rows show "Sale to / Gift to <name>" when no
+    description is set.
+- **Gifting achievements**: Sharing the Bounty (first gifted egg),
+  Gift Basket (100 gifted eggs), Community Coop (gifts to 3+ recipients).
+- Export/import includes `recipients.csv` and the new income columns;
+  older backups without them import cleanly (rows default to sale).
 
 ### Fixed
 
@@ -33,35 +58,7 @@ Reliability & editing bundle (#26, #29, #30, #36).
   you've logged your flock") and links to Egg History instead of
   dead-ending.
 
-## 2.5.0 (+26) — unreleased (branch: 24-27-gifted-eggs-and-recipients)
-
-Implements the two most-requested beta features (#24, #27).
-
-### Added
-
-- **Gifted eggs** (#24) — a first-class Gift category alongside sales:
-  - "Record Gift" action on the Value tab; the sale/income form has a
-    Sale | Gift selector. Gifts are always zero-amount and require an egg
-    count.
-  - Gifted eggs are **excluded from sold-egg counts and average sale
-    price**, and are not valued at retail in the egg-value math (they are
-    tracked as their own bucket: logged = consumed + sold + gifted).
-  - Gifted totals shown on the Egg Value card and its breakdown sheet.
-  - DB migration v6 adds `income.type` / `income.recipient_id` (existing
-    rows default to `sale`) and the `recipients` table.
-- **Recipient directory** (#27) — manage the people you sell/gift eggs to:
-  - Settings → Recipients: add, rename, delete (deleting keeps the
-    sale/gift records, unlinked), with per-recipient statistics
-    (eggs sold, revenue, eggs gifted).
-  - Recipient picker on the sale/gift form with inline "New recipient…".
-  - Sale/gift list rows show "Sale to / Gift to <name>" when no
-    description is set.
-- **Gifting achievements**: Sharing the Bounty (first gifted egg),
-  Gift Basket (100 gifted eggs), Community Coop (gifts to 3+ recipients).
-- Export/import includes `recipients.csv` and the new income columns;
-  older backups without them import cleanly (rows default to sale).
-
-## 2.4.0 (+25) — unreleased
+## 2.4.0 (+25)
 
 Bug-fix release driven by beta feedback (power user with ~6 years of
 imported history). See GitHub issues for items deferred to later releases.
