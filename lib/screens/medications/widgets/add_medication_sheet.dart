@@ -66,342 +66,315 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
   Widget build(BuildContext context) {
     final flocksAsync = ref.watch(flocksProvider);
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.9,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (context, scrollController) {
-        return Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Handle
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    Text(
-                      _isEditing ? 'Edit Medication' : 'Add Medication',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: _saveMedication,
-                      child: const Text('Save'),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Divider(),
-
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    // Medication selector with autocomplete
-                    Autocomplete<Medication>(
-                      displayStringForOption: (med) => med.name,
-                      optionsBuilder: (textEditingValue) {
-                        if (textEditingValue.text.isEmpty) {
-                          // Filter out banned medications from suggestions
-                          return medications.where((m) => !m.isBannedOrRestricted);
-                        }
-                        return searchMedications(textEditingValue.text)
-                            .where((m) => !m.isBannedOrRestricted);
-                      },
-                      onSelected: (med) {
-                        setState(() {
-                          _selectedMedication = med;
-                          _nameController.text = med.name;
-                          _withdrawalDays = med.withdrawalDaysEgg ?? 14; // Default to 14 if unknown
-                          _dosageController.text = med.dosageNotes;
-                        });
-                      },
-                      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-                        // Sync controllers
-                        if (_nameController.text.isNotEmpty && controller.text.isEmpty) {
-                          controller.text = _nameController.text;
-                        }
-                        return TextFormField(
-                          controller: controller,
-                          focusNode: focusNode,
-                          decoration: const InputDecoration(
-                            labelText: 'Medication *',
-                            hintText: 'Search or enter medication name',
-                          ),
-                          onChanged: (value) {
-                            _nameController.text = value;
-                            // Check if medication is banned
-                            final selectedMed = medications.where(
-                                    (m) => m.name.toLowerCase() == value.toLowerCase()
-                            ).firstOrNull;
-                            if (selectedMed?.isBannedOrRestricted == true) {
-                              showAppSnackBar(
-                                context,
-                                '⚠️ ${selectedMed!.name} is ${selectedMed.legalStatusDisplay}. '
-                                    'Do not use in food-producing poultry.',
-                                backgroundColor: Colors.red,
-                                duration: const Duration(seconds: 5),
-                              );
-                            }
-                          },
-                          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
-                        );
-                      },
-                      optionsViewBuilder: (context, onSelected, options) {
-                        return Align(
-                          alignment: Alignment.topLeft,
-                          child: Material(
-                            elevation: 4,
-                            borderRadius: BorderRadius.circular(8),
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxHeight: 200,
-                                maxWidth: MediaQuery.of(context).size.width - 64,
-                              ),
-                              child: ListView.builder(
-                                padding: EdgeInsets.zero,
-                                shrinkWrap: true,
-                                itemCount: options.length,
-                                itemBuilder: (context, index) {
-                                  final med = options.elementAt(index);
-                                  return ListTile(
-                                    dense: true,
-                                    title: Text(med.name),
-                                    subtitle: Row(
-                                      children: [
-                                        Text(med.genericName),
-                                        const SizedBox(width: 8),
-                                        LegalStatusBadge(legalStatus: med.legalStatus),
-                                      ],
-                                    ),
-                                    trailing: _buildWithdrawalBadge(med),
-                                    onTap: () => onSelected(med),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-                    // Warning if selected medication has issues
-                    if (_selectedMedication != null && _selectedMedication!.legalWarning != null) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.amber.shade200),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(Icons.warning_amber, color: Colors.amber.shade700, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _selectedMedication!.legalWarning!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.amber.shade900,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Edit Medication' : 'Add Medication'),
+        actions: [
+          if (_isEditing)
+            IconButton(
+              tooltip: 'Delete medication',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _deleteMedication,
+            ),
+          TextButton(onPressed: _saveMedication, child: const Text('Save')),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Medication selector with autocomplete
+            Autocomplete<Medication>(
+              displayStringForOption: (med) => med.name,
+              optionsBuilder: (textEditingValue) {
+                if (textEditingValue.text.isEmpty) {
+                  // Filter out banned medications from suggestions
+                  return medications.where((m) => !m.isBannedOrRestricted);
+                }
+                return searchMedications(
+                  textEditingValue.text,
+                ).where((m) => !m.isBannedOrRestricted);
+              },
+              onSelected: (med) {
+                setState(() {
+                  _selectedMedication = med;
+                  _nameController.text = med.name;
+                  _withdrawalDays =
+                      med.withdrawalDaysEgg ?? 14; // Default to 14 if unknown
+                  _dosageController.text = med.dosageNotes;
+                });
+              },
+              fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+                // Sync controllers
+                if (_nameController.text.isNotEmpty &&
+                    controller.text.isEmpty) {
+                  controller.text = _nameController.text;
+                }
+                return TextFormField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    labelText: 'Medication *',
+                    hintText: 'Search or enter medication name',
+                  ),
+                  onChanged: (value) {
+                    _nameController.text = value;
+                    // Check if medication is banned
+                    final selectedMed = medications
+                        .where(
+                          (m) => m.name.toLowerCase() == value.toLowerCase(),
+                        )
+                        .firstOrNull;
+                    if (selectedMed?.isBannedOrRestricted == true) {
+                      showAppSnackBar(
+                        context,
+                        '⚠️ ${selectedMed!.name} is ${selectedMed.legalStatusDisplay}. '
+                        'Do not use in food-producing poultry.',
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 5),
+                      );
+                    }
+                  },
+                  validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+                );
+              },
+              optionsViewBuilder: (context, onSelected, options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(8),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: 200,
+                        maxWidth: MediaQuery.of(context).size.width - 64,
                       ),
-                    ],
-
-                    const SizedBox(height: 16),
-
-                    flocksAsync.when(
-                      loading: () => const LinearProgressIndicator(),
-                      error: (_, __) => const SizedBox.shrink(),
-                      data: (flocks) {
-                        if (flocks.isEmpty) {
-                          return const Text('Create a flock first');
-                        }
-                        if (_selectedFlockId == null && flocks.length == 1) {
-                          _selectedFlockId = flocks.first.id;
-                        }
-                        return DropdownMenu<String>(
-                          initialSelection: _selectedFlockId,
-                          expandedInsets: EdgeInsets.zero,
-                          label: const Text('Flock'),
-                          dropdownMenuEntries: flocks
-                              .map((f) => DropdownMenuEntry(
-                                    value: f.id,
-                                    label: f.name,
-                                  ))
-                              .toList(),
-                          onSelected: (v) => setState(() {
-                            _selectedFlockId = v;
-                            _selectedBirdId = null;
-                          }),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Bird selector (optional - for individual bird treatment)
-                    if (_selectedFlockId != null)
-                      Consumer(
-                        builder: (context, ref, child) {
-                          final birdsAsync = ref.watch(
-                            activeBirdsByFlockProvider(_selectedFlockId!),
-                          );
-                          return birdsAsync.when(
-                            loading: () => const LinearProgressIndicator(),
-                            error: (_, __) => const SizedBox.shrink(),
-                            data: (birds) {
-                              if (birds.isEmpty) return const SizedBox.shrink();
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  DropdownMenu<String?>(
-                                    initialSelection: _selectedBirdId,
-                                    expandedInsets: EdgeInsets.zero,
-                                    label: const Text('Bird (optional)'),
-                                    dropdownMenuEntries: [
-                                      const DropdownMenuEntry(
-                                        value: null,
-                                        label: 'Entire flock',
-                                      ),
-                                      ...birds.map((b) => DropdownMenuEntry(
-                                        value: b.id,
-                                        label: b.name,
-                                      )),
-                                    ],
-                                    onSelected: (v) => setState(() => _selectedBirdId = v),
-                                  ),
-                                  const SizedBox(height: 16),
-                                ],
-                              );
-                            },
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final med = options.elementAt(index);
+                          return ListTile(
+                            dense: true,
+                            title: Text(med.name),
+                            subtitle: Row(
+                              children: [
+                                Text(med.genericName),
+                                const SizedBox(width: 8),
+                                LegalStatusBadge(legalStatus: med.legalStatus),
+                              ],
+                            ),
+                            trailing: _buildWithdrawalBadge(med),
+                            onTap: () => onSelected(med),
                           );
                         },
                       ),
+                    ),
+                  ),
+                );
+              },
+            ),
 
-                    TextFormField(
-                      controller: _dosageController,
-                      decoration: const InputDecoration(
-                        labelText: 'Dosage (optional)',
-                        hintText: 'e.g., 2 tsp per gallon',
+            // Warning if selected medication has issues
+            if (_selectedMedication != null &&
+                _selectedMedication!.legalWarning != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_amber,
+                      color: Colors.amber.shade700,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _selectedMedication!.legalWarning!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.amber.shade900,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Start Date'),
-                            subtitle: Text(DateFormat.yMMMd().format(_startDate)),
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: _startDate,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime.now().add(const Duration(days: 30)),
-                              );
-                              if (picked != null) {
-                                setState(() => _startDate = picked);
-                              }
-                            },
-                          ),
-                        ),
-                        Expanded(
-                          child: ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('End Date'),
-                            subtitle: Text(_endDate != null
-                                ? DateFormat.yMMMd().format(_endDate!)
-                                : 'Ongoing'),
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: _endDate ?? DateTime.now(),
-                                firstDate: _startDate,
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
-                              );
-                              setState(() => _endDate = picked);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Egg Withdrawal: $_withdrawalDays days',
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              if (_selectedMedication?.withdrawalDaysEgg == null)
-                                Text(
-                                  'No established withdrawal - using conservative estimate',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.orange.shade700,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    Slider(
-                      value: _withdrawalDays.toDouble(),
-                      min: 0,
-                      max: 30,
-                      divisions: 30,
-                      label: '$_withdrawalDays days',
-                      onChanged: (v) => setState(() => _withdrawalDays = v.round()),
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _notesController,
-                      decoration: const InputDecoration(
-                        labelText: 'Notes (optional)',
-                      ),
-                      maxLines: 2,
                     ),
                   ],
                 ),
               ),
             ],
-          ),
-        );
-      },
+
+            const SizedBox(height: 16),
+
+            flocksAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (flocks) {
+                if (flocks.isEmpty) {
+                  return const Text('Create a flock first');
+                }
+                if (_selectedFlockId == null && flocks.length == 1) {
+                  _selectedFlockId = flocks.first.id;
+                }
+                return DropdownMenu<String>(
+                  initialSelection: _selectedFlockId,
+                  expandedInsets: EdgeInsets.zero,
+                  label: const Text('Flock'),
+                  dropdownMenuEntries: flocks
+                      .map((f) => DropdownMenuEntry(value: f.id, label: f.name))
+                      .toList(),
+                  onSelected: (v) => setState(() {
+                    _selectedFlockId = v;
+                    _selectedBirdId = null;
+                  }),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Bird selector (optional - for individual bird treatment)
+            if (_selectedFlockId != null)
+              Consumer(
+                builder: (context, ref, child) {
+                  final birdsAsync = ref.watch(
+                    activeBirdsByFlockProvider(_selectedFlockId!),
+                  );
+                  return birdsAsync.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (birds) {
+                      if (birds.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DropdownMenu<String?>(
+                            initialSelection: _selectedBirdId,
+                            expandedInsets: EdgeInsets.zero,
+                            label: const Text('Bird (optional)'),
+                            dropdownMenuEntries: [
+                              const DropdownMenuEntry(
+                                value: null,
+                                label: 'Entire flock',
+                              ),
+                              ...birds.map(
+                                (b) => DropdownMenuEntry(
+                                  value: b.id,
+                                  label: b.name,
+                                ),
+                              ),
+                            ],
+                            onSelected: (v) =>
+                                setState(() => _selectedBirdId = v),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+
+            TextFormField(
+              controller: _dosageController,
+              decoration: const InputDecoration(
+                labelText: 'Dosage (optional)',
+                hintText: 'e.g., 2 tsp per gallon',
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Row(
+              children: [
+                Expanded(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Start Date'),
+                    subtitle: Text(DateFormat.yMMMd().format(_startDate)),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _startDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                      );
+                      if (picked != null) {
+                        setState(() => _startDate = picked);
+                      }
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('End Date'),
+                    subtitle: Text(
+                      _endDate != null
+                          ? DateFormat.yMMMd().format(_endDate!)
+                          : 'Ongoing',
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _endDate ?? DateTime.now(),
+                        firstDate: _startDate,
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      setState(() => _endDate = picked);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Egg Withdrawal: $_withdrawalDays days',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      if (_selectedMedication?.withdrawalDaysEgg == null)
+                        Text(
+                          'No established withdrawal - using conservative estimate',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange.shade700,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            Slider(
+              value: _withdrawalDays.toDouble(),
+              min: 0,
+              max: 30,
+              divisions: 30,
+              label: '$_withdrawalDays days',
+              onChanged: (v) => setState(() => _withdrawalDays = v.round()),
+            ),
+            const SizedBox(height: 16),
+
+            TextFormField(
+              controller: _notesController,
+              decoration: const InputDecoration(labelText: 'Notes (optional)'),
+              maxLines: 2,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -427,6 +400,40 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
     return null;
   }
 
+  Future<void> _deleteMedication() async {
+    final existing = widget.existing;
+    if (existing == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Medication'),
+        content: Text('Delete the record for ${existing.medicationName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await ref.read(medicationsProvider.notifier).deleteMedication(existing.id);
+    await ref
+        .read(notificationSettingsProvider.notifier)
+        .onMedicationDeleted(existing.id);
+
+    if (mounted) {
+      Navigator.pop(context);
+      showAppSnackBar(context, '${existing.medicationName} deleted');
+    }
+  }
+
   Future<void> _saveMedication() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -440,7 +447,9 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
             flockId: _selectedFlockId!,
             birdId: _selectedBirdId,
             medicationName: _nameController.text,
-            dosage: _dosageController.text.isEmpty ? null : _dosageController.text,
+            dosage: _dosageController.text.isEmpty
+                ? null
+                : _dosageController.text,
             startDate: _startDate,
             endDate: _endDate,
             withdrawalDays: _withdrawalDays,
@@ -450,7 +459,9 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
             flockId: _selectedFlockId!,
             birdId: _selectedBirdId,
             medicationName: _nameController.text,
-            dosage: _dosageController.text.isEmpty ? null : _dosageController.text,
+            dosage: _dosageController.text.isEmpty
+                ? null
+                : _dosageController.text,
             startDate: _startDate,
             endDate: _endDate,
             withdrawalDays: _withdrawalDays,
@@ -459,7 +470,9 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
 
     try {
       if (_isEditing) {
-        await ref.read(medicationsProvider.notifier).updateMedication(medication);
+        await ref
+            .read(medicationsProvider.notifier)
+            .updateMedication(medication);
       } else {
         await ref.read(medicationsProvider.notifier).addMedication(medication);
       }
@@ -471,18 +484,25 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
 
       if (mounted) {
         // Check for new achievements
-        final newAchievements = await checkAndCelebrateAchievements(ref, context);
+        final newAchievements = await checkAndCelebrateAchievements(
+          ref,
+          context,
+        );
 
         if (mounted) {
           Navigator.pop(context);
           showAppSnackBar(
-              context,
-              _isEditing
-                  ? '${medication.medicationName} updated'
-                  : '${medication.medicationName} logged');
+            context,
+            _isEditing
+                ? '${medication.medicationName} updated'
+                : '${medication.medicationName} logged',
+          );
 
           if (newAchievements.isNotEmpty) {
-            await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+            await AchievementCelebrationDialog.showMultiple(
+              context,
+              newAchievements,
+            );
             await markAchievementsAsShown(newAchievements);
           }
         }

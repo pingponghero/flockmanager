@@ -51,11 +51,7 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _ActiveMedicationsTab(),
-          _HistoryTab(),
-          _ReferenceTab(),
-        ],
+        children: [_ActiveMedicationsTab(), _HistoryTab(), _ReferenceTab()],
       ),
       floatingActionButton: Builder(
         builder: (context) {
@@ -73,10 +69,11 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen>
   }
 
   void _showAddMedicationDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => const AddMedicationSheet(),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => const AddMedicationSheet(),
+      ),
     );
   }
 }
@@ -95,89 +92,96 @@ class _ActiveMedicationsTab extends ConsumerWidget {
         await ref.read(activeMedicationsProvider.future);
       },
       child: ListView(
-      padding: pagePadding(context),
-      children: [
-        // Withdrawal warning
-        withdrawalsAsync.when(
-          loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
-          data: (withdrawals) {
-            if (withdrawals.isEmpty) return const SizedBox.shrink();
-            return Card(
-              color: Colors.amber.shade50,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.amber.shade700),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Withdrawal Period Active',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber.shade900,
-                            ),
-                          ),
-                          Text(
-                            '${withdrawals.length} medication(s) require egg withdrawal',
-                            style: TextStyle(color: Colors.amber.shade800),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 16),
-
-        Text(
-          'Current Treatments',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-
-        activeAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(child: Text('Error: $error')),
-          data: (medications) {
-            if (medications.isEmpty) {
+        padding: pagePadding(context),
+        children: [
+          // Withdrawal warning
+          withdrawalsAsync.when(
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (withdrawals) {
+              if (withdrawals.isEmpty) return const SizedBox.shrink();
               return Card(
+                color: Colors.amber.shade50,
                 child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
                     children: [
                       Icon(
-                        Icons.medical_services_outlined,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        Icons.warning_amber_rounded,
+                        color: Colors.amber.shade700,
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No active treatments',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Withdrawal Period Active',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.amber.shade900,
+                              ),
+                            ),
+                            Text(
+                              '${withdrawals.length} medication(s) require egg withdrawal',
+                              style: TextStyle(color: Colors.amber.shade800),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
               );
-            }
+            },
+          ),
+          const SizedBox(height: 16),
 
-            return Column(
-              children: medications.map((med) => _MedicationCard(medication: med)).toList(),
-            );
-          },
-        ),
-      ],
-    ),
+          Text(
+            'Current Treatments',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+
+          activeAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) => Center(child: Text('Error: $error')),
+            data: (medications) {
+              if (medications.isEmpty) {
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.medical_services_outlined,
+                          size: 48,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No active treatments',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: medications
+                    .map((med) => _MedicationCard(medication: med))
+                    .toList(),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -195,7 +199,12 @@ class _MedicationCard extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: () => _showMedicationDetails(context, medication),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (context) => AddMedicationSheet(existing: medication),
+          ),
+        ),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -214,7 +223,10 @@ class _MedicationCard extends ConsumerWidget {
                   ),
                   if (hasWithdrawal)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.amber.shade100,
                         borderRadius: BorderRadius.circular(8),
@@ -222,7 +234,11 @@ class _MedicationCard extends ConsumerWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.egg_outlined, size: 14, color: Colors.amber.shade800),
+                          Icon(
+                            Icons.egg_outlined,
+                            size: 14,
+                            color: Colors.amber.shade800,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             '$daysRemaining days',
@@ -240,7 +256,11 @@ class _MedicationCard extends ConsumerWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Started ${DateFormat.yMMMd().format(medication.startDate)}',
@@ -268,66 +288,6 @@ class _MedicationCard extends ConsumerWidget {
       ),
     );
   }
-
-  void _showMedicationDetails(BuildContext context, MedicationLog medication) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(medication.medicationName),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _detailRow('Started', DateFormat.yMMMd().format(medication.startDate)),
-            if (medication.endDate != null)
-              _detailRow('Ended', DateFormat.yMMMd().format(medication.endDate!)),
-            if (medication.dosage != null)
-              _detailRow('Dosage', medication.dosage!),
-            if (medication.withdrawalDays != null && medication.withdrawalDays! > 0)
-              _detailRow('Withdrawal', '${medication.withdrawalDays} days'),
-            if (medication.notes != null)
-              _detailRow('Notes', medication.notes!),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                builder: (context) => AddMedicationSheet(existing: medication),
-              );
-            },
-            child: const Text('Edit'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
 }
 
 class _HistoryTab extends ConsumerWidget {
@@ -342,80 +302,82 @@ class _HistoryTab extends ConsumerWidget {
         await ref.read(medicationsProvider.future);
       },
       child: medicationsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Error: $error')),
-      data: (medications) {
-        if (medications.isEmpty) {
-          return ListView(
-            children: [
-              const SizedBox(height: 120),
-              Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.history,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No medication history',
-                      style: TextStyle(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text('Error: $error')),
+        data: (medications) {
+          if (medications.isEmpty) {
+            return ListView(
+              children: [
+                const SizedBox(height: 120),
+                Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.history,
+                        size: 64,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        }
-
-        return ListView.builder(
-          padding: pagePadding(context),
-          itemCount: medications.length,
-          itemBuilder: (context, index) {
-            final med = medications[index];
-            return Dismissible(
-              key: Key(med.id),
-              direction: DismissDirection.endToStart,
-              background: Container(
-                color: Colors.red,
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 16),
-                child: const Icon(Icons.delete, color: Colors.white),
-              ),
-              confirmDismiss: (_) async {
-                return await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Delete Record'),
-                    content: const Text('Delete this medication record?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Delete'),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No medication history',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
-                );
-              },
-              onDismissed: (_) {
-                ref.read(medicationsProvider.notifier).deleteMedication(med.id);
-                ref
-                    .read(notificationSettingsProvider.notifier)
-                    .onMedicationDeleted(med.id);
-              },
-              child: _MedicationCard(medication: med),
+                ),
+              ],
             );
-          },
-        );
-      },
-    ),
+          }
+
+          return ListView.builder(
+            padding: pagePadding(context),
+            itemCount: medications.length,
+            itemBuilder: (context, index) {
+              final med = medications[index];
+              return Dismissible(
+                key: Key(med.id),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  color: Colors.red,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 16),
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                confirmDismiss: (_) async {
+                  return await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Delete Record'),
+                      content: const Text('Delete this medication record?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Delete'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                onDismissed: (_) {
+                  ref
+                      .read(medicationsProvider.notifier)
+                      .deleteMedication(med.id);
+                  ref
+                      .read(notificationSettingsProvider.notifier)
+                      .onMedicationDeleted(med.id);
+                },
+                child: _MedicationCard(medication: med),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -451,11 +413,8 @@ class _ReferenceTabState extends State<_ReferenceTab> {
               Expanded(
                 child: Text(
                   'Reference only. Always consult a veterinarian and follow product label instructions. '
-                      'Withdrawal times can vary by dosage and regulations.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.blue.shade900,
-                  ),
+                  'Withdrawal times can vary by dosage and regulations.',
+                  style: TextStyle(fontSize: 12, color: Colors.blue.shade900),
                 ),
               ),
             ],
@@ -488,12 +447,15 @@ class _ReferenceTabState extends State<_ReferenceTab> {
                       value: null,
                       label: 'All Categories',
                     ),
-                    ..._getSortedCategories().map((cat) => DropdownMenuEntry(
-                      value: cat,
-                      label: _categoryLabel(cat),
-                    )),
+                    ..._getSortedCategories().map(
+                      (cat) => DropdownMenuEntry(
+                        value: cat,
+                        label: _categoryLabel(cat),
+                      ),
+                    ),
                   ],
-                  onSelected: (value) => setState(() => _selectedCategory = value),
+                  onSelected: (value) =>
+                      setState(() => _selectedCategory = value),
                 ),
               ),
             ],
@@ -505,7 +467,9 @@ class _ReferenceTabState extends State<_ReferenceTab> {
           child: ListView.builder(
             // Key changes when category changes, resetting expansion states
             key: ValueKey(_selectedCategory),
-            padding: const EdgeInsets.symmetric(horizontal: 16).withSystemNavigation(context),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+            ).withSystemNavigation(context),
             itemCount: filtered.length,
             itemBuilder: (context, index) {
               final med = filtered[index];
@@ -607,12 +571,17 @@ class _MedicationReferenceCard extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.warning, color: Colors.red.shade700, size: 20),
+                        Icon(
+                          Icons.warning,
+                          color: Colors.red.shade700,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             medication.legalWarning ??
-                                (medication.legalStatus == LegalStatus.bannedInUs
+                                (medication.legalStatus ==
+                                        LegalStatus.bannedInUs
                                     ? 'BANNED for use in poultry in the United States.'
                                     : 'Not permitted for use in food-producing animals.'),
                             style: TextStyle(
@@ -643,20 +612,31 @@ class _MedicationReferenceCard extends StatelessWidget {
                   Wrap(
                     spacing: 4,
                     runSpacing: 4,
-                    children: medication.treatsConditions.map((c) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        c,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    )).toList(),
+                    children: medication.treatsConditions
+                        .map(
+                          (c) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              c,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -683,13 +663,19 @@ class _MedicationReferenceCard extends StatelessWidget {
                     _withdrawalInfoChip(
                       context,
                       'Egg: ${medication.withdrawalEggDisplay}',
-                      _getWithdrawalColor(medication.withdrawalDaysEgg, medication),
+                      _getWithdrawalColor(
+                        medication.withdrawalDaysEgg,
+                        medication,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     _withdrawalInfoChip(
                       context,
                       'Meat: ${medication.withdrawalMeatDisplay}',
-                      _getWithdrawalColor(medication.withdrawalDaysMeat, medication),
+                      _getWithdrawalColor(
+                        medication.withdrawalDaysMeat,
+                        medication,
+                      ),
                     ),
                   ],
                 ),
@@ -706,7 +692,11 @@ class _MedicationReferenceCard extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.info_outline, size: 16, color: Colors.amber.shade800),
+                        Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: Colors.amber.shade800,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -733,11 +723,7 @@ class _MedicationReferenceCard extends StatelessWidget {
                       _getLegalStatusColor(medication.legalStatus),
                     ),
                     const SizedBox(width: 8),
-                    _infoChip(
-                      context,
-                      medication.categoryDisplay,
-                      Colors.grey,
-                    ),
+                    _infoChip(context, medication.categoryDisplay, Colors.grey),
                   ],
                 ),
               ],
@@ -854,13 +840,7 @@ class _MedicationReferenceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          color: color.shade700,
-        ),
-      ),
+      child: Text(label, style: TextStyle(fontSize: 12, color: color.shade700)),
     );
   }
 }
