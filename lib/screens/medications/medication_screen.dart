@@ -13,7 +13,10 @@ import 'widgets/add_medication_sheet.dart';
 import 'widgets/legal_status_badge.dart';
 
 class MedicationScreen extends ConsumerStatefulWidget {
-  const MedicationScreen({super.key});
+  /// Tab to open on: 0 = Active, 1 = History, 2 = Reference.
+  final int initialTab;
+
+  const MedicationScreen({super.key, this.initialTab = 0});
 
   @override
   ConsumerState<MedicationScreen> createState() => _MedicationScreenState();
@@ -26,7 +29,11 @@ class _MedicationScreenState extends ConsumerState<MedicationScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTab.clamp(0, 2),
+    );
   }
 
   @override

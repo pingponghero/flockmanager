@@ -247,7 +247,15 @@ final router = GoRouter(
                 GoRoute(
                   path: 'medications',
                   name: 'medications',
-                  builder: (context, state) => const MedicationScreen(),
+                  builder: (context, state) {
+                    final tab = state.uri.queryParameters['tab'];
+                    final initialTab = switch (tab) {
+                      'history' => 1,
+                      'reference' => 2,
+                      _ => 0,
+                    };
+                    return MedicationScreen(initialTab: initialTab);
+                  },
                 ),
               ],
             ),

@@ -37,6 +37,10 @@ Gifts, recipients, and a reliability & editing pass
   kept, so the number is stable no matter how you split eggs between
   keeping, selling, and gifting — the right reference for pricing your
   eggs and comparing against the store.
+- **Medications is reachable outside the reference guide**: Settings →
+  Flock Management → "Medications" opens treatment logging (Active tab),
+  while Reference Guides → "Medication Reference" opens the drug reference
+  directly. (Deeper per-bird Health-tab logging is tracked separately.)
 
 ### Fixed
 
@@ -63,6 +67,10 @@ Gifts, recipients, and a reliability & editing pass
     suppressed for today once eggs are logged).
   - Settings gains a "Send Test Notification" tile for end-to-end
     verification on-device.
+- **New recipient not auto-selected** — adding a recipient inline via
+  "New recipient…" while recording or editing a sale/gift now selects the
+  new recipient immediately (the directory updates synchronously instead
+  of racing an async refresh).
 - **Distributed (per-hen) egg entries** (#29) — now deleted with the same
   swipe-left gesture as every other entry (the odd trash-icon button is
   gone), and the expanded per-bird rows open the standard egg edit form.

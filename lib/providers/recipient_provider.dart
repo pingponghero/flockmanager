@@ -17,7 +17,14 @@ class RecipientsNotifier extends AsyncNotifier<List<Recipient>> {
     final repository = ref.read(financeRepositoryProvider);
     final recipient = Recipient.create(name: name.trim(), notes: notes);
     await repository.insertRecipient(recipient);
-    ref.invalidateSelf();
+    // Update the list synchronously so a form can select the new recipient
+    // right away. An async invalidateSelf() would leave the dropdown without
+    // the new entry on the very next rebuild, so its selection wouldn't stick.
+    final current = state.asData?.value ?? const [];
+    state = AsyncData(
+      [...current, recipient]
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+    );
     return recipient;
   }
 

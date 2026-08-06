@@ -104,6 +104,15 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/settings/recipients'),
                 ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.medication_outlined),
+                  title: const Text('Medications'),
+                  subtitle:
+                      const Text('Log treatments and track egg withdrawals'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/medications?tab=active'),
+                ),
               ],
             ),
           ),
@@ -138,7 +147,8 @@ class SettingsScreen extends ConsumerWidget {
                   title: const Text('Medication Reference'),
                   subtitle: const Text('Common treatments & withdrawal periods'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/settings/medications'),
+                  onTap: () =>
+                      context.push('/settings/medications?tab=reference'),
                 ),
               ],
             ),
