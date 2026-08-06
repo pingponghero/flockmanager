@@ -444,6 +444,34 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
     }
   }
 
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_isGift ? 'Delete Gift' : 'Delete Income'),
+        content: Text(_isGift
+            ? 'Are you sure you want to delete this gift record?'
+            : 'Are you sure you want to delete this income record?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await ref.read(incomeProvider.notifier).deleteIncome(widget.incomeId!);
+    if (!mounted) return;
+    showAppSnackBar(context, _isGift ? 'Gift deleted' : 'Income deleted');
+    context.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final flocksAsync = ref.watch(flocksProvider);
@@ -474,6 +502,12 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
             ? (_isGift ? 'Edit Gift' : 'Edit Income')
             : (_isGift ? 'Record Gift' : 'Record Sale')),
         actions: [
+          if (_isEditing)
+            IconButton(
+              tooltip: _isGift ? 'Delete gift' : 'Delete income',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _isLoading ? null : _delete,
+            ),
           TextButton(
             onPressed: _isLoading ? null : _save,
             child: _isLoading

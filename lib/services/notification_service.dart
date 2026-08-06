@@ -364,8 +364,8 @@ class NotificationService {
       content: NotificationContent(
         id: 9999,
         channelKey: _eggReminderChannelKey,
-        title: 'Test Notification',
-        body: 'This is a test notification from awesome_notifications',
+        title: 'Flock Manager',
+        body: 'Notifications are working — this is what your reminders will look like.',
         notificationLayout: NotificationLayout.Default,
       ),
     );

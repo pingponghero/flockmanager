@@ -435,7 +435,7 @@ class _EggValueCard extends ConsumerWidget {
                           if (summary.eggsGifted > 0) ...[
                             const SizedBox(height: 6),
                             Text(
-                              '${NumberFormat('#,###').format(summary.eggsGifted)} gifted',
+                              '${NumberFormat('#,###').format(summary.eggsGifted)} gifted\n@ $cs${summary.retailPricePerDozen.toStringAsFixed(2)}/dz = ${_fmt(summary.giftedValue, cs)}',
                               style: mutedStyle,
                               textAlign: TextAlign.right,
                             ),
@@ -1190,8 +1190,12 @@ void _showEggValueBreakdown(
       if (summary.eggsGifted > 0) ...[
         const SizedBox(height: 4),
         Text(
-          '${summary.eggsGifted} gifted · not counted in value or sale stats',
+          '${summary.eggsGifted} gifted · ${_fmt(summary.giftedValue, cs)} of eggs given away',
           style: bodyStyle,
+        ),
+        Text(
+          'Gifts have real retail value but aren\'t part of your savings — you gave them away.',
+          style: mutedStyle,
         ),
       ],
       if (summary.eggsSold > 0) ...[
@@ -1241,10 +1245,11 @@ void _showCostPerDozenBreakdown(
 
   _showMathBreakdown(
     context,
-    title: 'Your Cost per Dozen Eggs Kept',
+    title: 'Your Cost per Dozen Eggs Produced',
     children: [
       Text(
-        'What does it cost you per dozen eggs you keep for personal use?',
+        'What does it cost you to produce a dozen eggs? This is your reference '
+        'for pricing eggs and comparing against the store.',
         style: mutedStyle,
       ),
       const SizedBox(height: 12),
@@ -1270,7 +1275,7 @@ void _showCostPerDozenBreakdown(
           TextSpan(children: [
             TextSpan(
                 text:
-                    '${_fmt(netCost, cs)} ÷ ${summary.eggsConsumed} eggs kept × 12 = '),
+                    '${_fmt(netCost, cs)} ÷ ${summary.eggCount} eggs produced × 12 = '),
             TextSpan(
               text: '$cs${netCostPerDozen.toStringAsFixed(2)}/dz',
               style: TextStyle(
@@ -1325,6 +1330,13 @@ void _showNetImpactBreakdown(
         const SizedBox(height: 4),
         Text(
           '  Sold: ${NumberFormat('#,###').format(summary.eggsSold)} eggs for ${_fmt(saleValue, cs)}',
+          style: bodyStyle,
+        ),
+      ],
+      if (summary.eggsGifted > 0) ...[
+        const SizedBox(height: 4),
+        Text(
+          '  Gifted: ${NumberFormat('#,###').format(summary.eggsGifted)} eggs worth ${_fmt(summary.giftedValue, cs)} (given away, not in total)',
           style: bodyStyle,
         ),
       ],
@@ -1467,10 +1479,9 @@ class _IncomeCard extends ConsumerWidget {
               size: 20,
             ),
           ),
-          title: Text(income.description ??
-              (recipientName != null
-                  ? '${isGift ? 'Gift to' : 'Sale to'} $recipientName'
-                  : (isGift ? 'Egg Gift' : 'Egg Sale'))),
+          title: Text(recipientName != null
+              ? '${isGift ? 'Gift to' : 'Sale to'} $recipientName'
+              : (income.description ?? (isGift ? 'Egg Gift' : 'Egg Sale'))),
           subtitle: Row(
             children: [
               Text(DateFormat.yMMMd().format(income.date)),

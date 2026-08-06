@@ -81,7 +81,7 @@ class AchievementContext {
   final double totalIncome;
   final double? costPerEgg;
   final double netSavings; // eggProductionValue - totalExpenses
-  final double? netCostPerDozen; // (expenses - income) / eggsConsumed * 12
+  final double? netCostPerDozen; // (expenses - income) / eggCount * 12
   final double retailPricePerDozen;
   final int expenseCount;
   final int incomeCount;

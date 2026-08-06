@@ -10,11 +10,12 @@ Gifts, recipients, and a reliability & editing pass
 - **Gifted eggs** (#24) — a first-class Gift category alongside sales:
   - "Record Gift" action on the Value tab; the sale/income form has a
     Sale | Gift selector. Gifts are always zero-amount and require an egg
-    count.
+    count. Gift records can be deleted from their Edit screen or by swiping.
   - Gifted eggs are **excluded from sold-egg counts and average sale
-    price**, and are not valued at retail in the egg-value math (they are
-    tracked as their own bucket: logged = consumed + sold + gifted).
-  - Gifted totals shown on the Egg Value card and its breakdown sheet.
+    price** and are **not added to your savings** (you gave that value
+    away) — but their retail value is now surfaced as its own figure on the
+    Egg Value card and breakdown sheets, so gifting isn't shown as
+    worthless. Eggs bucket as logged = consumed + sold + gifted.
   - DB migration v6 adds `income.type` / `income.recipient_id` (existing
     rows default to `sale`) and the `recipients` table.
 - **Recipient directory** (#27) — manage the people you sell/gift eggs to:
@@ -22,12 +23,20 @@ Gifts, recipients, and a reliability & editing pass
     sale/gift records, unlinked), with per-recipient statistics
     (eggs sold, revenue, eggs gifted).
   - Recipient picker on the sale/gift form with inline "New recipient…".
-  - Sale/gift list rows show "Sale to / Gift to <name>" when no
-    description is set.
+  - Sale/gift list rows lead with "Gift to / Sale to <name>" (with a gift
+    icon for gifts), falling back to the description when no recipient is
+    set.
 - **Gifting achievements**: Sharing the Bounty (first gifted egg),
   Gift Basket (100 gifted eggs), Community Coop (gifts to 3+ recipients).
 - Export/import includes `recipients.csv` and the new income columns;
   older backups without them import cleanly (rows default to sale).
+
+### Improved
+
+- **"Cost per dozen" is now based on eggs _produced_**, not just eggs
+  kept, so the number is stable no matter how you split eggs between
+  keeping, selling, and gifting — the right reference for pricing your
+  eggs and comparing against the store.
 
 ### Fixed
 
@@ -38,8 +47,13 @@ Gifts, recipients, and a reliability & editing pass
     graceful fallback when the exact-alarm permission is missing; the
     `SCHEDULE_EXACT_ALARM` permission was added to the Android manifest.
   - The exact-alarm permission was never requested for users who already
-    had notifications allowed. It is now checked/requested separately, and
-    Settings shows a warning row with an "Allow" shortcut when missing.
+    had notifications allowed. Settings now shows a warning row whose
+    "Allow" shortcut opens the system "Alarms & reminders" page directly
+    (via a platform intent — the notification-permission dialog is a no-op
+    for this special access once notifications are on), reads the granted
+    state straight from `AlarmManager.canScheduleExactAlarms()`, and
+    refreshes on resume so the warning clears once granted and reappears if
+    revoked.
   - **Medication end/withdrawal notifications were never scheduled when a
     medication was saved** — the scheduling providers existed but had no
     callers. Saving/editing a medication now (re)schedules its

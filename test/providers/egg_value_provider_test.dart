@@ -126,8 +126,8 @@ void main() {
 
       // eggsConsumed = 387 - 108 = 279
       expect(summary.eggsConsumed, 279);
-      // netCostPerDozen = (198 - 54) / 279 * 12 = 6.19
-      expect(summary.netCostPerDozen, closeTo(6.19, 0.01));
+      // netCostPerDozen (produced) = (198 - 54) / 387 * 12 = 4.47
+      expect(summary.netCostPerDozen, closeTo(4.47, 0.01));
     });
 
     test('netSavings derived correctly from summary', () {

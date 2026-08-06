@@ -21,6 +21,9 @@ void main() {
       expect(summary.eggsConsumed, 56);
       // value = 56 consumed × $0.50 + $12 sales = $40
       expect(summary.eggProductionValue, closeTo(40.0, 0.001));
+      // gifted value is surfaced on its own: 20 × $0.50 = $10, and is NOT
+      // rolled into eggProductionValue / netSavings
+      expect(summary.giftedValue, closeTo(10.0, 0.001));
     });
 
     test('gifts do not change average sale price', () {

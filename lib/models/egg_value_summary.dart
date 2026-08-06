@@ -35,14 +35,21 @@ class EggValueSummary {
   /// Actual cost per egg from expenses, null if no eggs.
   double? get costPerEgg => eggCount > 0 ? totalExpenses / eggCount : null;
 
-  /// Net cost per dozen: (expenses − income) ÷ eggsConsumed × 12.
-  /// This is what the keeper actually pays per dozen consumed eggs
-  /// after offsetting with sales income. Null if no eggs consumed.
+  /// Net cost to produce a dozen eggs: (expenses − income) ÷ eggCount × 12.
+  /// Based on total production, not just eggs kept, so it stays stable no
+  /// matter how eggs are split between kept/sold/gifted — this is the number
+  /// to reference for pricing eggs and comparing against the store.
+  /// Null if no eggs were produced.
   double? get netCostPerDozen =>
-      eggsConsumed > 0 ? (totalExpenses - totalIncome) / eggsConsumed * 12 : null;
+      eggCount > 0 ? (totalExpenses - totalIncome) / eggCount * 12 : null;
 
   /// Retail price per single egg.
   double get retailPricePerEgg => retailPricePerDozen / 12;
+
+  /// Retail value of eggs given away as gifts (eggsGifted × retail price).
+  /// Not added to [netSavings] — you didn't capture this value — but the eggs
+  /// you produced still have real monetary worth, so it's surfaced on its own.
+  double get giftedValue => eggsGifted * retailPricePerEgg;
 
   /// Income minus expenses (only meaningful if user tracks income).
   double get cashFlow => totalIncome - totalExpenses;

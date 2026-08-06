@@ -126,23 +126,21 @@ void main() {
       expect(summary.eggsConsumed, 138);
     });
 
-    test('netCostPerDozen returns null when no eggs consumed', () {
+    test('netCostPerDozen returns null when no eggs produced', () {
       const summary = EggValueSummary(
-        eggCount: 120,
-        eggProductionValue: 48.00,
+        eggCount: 0,
+        eggProductionValue: 0,
         totalExpenses: 30.00,
-        totalIncome: 48.00,
+        totalIncome: 0,
         retailPricePerDozen: 4.50,
-        eggsSold: 120,
       );
 
       expect(summary.netCostPerDozen, isNull);
     });
 
-    test('netCostPerDozen is (expenses - income) / eggsConsumed * 12', () {
-      // 150 eggs, 12 sold for $7, $38 expenses, $4.50/dz
-      // eggsConsumed = 138
-      // netCostPerDozen = (38 - 7) / 138 * 12 = 31 / 138 * 12 ≈ $2.70
+    test('netCostPerDozen is (expenses - income) / eggCount * 12 (produced)', () {
+      // 150 eggs produced, 12 sold for $7, $38 expenses, $4.50/dz
+      // netCostPerDozen = (38 - 7) / 150 * 12 = 31 / 150 * 12 = $2.48
       final summary = EggValueSummary(
         eggCount: 150,
         eggProductionValue: 58.75,
@@ -152,13 +150,35 @@ void main() {
         eggsSold: 12,
       );
 
-      expect(summary.netCostPerDozen, closeTo(2.6957, 0.001));
+      expect(summary.netCostPerDozen, closeTo(2.48, 0.001));
+    });
+
+    test('netCostPerDozen is independent of how eggs are distributed', () {
+      // Same production/expenses/income; gifting more must not change it.
+      const base = EggValueSummary(
+        eggCount: 150,
+        eggProductionValue: 0,
+        totalExpenses: 38.00,
+        totalIncome: 7.00,
+        retailPricePerDozen: 4.50,
+        eggsSold: 12,
+      );
+      final gifted = EggValueSummary(
+        eggCount: base.eggCount,
+        eggProductionValue: 0,
+        totalExpenses: base.totalExpenses,
+        totalIncome: base.totalIncome,
+        retailPricePerDozen: base.retailPricePerDozen,
+        eggsSold: base.eggsSold,
+        eggsGifted: 100,
+      );
+
+      expect(gifted.netCostPerDozen, closeTo(base.netCostPerDozen!, 0.001));
     });
 
     test('netCostPerDozen can be negative when income exceeds expenses', () {
-      // 100 eggs, 50 sold for $30, $20 expenses
-      // eggsConsumed = 50
-      // netCostPerDozen = (20 - 30) / 50 * 12 = -10 / 50 * 12 = -$2.40
+      // 100 eggs produced, 50 sold for $30, $20 expenses
+      // netCostPerDozen = (20 - 30) / 100 * 12 = -10 / 100 * 12 = -$1.20
       final summary = EggValueSummary(
         eggCount: 100,
         eggProductionValue: 48.75,
@@ -168,7 +188,7 @@ void main() {
         eggsSold: 50,
       );
 
-      expect(summary.netCostPerDozen, closeTo(-2.40, 0.001));
+      expect(summary.netCostPerDozen, closeTo(-1.20, 0.001));
     });
 
     test('netCostPerDozen with no income equals gross cost per dozen', () {
