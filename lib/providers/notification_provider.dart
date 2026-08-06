@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/medication_log.dart';
 import '../repositories/egg_repository.dart';
 import '../services/notification_service.dart';
 import 'medication_provider.dart';
@@ -165,6 +166,33 @@ class NotificationSettingsNotifier extends Notifier<NotificationSettings> {
     }
   }
 
+  /// Called when a medication is added or edited — (re)schedules its
+  /// end-of-treatment and withdrawal notifications.
+  Future<void> onMedicationSaved(MedicationLog medication) async {
+    final service = NotificationService();
+
+    // Clear any previously scheduled notifications for this medication so
+    // an edit (e.g. end date removed) doesn't leave stale alarms behind.
+    await service.cancelMedicationNotification(medication.id);
+    await service.cancelWithdrawalNotification(medication.id);
+
+    if (!await service.areNotificationsEnabled()) return;
+
+    if (state.medicationReminders && medication.endDate != null) {
+      await service.scheduleMedicationEnd(medication);
+    }
+    if (state.withdrawalAlerts && medication.isWithdrawalActive) {
+      await service.scheduleWithdrawalEnd(medication);
+    }
+  }
+
+  /// Called when a medication is deleted — cancels its notifications.
+  Future<void> onMedicationDeleted(String medicationId) async {
+    final service = NotificationService();
+    await service.cancelMedicationNotification(medicationId);
+    await service.cancelWithdrawalNotification(medicationId);
+  }
+
   /// Called when eggs are logged - reschedules reminder for tomorrow
   Future<void> onEggsLogged() async {
     if (!state.eggReminders || state.eggReminderTime == null) return;
@@ -265,34 +293,15 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
   return NotificationService();
 });
 
-/// Provider to schedule notifications for a medication
-/// Call this when a medication is added or updated
-final scheduleMedicationNotificationsProvider =
-    FutureProvider.family<void, String>((ref, medicationId) async {
-  final settings = ref.watch(notificationSettingsProvider);
-  if (!settings.permissionGranted) return;
-
-  final medication = await ref.watch(medicationByIdProvider(medicationId).future);
-  if (medication == null) return;
-
-  final service = NotificationService();
-
-  // Schedule medication end notification
-  if (settings.medicationReminders && medication.endDate != null) {
-    await service.scheduleMedicationEnd(medication);
-  }
-
-  // Schedule withdrawal end notification
-  if (settings.withdrawalAlerts && medication.isWithdrawalActive) {
-    await service.scheduleWithdrawalEnd(medication);
-  }
+/// Whether the exact-alarm special permission is granted (Android 12+).
+/// Invalidate after directing the user to the system settings page.
+final exactAlarmAllowedProvider = FutureProvider<bool>((ref) async {
+  return NotificationService().hasExactAlarmPermission();
 });
 
-/// Provider to cancel notifications for a medication
-/// Call this when a medication is deleted
-final cancelMedicationNotificationsProvider =
-    FutureProvider.family<void, String>((ref, medicationId) async {
-  final service = NotificationService();
-  await service.cancelMedicationNotification(medicationId);
-  await service.cancelWithdrawalNotification(medicationId);
-});
+// NOTE: medication notification scheduling/cancellation lives on
+// NotificationSettingsNotifier (onMedicationSaved / onMedicationDeleted).
+// The previous FutureProvider.family versions were never called from any
+// save path — medications added after initial permission grant never got
+// notifications scheduled at all (#26) — and family FutureProviders cache
+// their result, making them unsafe for repeat side effects.

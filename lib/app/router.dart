@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../models/enums.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/flocks/flock_list_screen.dart';
 import '../screens/flocks/flock_form_screen.dart';
@@ -18,6 +19,7 @@ import '../screens/breeds/breed_list_screen.dart';
 import '../screens/analytics/analytics_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/achievements_screen.dart';
+import '../screens/settings/recipients_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../widgets/scaffold_with_nav_bar.dart';
 
@@ -172,6 +174,12 @@ final router = GoRouter(
                   builder: (context, state) => const IncomeFormScreen(),
                 ),
                 GoRoute(
+                  path: 'gift/new',
+                  name: 'gift-new',
+                  builder: (context, state) =>
+                      const IncomeFormScreen(initialType: IncomeType.gift),
+                ),
+                GoRoute(
                   path: 'income/:id',
                   name: 'income-edit',
                   builder: (context, state) {
@@ -225,6 +233,11 @@ final router = GoRouter(
                   path: 'achievements',
                   name: 'achievements',
                   builder: (context, state) => const AchievementsScreen(),
+                ),
+                GoRoute(
+                  path: 'recipients',
+                  name: 'recipients',
+                  builder: (context, state) => const RecipientsScreen(),
                 ),
                 GoRoute(
                   path: 'breeds',

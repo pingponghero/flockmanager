@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:archive/archive.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -36,7 +38,7 @@ class ExportService {
     // Export flocks (always included)
     final flocksData = await db.query('flocks');
     counts['flocks'] = flocksData.length;
-    final flocksBytes = _createCsv(flocksData, [
+    final flocksBytes = createCsv(flocksData, [
       'id',
       'name',
       'description',
@@ -73,7 +75,7 @@ class ExportService {
       return bird;
     }).toList();
 
-    final birdsBytes = _createCsv(processedBirdsData, [
+    final birdsBytes = createCsv(processedBirdsData, [
       'id',
       'flock_id',
       'name',
@@ -100,7 +102,7 @@ class ExportService {
     final eggLogsData = await db.query('egg_logs');
     counts['egg_logs'] = eggLogsData.length;
     if (eggLogsData.isNotEmpty) {
-      final eggLogsBytes = _createCsv(eggLogsData, [
+      final eggLogsBytes = createCsv(eggLogsData, [
         'id',
         'date',
         'flock_id',
@@ -121,7 +123,7 @@ class ExportService {
     final expensesData = await db.query('expenses');
     counts['expenses'] = expensesData.length;
     if (expensesData.isNotEmpty) {
-      final expensesBytes = _createCsv(expensesData, [
+      final expensesBytes = createCsv(expensesData, [
         'id',
         'date',
         'amount',
@@ -138,17 +140,33 @@ class ExportService {
 
     _reportProgress(0.4);
 
+    // Export recipients (if not empty) — before income, which references them
+    final recipientsData = await db.query('recipients');
+    counts['recipients'] = recipientsData.length;
+    if (recipientsData.isNotEmpty) {
+      final recipientsBytes = createCsv(recipientsData, [
+        'id',
+        'name',
+        'notes',
+        'created_at',
+      ]);
+      archive.addFile(ArchiveFile(
+          'recipients.csv', recipientsBytes.length, recipientsBytes));
+    }
+
     // Export income (if not empty)
     final incomeData = await db.query('income');
     counts['income'] = incomeData.length;
     if (incomeData.isNotEmpty) {
-      final incomeBytes = _createCsv(incomeData, [
+      final incomeBytes = createCsv(incomeData, [
         'id',
         'date',
         'amount',
         'description',
         'egg_count',
         'flock_id',
+        'type',
+        'recipient_id',
         'created_at',
       ]);
       archive.addFile(
@@ -161,7 +179,7 @@ class ExportService {
     final medicationLogsData = await db.query('medication_logs');
     counts['medication_logs'] = medicationLogsData.length;
     if (medicationLogsData.isNotEmpty) {
-      final medicationLogsBytes = _createCsv(medicationLogsData, [
+      final medicationLogsBytes = createCsv(medicationLogsData, [
         'id',
         'bird_id',
         'flock_id',
@@ -183,7 +201,7 @@ class ExportService {
     final healthNotesData = await db.query('health_notes');
     counts['health_notes'] = healthNotesData.length;
     if (healthNotesData.isNotEmpty) {
-      final healthNotesBytes = _createCsv(healthNotesData, [
+      final healthNotesBytes = createCsv(healthNotesData, [
         'id',
         'bird_id',
         'date',
@@ -207,7 +225,7 @@ class ExportService {
         .toList();
     counts['bird_status_events'] = birdStatusEventsData.length;
     if (birdStatusEventsData.isNotEmpty) {
-      final birdStatusEventsBytes = _createCsv(birdStatusEventsData, [
+      final birdStatusEventsBytes = createCsv(birdStatusEventsData, [
         'id',
         'bird_id',
         'flock_id',
@@ -279,7 +297,8 @@ class ExportService {
   }
 
   /// Create CSV bytes from data with UTF-8 BOM prefix
-  List<int> _createCsv(
+  @visibleForTesting
+  List<int> createCsv(
     List<Map<String, dynamic>> rows,
     List<String> columns,
   ) {
@@ -320,7 +339,10 @@ class ExportService {
 
   /// Escape a value for CSV format.
   String _escapeCsv(String value) {
-    if (value.contains(',') || value.contains('"') || value.contains('\n')) {
+    if (value.contains(',') ||
+        value.contains('"') ||
+        value.contains('\n') ||
+        value.contains('\r')) {
       return '"${value.replaceAll('"', '""')}"';
     }
     return value;

@@ -2,6 +2,24 @@ import '../database/database_helper.dart';
 import '../models/expense.dart';
 import '../models/income.dart';
 import '../models/enums.dart';
+import '../models/recipient.dart';
+
+/// Aggregated sale/gift statistics for one recipient.
+class RecipientStats {
+  final int saleCount;
+  final int giftCount;
+  final int eggsSold;
+  final int eggsGifted;
+  final double totalIncome;
+
+  const RecipientStats({
+    this.saleCount = 0,
+    this.giftCount = 0,
+    this.eggsSold = 0,
+    this.eggsGifted = 0,
+    this.totalIncome = 0,
+  });
+}
 
 /// Repository for expense and income data access operations.
 class FinanceRepository {
@@ -319,10 +337,14 @@ class FinanceRepository {
     return Income.fromMap(maps.first);
   }
 
-  /// Insert a new income record. Amount must be positive.
+  /// Insert a new income record. Sales must have a positive amount;
+  /// gifts are recorded with amount 0.
   Future<void> insertIncome(Income income) async {
-    if (income.amount <= 0) {
-      throw ArgumentError('Income amount must be positive');
+    if (income.amount < 0) {
+      throw ArgumentError('Income amount cannot be negative');
+    }
+    if (income.type == IncomeType.sale && income.amount <= 0) {
+      throw ArgumentError('Sale amount must be positive');
     }
     final db = await _db.database;
     await db.insert('income', income.toMap());
@@ -455,7 +477,8 @@ class FinanceRepository {
     final endStr = DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
 
     final result = await db.rawQuery(
-      'SELECT COALESCE(SUM(egg_count), 0) as total FROM income WHERE date >= ? AND date <= ? AND egg_count IS NOT NULL',
+      "SELECT COALESCE(SUM(egg_count), 0) as total FROM income "
+      "WHERE date >= ? AND date <= ? AND egg_count IS NOT NULL AND type = 'sale'",
       [startStr, endStr],
     );
 
@@ -478,7 +501,7 @@ class FinanceRepository {
 
     final result = await db.rawQuery(
       'SELECT COALESCE(SUM(egg_count), 0) as eggs, COALESCE(SUM(amount), 0) as income '
-      'FROM income WHERE date >= ? AND date <= ? AND egg_count IS NOT NULL',
+      "FROM income WHERE date >= ? AND date <= ? AND egg_count IS NOT NULL AND type = 'sale'",
       [startStr, endStr],
     );
 
@@ -500,7 +523,7 @@ class FinanceRepository {
 
     final result = await db.rawQuery(
       'SELECT COALESCE(SUM(egg_count), 0) as eggs, COALESCE(SUM(amount), 0) as income '
-      'FROM income WHERE date >= ? AND date <= ? AND egg_count IS NOT NULL '
+      "FROM income WHERE date >= ? AND date <= ? AND egg_count IS NOT NULL AND type = 'sale' "
       'AND (flock_id = ? OR flock_id IS NULL)',
       [startStr, endStr, flockId],
     );
@@ -516,11 +539,177 @@ class FinanceRepository {
 
     final result = await db.rawQuery(
       'SELECT COALESCE(SUM(egg_count), 0) as eggs, COALESCE(SUM(amount), 0) as income '
-      'FROM income WHERE egg_count IS NOT NULL',
+      "FROM income WHERE egg_count IS NOT NULL AND type = 'sale'",
     );
 
     final eggs = (result.first['eggs'] as int?) ?? 0;
     final income = (result.first['income'] as num?)?.toDouble() ?? 0.0;
     return (eggs, income);
+  }
+
+  // ==================== GIFTS ====================
+
+  /// Get total eggs gifted within a date range.
+  Future<int> getEggsGifted(DateTime start, DateTime end) async {
+    final db = await _db.database;
+
+    final startStr =
+        DateTime(start.year, start.month, start.day).toIso8601String();
+    final endStr =
+        DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
+
+    final result = await db.rawQuery(
+      "SELECT COALESCE(SUM(egg_count), 0) as eggs FROM income "
+      "WHERE date >= ? AND date <= ? AND egg_count IS NOT NULL AND type = 'gift'",
+      [startStr, endStr],
+    );
+
+    return (result.first['eggs'] as int?) ?? 0;
+  }
+
+  /// Get total eggs gifted for a specific flock within a date range.
+  /// Includes shared gifts (null flock_id) and flock-specific.
+  Future<int> getEggsGiftedByFlock(
+      String flockId, DateTime start, DateTime end) async {
+    final db = await _db.database;
+
+    final startStr =
+        DateTime(start.year, start.month, start.day).toIso8601String();
+    final endStr =
+        DateTime(end.year, end.month, end.day, 23, 59, 59).toIso8601String();
+
+    final result = await db.rawQuery(
+      "SELECT COALESCE(SUM(egg_count), 0) as eggs FROM income "
+      "WHERE date >= ? AND date <= ? AND egg_count IS NOT NULL AND type = 'gift' "
+      'AND (flock_id = ? OR flock_id IS NULL)',
+      [startStr, endStr, flockId],
+    );
+
+    return (result.first['eggs'] as int?) ?? 0;
+  }
+
+  /// Get total eggs gifted for all time.
+  Future<int> getEggsGiftedAllTime() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery(
+      "SELECT COALESCE(SUM(egg_count), 0) as eggs FROM income "
+      "WHERE egg_count IS NOT NULL AND type = 'gift'",
+    );
+
+    return (result.first['eggs'] as int?) ?? 0;
+  }
+
+  /// Count distinct recipients that have received at least one gift.
+  Future<int> getGiftRecipientCount() async {
+    final db = await _db.database;
+
+    final result = await db.rawQuery(
+      "SELECT COUNT(DISTINCT recipient_id) as count FROM income "
+      "WHERE type = 'gift' AND recipient_id IS NOT NULL",
+    );
+
+    return (result.first['count'] as int?) ?? 0;
+  }
+
+  // ==================== RECIPIENTS ====================
+
+  /// Get all recipients, ordered by name.
+  Future<List<Recipient>> getAllRecipients() async {
+    final db = await _db.database;
+
+    final maps = await db.query(
+      'recipients',
+      orderBy: 'name COLLATE NOCASE ASC',
+    );
+
+    return maps.map((map) => Recipient.fromMap(map)).toList();
+  }
+
+  /// Get a single recipient by ID.
+  Future<Recipient?> getRecipientById(String id) async {
+    final db = await _db.database;
+
+    final maps = await db.query(
+      'recipients',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    return Recipient.fromMap(maps.first);
+  }
+
+  /// Insert a new recipient. Name must be non-empty.
+  Future<void> insertRecipient(Recipient recipient) async {
+    if (recipient.name.trim().isEmpty) {
+      throw ArgumentError('Recipient name cannot be empty');
+    }
+    final db = await _db.database;
+    await db.insert('recipients', recipient.toMap());
+  }
+
+  /// Update an existing recipient.
+  Future<void> updateRecipient(Recipient recipient) async {
+    final db = await _db.database;
+
+    await db.update(
+      'recipients',
+      recipient.toMap(),
+      where: 'id = ?',
+      whereArgs: [recipient.id],
+    );
+  }
+
+  /// Delete a recipient. Income records keep their data but are unlinked.
+  Future<void> deleteRecipient(String id) async {
+    final db = await _db.database;
+
+    await db.update(
+      'income',
+      {'recipient_id': null},
+      where: 'recipient_id = ?',
+      whereArgs: [id],
+    );
+    await db.delete(
+      'recipients',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// Aggregated per-recipient statistics across all income records.
+  Future<Map<String, RecipientStats>> getRecipientStats() async {
+    final db = await _db.database;
+
+    final rows = await db.rawQuery('''
+      SELECT recipient_id, type,
+             COUNT(*) as records,
+             COALESCE(SUM(egg_count), 0) as eggs,
+             COALESCE(SUM(amount), 0) as total
+      FROM income
+      WHERE recipient_id IS NOT NULL
+      GROUP BY recipient_id, type
+    ''');
+
+    final stats = <String, RecipientStats>{};
+    for (final row in rows) {
+      final id = row['recipient_id'] as String;
+      final isGift = (row['type'] as String?) == 'gift';
+      final records = (row['records'] as int?) ?? 0;
+      final eggs = (row['eggs'] as int?) ?? 0;
+      final total = (row['total'] as num?)?.toDouble() ?? 0.0;
+
+      final existing = stats[id] ?? const RecipientStats();
+      stats[id] = RecipientStats(
+        saleCount: existing.saleCount + (isGift ? 0 : records),
+        giftCount: existing.giftCount + (isGift ? records : 0),
+        eggsSold: existing.eggsSold + (isGift ? 0 : eggs),
+        eggsGifted: existing.eggsGifted + (isGift ? eggs : 0),
+        totalIncome: existing.totalIncome + (isGift ? 0 : total),
+      );
+    }
+    return stats;
   }
 }

@@ -14,6 +14,7 @@ class EggValueSummary {
   final double totalIncome;
   final double retailPricePerDozen;
   final int eggsSold;
+  final int eggsGifted;
 
   const EggValueSummary({
     required this.eggCount,
@@ -22,6 +23,7 @@ class EggValueSummary {
     required this.totalIncome,
     required this.retailPricePerDozen,
     this.eggsSold = 0,
+    this.eggsGifted = 0,
   });
 
   /// Egg value minus expenses. Positive = beating the store.
@@ -45,6 +47,8 @@ class EggValueSummary {
   /// Income minus expenses (only meaningful if user tracks income).
   double get cashFlow => totalIncome - totalExpenses;
 
-  /// Eggs consumed (not sold). Clamped to 0 if sold exceeds logged.
-  int get eggsConsumed => (eggCount - eggsSold).clamp(0, eggCount);
+  /// Eggs consumed (not sold or gifted). Clamped to 0 if sold + gifted
+  /// exceeds logged. Gifted eggs are excluded from both sale statistics
+  /// and consumed value — they left the flock without revenue.
+  int get eggsConsumed => (eggCount - eggsSold - eggsGifted).clamp(0, eggCount);
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:uuid/uuid.dart';
@@ -15,7 +16,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String _databaseName = 'flock_manager.db';
-  static const int _databaseVersion = 4;
+  static const int _databaseVersion = 6;
 
   /// Get the database instance, initializing if needed.
   Future<Database> get database async {
@@ -33,7 +34,7 @@ class DatabaseHelper {
       path,
       version: _databaseVersion,
       onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
+      onUpgrade: onUpgrade,
       onConfigure: _onConfigure,
     );
   }
@@ -50,8 +51,10 @@ class DatabaseHelper {
     }
   }
 
-  /// Handle database migrations.
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+  /// Handle database migrations. Public so tests can exercise migrations
+  /// against an in-memory database.
+  @visibleForTesting
+  Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Migration to version 2: Add sex and species columns to birds table
     if (oldVersion < 2) {
       await db.execute("ALTER TABLE birds ADD COLUMN sex TEXT DEFAULT 'female'");
@@ -110,6 +113,85 @@ class DatabaseHelper {
       final hasFlockId = cols.any((c) => c['name'] == 'flock_id');
       if (!hasFlockId) {
         await db.execute('ALTER TABLE income ADD COLUMN flock_id TEXT');
+      }
+    }
+
+    // Migration to version 5: Repair medication_logs rows saved with an
+    // empty id (a form bug inserted id = '' — at most one such row could
+    // exist, and it blocked all later medication saves).
+    if (oldVersion < 5) {
+      // The UNIQUE constraint guarantees at most one such row exists.
+      await db.update(
+        'medication_logs',
+        {'id': const Uuid().v4()},
+        where: "id = ''",
+      );
+
+      // Repair bird status event timelines. Earlier import/migration code
+      // could leave a non-active bird's latest event as 'active' (missing
+      // terminal event, or terminal event dated before the 'active' event),
+      // which made deceased/sold birds count as active in forecasts.
+      const uuid = Uuid();
+      final nonActiveBirds = await db.query(
+        'birds',
+        columns: ['id', 'flock_id', 'status', 'status_date', 'status_notes', 'created_at'],
+        where: "status != 'active'",
+      );
+      for (final bird in nonActiveBirds) {
+        final birdId = bird['id'] as String;
+        final latest = await db.query(
+          'bird_status_events',
+          columns: ['status', 'event_date'],
+          where: 'bird_id = ?',
+          whereArgs: [birdId],
+          orderBy: 'event_date DESC',
+          limit: 1,
+        );
+        final latestStatus =
+            latest.isEmpty ? null : latest.first['status'] as String?;
+        if (latestStatus == 'active' || latestStatus == null) {
+          // Insert the missing terminal event so the timeline agrees with
+          // the bird's actual status. It must be the bird's LATEST event to
+          // take effect, so use status_date only when it postdates the
+          // current latest event; otherwise fall back to now.
+          final latestDate = latest.isEmpty
+              ? null
+              : DateTime.parse(latest.first['event_date'] as String);
+          final statusDate = bird['status_date'] as String?;
+          final String eventDate;
+          if (statusDate != null &&
+              (latestDate == null ||
+                  DateTime.parse(statusDate).isAfter(latestDate))) {
+            eventDate = statusDate;
+          } else {
+            eventDate = DateTime.now().toIso8601String();
+          }
+          await db.insert('bird_status_events', {
+            'id': uuid.v4(),
+            'bird_id': birdId,
+            'flock_id': bird['flock_id'],
+            'status': bird['status'],
+            'event_date': eventDate,
+            'notes': bird['status_notes'],
+            'created_at': eventDate,
+          });
+        }
+      }
+    }
+
+    // Migration to version 6: gifted eggs + recipient directory.
+    // Adds income.type ('sale' | 'gift') and income.recipient_id, and the
+    // recipients table. Existing income rows default to 'sale'.
+    if (oldVersion < 6) {
+      await db.execute(Tables.recipients
+          .replaceFirst('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS'));
+      final cols = await db.rawQuery('PRAGMA table_info(income)');
+      final hasType = cols.any((c) => c['name'] == 'type');
+      if (!hasType) {
+        await db.execute(
+            "ALTER TABLE income ADD COLUMN type TEXT NOT NULL DEFAULT 'sale'");
+        await db.execute(
+            'ALTER TABLE income ADD COLUMN recipient_id TEXT REFERENCES recipients(id)');
       }
     }
   }

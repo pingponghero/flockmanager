@@ -30,6 +30,11 @@ class Achievement {
     required this.category,
     required this.check,
   });
+
+  /// Description with the user's currency symbol applied.
+  /// Descriptions are authored with '$' as the placeholder currency.
+  String describeWith(String currencySymbol) =>
+      currencySymbol == '\$' ? description : description.replaceAll('\$', currencySymbol);
 }
 
 /// Context passed to achievement checks
@@ -81,6 +86,10 @@ class AchievementContext {
   final int expenseCount;
   final int incomeCount;
 
+  // Gifting
+  final int giftedEggs;
+  final int giftRecipientCount;
+
   // Health
   final int medicationLogCount;
   final int completedMedicationCount;
@@ -131,6 +140,8 @@ class AchievementContext {
     required this.retailPricePerDozen,
     required this.expenseCount,
     required this.incomeCount,
+    this.giftedEggs = 0,
+    this.giftRecipientCount = 0,
     required this.medicationLogCount,
     required this.completedMedicationCount,
     required this.birdsWithHealthNotes,
@@ -421,6 +432,33 @@ final achievements = <Achievement>[
     category: 'Nest Egg',
     check: (ctx) => ctx.totalIncome > ctx.totalExpenses && ctx.totalIncome > 50 && ctx.totalExpenses > 0,
   ),
+  Achievement(
+    id: 'first_gift',
+    name: 'Sharing the Bounty',
+    description: 'Gift your first eggs',
+    icon: Icons.card_giftcard,
+    color: Colors.pink,
+    category: 'Nest Egg',
+    check: (ctx) => ctx.giftedEggs >= 1,
+  ),
+  Achievement(
+    id: 'gift_basket',
+    name: 'Gift Basket',
+    description: '100 eggs gifted',
+    icon: Icons.redeem,
+    color: Colors.purple,
+    category: 'Nest Egg',
+    check: (ctx) => ctx.giftedEggs >= 100,
+  ),
+  Achievement(
+    id: 'community_coop',
+    name: 'Community Coop',
+    description: 'Gift eggs to 3+ different recipients',
+    icon: Icons.diversity_1,
+    color: Colors.orange,
+    category: 'Nest Egg',
+    check: (ctx) => ctx.giftRecipientCount >= 3,
+  ),
 
   // ==================== HEALTH & MEDICATION ====================
   Achievement(
@@ -617,7 +655,13 @@ final achievements = <Achievement>[
 /// Provider for earned achievements
 final earnedAchievementsProvider = FutureProvider<List<Achievement>>((ref) async {
   final context = await ref.watch(_achievementContextProvider.future);
-  return achievements.where((a) => a.check(context)).toList();
+  final earned = achievements.where((a) => a.check(context)).toList();
+  // Keep the earned-date record in sync: stamps newly earned achievements
+  // with today, drops ones that are no longer earned (e.g. after a data
+  // correction revoked them).
+  await AchievementTracker.instance
+      .recordEarned(earned.map((a) => a.id).toSet());
+  return earned;
 });
 
 /// Provider for achievement count summary
@@ -630,8 +674,29 @@ final achievementSummaryProvider = FutureProvider<({int earned, int total})>((re
 final latestAchievementProvider = FutureProvider<Achievement?>((ref) async {
   final earned = await ref.watch(earnedAchievementsProvider.future);
   if (earned.isEmpty) return null;
-  // Return the last one in the list (most recently added to earned list)
-  return earned.last;
+  // Pick the achievement with the newest recorded earned date. Achievements
+  // earned before dates were tracked share the same first-run timestamp;
+  // ties keep definition order (last wins) for stability.
+  final earnedDates = await AchievementTracker.instance.getEarnedDates();
+  Achievement latest = earned.first;
+  DateTime? latestDate = earnedDates[latest.id];
+  for (final a in earned.skip(1)) {
+    final date = earnedDates[a.id];
+    if (latestDate == null ||
+        (date != null && !date.isBefore(latestDate))) {
+      latest = a;
+      latestDate = date ?? latestDate;
+    }
+  }
+  return latest;
+});
+
+/// Provider exposing the recorded earned date per achievement id.
+final achievementEarnedDatesProvider =
+    FutureProvider<Map<String, DateTime>>((ref) async {
+  // Depend on earned achievements so dates refresh after recomputation.
+  await ref.watch(earnedAchievementsProvider.future);
+  return AchievementTracker.instance.getEarnedDates();
 });
 
 /// Provider for achievements grouped by category
@@ -697,6 +762,11 @@ final achievementProgressProvider = FutureProvider<Map<String, AchievementProgre
 
     // Financial
     'budget_tracker': AchievementProgress(context.expenseCount, 10),
+
+    // Gifting
+    'first_gift': AchievementProgress(context.giftedEggs, 1),
+    'gift_basket': AchievementProgress(context.giftedEggs, 100),
+    'community_coop': AchievementProgress(context.giftRecipientCount, 3),
 
     // Health
     'flock_doctor': AchievementProgress(context.completedMedicationCount, 5),
@@ -840,6 +910,10 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
   final expenses = await expenseRepo.getAllExpenses();
   final incomes = await expenseRepo.getAllIncome();
 
+  // Gifting stats
+  final giftedEggs = await expenseRepo.getEggsGiftedAllTime();
+  final giftRecipientCount = await expenseRepo.getGiftRecipientCount();
+
   // Get medication stats
   final medications = await ref.watch(medicationsProvider.future);
   final completedMeds = medications.where((m) =>
@@ -890,6 +964,8 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
     retailPricePerDozen: eggValueSummary.retailPricePerDozen,
     expenseCount: expenses.length,
     incomeCount: incomes.length,
+    giftedEggs: giftedEggs,
+    giftRecipientCount: giftRecipientCount,
     medicationLogCount: medications.length,
     completedMedicationCount: completedMeds,
     birdsWithHealthNotes: birdsWithHealthNotes,
@@ -902,14 +978,17 @@ final _achievementContextProvider = FutureProvider<AchievementContext>((ref) asy
 // ==================== ACHIEVEMENT TRACKING ====================
 
 const _shownAchievementsKey = 'shown_achievement_ids';
+const _earnedDatesKey = 'achievement_earned_dates';
 
-/// Service for tracking which achievements have been shown to the user.
+/// Service for tracking which achievements have been shown to the user
+/// and when each achievement was first observed as earned.
 class AchievementTracker {
   AchievementTracker._();
 
   static final instance = AchievementTracker._();
 
   Set<String>? _shownIds;
+  Map<String, DateTime>? _earnedDates;
 
   /// Load the set of shown achievement IDs from storage.
   Future<Set<String>> _loadShownIds() async {
@@ -952,11 +1031,63 @@ class AchievementTracker {
     return newOnes.isNotEmpty;
   }
 
+  /// Load recorded earned dates (achievement id -> date first seen earned).
+  Future<Map<String, DateTime>> getEarnedDates() async {
+    if (_earnedDates != null) return Map.of(_earnedDates!);
+    final prefs = await SharedPreferences.getInstance();
+    final entries = prefs.getStringList(_earnedDatesKey) ?? [];
+    final dates = <String, DateTime>{};
+    for (final entry in entries) {
+      final sep = entry.indexOf('|');
+      if (sep <= 0) continue;
+      final date = DateTime.tryParse(entry.substring(sep + 1));
+      if (date != null) {
+        dates[entry.substring(0, sep)] = date;
+      }
+    }
+    _earnedDates = dates;
+    return Map.of(dates);
+  }
+
+  /// Sync the earned-date record with the currently earned achievement ids.
+  /// New ids are stamped with now; ids no longer earned are removed so a
+  /// re-earned achievement gets a fresh date.
+  Future<void> recordEarned(Set<String> earnedIds) async {
+    final dates = await getEarnedDates();
+    var changed = false;
+    final now = DateTime.now();
+
+    for (final id in earnedIds) {
+      if (!dates.containsKey(id)) {
+        dates[id] = now;
+        changed = true;
+      }
+    }
+    final revoked = dates.keys.where((id) => !earnedIds.contains(id)).toList();
+    for (final id in revoked) {
+      dates.remove(id);
+      changed = true;
+    }
+
+    if (changed) {
+      _earnedDates = dates;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _earnedDatesKey,
+        dates.entries
+            .map((e) => '${e.key}|${e.value.toIso8601String()}')
+            .toList(),
+      );
+    }
+  }
+
   /// Clear all shown achievements (for testing).
   Future<void> clearAll() async {
     _shownIds = {};
+    _earnedDates = {};
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_shownAchievementsKey);
+    await prefs.remove(_earnedDatesKey);
   }
 }
 

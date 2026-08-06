@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/achievements_provider.dart';
+import '../providers/egg_provider.dart' show currencySymbolProvider;
 
 /// A celebration dialog shown when a user unlocks a new achievement.
 class AchievementCelebrationDialog extends StatefulWidget {
@@ -226,12 +228,14 @@ class _AchievementCelebrationDialogState
               const SizedBox(height: 8),
 
               // Achievement description
-              Text(
-                achievement.description,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+              Consumer(
+                builder: (context, ref, _) => Text(
+                  achievement.describeWith(ref.watch(currencySymbolProvider)),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
 

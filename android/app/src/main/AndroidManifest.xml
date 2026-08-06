@@ -4,6 +4,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- Exact alarms so scheduled reminders fire on time (Android 12+).
+         Without this, reminder alarms are deferred by Doze/OEM battery
+         management and may never fire (notably on Samsung devices). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 
     <application
         android:label="Flock Manager"

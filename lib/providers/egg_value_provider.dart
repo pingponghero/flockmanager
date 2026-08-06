@@ -53,9 +53,12 @@ EggValueSummary buildEggValueSummary({
   required double retailPrice,
   required int eggsSold,
   required double saleIncome,
+  int eggsGifted = 0,
 }) {
   final retailPerEgg = retailPrice / 12;
-  final eggsConsumed = (eggCount - eggsSold).clamp(0, eggCount);
+  // Gifted eggs are neither sold nor consumed — they carry no value in
+  // this math and must not affect sale averages.
+  final eggsConsumed = (eggCount - eggsSold - eggsGifted).clamp(0, eggCount);
   final consumedValue = eggsConsumed * retailPerEgg;
   final eggProductionValue = consumedValue + saleIncome;
 
@@ -66,6 +69,7 @@ EggValueSummary buildEggValueSummary({
     totalIncome: totalIncome,
     retailPricePerDozen: retailPrice,
     eggsSold: eggsSold,
+    eggsGifted: eggsGifted,
   );
 }
 
@@ -84,12 +88,14 @@ final selectedRangeEggValueProvider =
   final double totalIncome;
   final int eggCount;
   final (int, double) salesData;
+  final int eggsGifted;
 
   if (selectedFlockId == null) {
     totalExpenses = await repository.getTotalExpenses(start, end);
     totalIncome = await repository.getTotalIncome(start, end);
     eggCount = await eggRepository.getEggCountByDateRange(start, end);
     salesData = await repository.getEggSalesData(start, end);
+    eggsGifted = await repository.getEggsGifted(start, end);
   } else {
     totalExpenses =
         await repository.getTotalExpensesByFlock(selectedFlockId, start, end);
@@ -99,6 +105,8 @@ final selectedRangeEggValueProvider =
         selectedFlockId, start, end);
     salesData =
         await repository.getEggSalesDataByFlock(selectedFlockId, start, end);
+    eggsGifted =
+        await repository.getEggsGiftedByFlock(selectedFlockId, start, end);
   }
 
   final (eggsSold, saleIncome) = salesData;
@@ -110,6 +118,7 @@ final selectedRangeEggValueProvider =
     retailPrice: retailPrice,
     eggsSold: eggsSold,
     saleIncome: saleIncome,
+    eggsGifted: eggsGifted,
   );
 });
 
@@ -129,12 +138,14 @@ final monthEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
   final double totalIncome;
   final int eggCount;
   final (int, double) salesData;
+  final int eggsGifted;
 
   if (selectedFlockId == null) {
     totalExpenses = await repository.getTotalExpenses(start, end);
     totalIncome = await repository.getTotalIncome(start, end);
     eggCount = await eggRepository.getEggCountByDateRange(start, end);
     salesData = await repository.getEggSalesData(start, end);
+    eggsGifted = await repository.getEggsGifted(start, end);
   } else {
     totalExpenses =
         await repository.getTotalExpensesByFlock(selectedFlockId, start, end);
@@ -144,6 +155,8 @@ final monthEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
         selectedFlockId, start, end);
     salesData =
         await repository.getEggSalesDataByFlock(selectedFlockId, start, end);
+    eggsGifted =
+        await repository.getEggsGiftedByFlock(selectedFlockId, start, end);
   }
 
   final (eggsSold, saleIncome) = salesData;
@@ -155,6 +168,7 @@ final monthEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
     retailPrice: retailPrice,
     eggsSold: eggsSold,
     saleIncome: saleIncome,
+    eggsGifted: eggsGifted,
   );
 });
 
@@ -168,6 +182,7 @@ final allTimeEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
   final totalIncome = await repository.getTotalIncomeAllTime();
   final eggCount = await eggRepository.getTotalEggCount();
   final salesData = await repository.getEggSalesDataAllTime();
+  final eggsGifted = await repository.getEggsGiftedAllTime();
   final (eggsSold, saleIncome) = salesData;
 
   return buildEggValueSummary(
@@ -177,6 +192,7 @@ final allTimeEggValueProvider = FutureProvider<EggValueSummary>((ref) async {
     retailPrice: retailPrice,
     eggsSold: eggsSold,
     saleIncome: saleIncome,
+    eggsGifted: eggsGifted,
   );
 });
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../providers/egg_provider.dart';
@@ -101,6 +102,16 @@ class GreetingHeader extends ConsumerWidget {
                   color: Colors.orange.shade700,
                 ),
               ),
+              const SizedBox(height: 4),
+              // What the number means — the badge alone isn't
+              // self-explanatory
+              Text(
+                'Days in a row you\'ve logged your flock',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
+              ),
               const SizedBox(height: 16),
               // Stats for dedicated users (30+ days)
               if (showStats) ...[
@@ -151,6 +162,15 @@ class GreetingHeader extends ConsumerWidget {
                   fontWeight: FontWeight.w600,
                   color: Colors.orange.shade600,
                 ),
+              ),
+              const SizedBox(height: 8),
+              // A real destination so the dialog doesn't dead-end
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.push('/eggs');
+                },
+                child: const Text('View egg history'),
               ),
             ],
           ),

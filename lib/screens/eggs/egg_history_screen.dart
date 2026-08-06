@@ -544,11 +544,40 @@ class _DayDetailsInline extends ConsumerWidget {
             // Grouped logs list
             ...groups.map((group) {
               if (group.isDistributed) {
-                // Show distributed group tile
-                return _DistributedEggGroupTile(
-                  group: group,
-                  onDelete: () async {
-                    // Delete all logs in the group
+                // Distributed group: same swipe-to-delete gesture as
+                // single entries; per-bird rows are editable when expanded.
+                return Dismissible(
+                  key: Key(group.firstLog.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  confirmDismiss: (direction) async {
+                    return await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Entry?'),
+                            content: Text(
+                              'Delete all ${group.totalCount} eggs distributed to ${group.logs.length} birds?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        ) ??
+                        false;
+                  },
+                  onDismissed: (direction) async {
                     for (final log in group.logs) {
                       await ref.read(eggLogsProvider.notifier).deleteEggLog(log.id);
                     }
@@ -557,6 +586,7 @@ class _DayDetailsInline extends ConsumerWidget {
                       showAppSnackBar(context, 'Distributed entry deleted');
                     }
                   },
+                  child: _DistributedEggGroupTile(group: group),
                 );
               } else {
                 // Show single log tile with dismiss
@@ -657,14 +687,13 @@ class _EggLogTile extends ConsumerWidget {
 }
 
 /// Tile for displaying a distributed egg group.
+/// Deletion is handled by the parent Dismissible (swipe left, consistent
+/// with single entries); expanding reveals per-bird rows that open the
+/// standard edit form.
 class _DistributedEggGroupTile extends ConsumerStatefulWidget {
   final EggLogGroup group;
-  final VoidCallback onDelete;
 
-  const _DistributedEggGroupTile({
-    required this.group,
-    required this.onDelete,
-  });
+  const _DistributedEggGroupTile({required this.group});
 
   @override
   ConsumerState<_DistributedEggGroupTile> createState() =>
@@ -728,39 +757,7 @@ class _DistributedEggGroupTileState
             subtitle: Text(
               '${widget.group.logs.length} birds • ${_formatTime(widget.group.displayTime)}',
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Delete Distributed Entry?'),
-                        content: Text(
-                          'Delete all ${widget.group.totalCount} eggs distributed to ${widget.group.logs.length} birds?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('Delete'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true) {
-                      widget.onDelete();
-                    }
-                  },
-                ),
-                Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
-              ],
-            ),
+            trailing: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
           ),
           // Expanded bird list
           if (_isExpanded)
@@ -788,6 +785,7 @@ class _DistributedEggGroupTileState
 }
 
 /// Row showing a bird and their egg count in a distributed group.
+/// Tapping opens the standard egg edit form for that bird's log.
 class _BirdEggRow extends ConsumerWidget {
   final EggLog log;
 
@@ -800,36 +798,46 @@ class _BirdEggRow extends ConsumerWidget {
         ? ref.watch(birdByIdProvider(log.birdId!))
         : null;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(
-            Icons.egg_outlined,
-            size: 16,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: birdAsync?.when(
-                  loading: () => const Text('Loading...'),
-                  error: (_, __) => const Text('Unknown Bird'),
-                  data: (bird) => Text(bird?.name ?? 'Unknown Bird'),
-                ) ??
-                const Text('Unknown Bird'),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
+    return InkWell(
+      onTap: () => context.push('/eggs/log', extra: log),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(
+              Icons.egg_outlined,
+              size: 16,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
-            child: Text(
-              '${log.count}',
-              style: theme.textTheme.labelMedium,
+            const SizedBox(width: 8),
+            Expanded(
+              child: birdAsync?.when(
+                    loading: () => const Text('Loading...'),
+                    error: (_, __) => const Text('Unknown Bird'),
+                    data: (bird) => Text(bird?.name ?? 'Unknown Bird'),
+                  ) ??
+                  const Text('Unknown Bird'),
             ),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${log.count}',
+                style: theme.textTheme.labelMedium,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
       ),
     );
   }

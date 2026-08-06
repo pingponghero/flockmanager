@@ -96,6 +96,14 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.go('/birds'),
                 ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.people_outline),
+                  title: const Text('Recipients'),
+                  subtitle: const Text('People you sell or gift eggs to'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/settings/recipients'),
+                ),
               ],
             ),
           ),
@@ -821,10 +829,10 @@ class _CurrencySymbolCard extends ConsumerWidget {
           controller: controller,
           decoration: const InputDecoration(
             labelText: 'Symbol',
-            hintText: '\$, €, £, etc.',
+            hintText: '\$, €, Kč, CZK, etc.',
           ),
           autofocus: true,
-          maxLength: 1,
+          maxLength: 3,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium,
         ),
@@ -835,7 +843,7 @@ class _CurrencySymbolCard extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () {
-              ref.read(currencySymbolProvider.notifier).setSymbol(controller.text);
+              ref.read(currencySymbolProvider.notifier).setSymbol(controller.text.trim());
               Navigator.pop(context);
             },
             child: const Text('Save'),
@@ -1182,6 +1190,43 @@ class _NotificationSettingsCard extends ConsumerWidget {
               value: settings.expenseReminders,
               onChanged: (value) {
                 ref.read(notificationSettingsProvider.notifier).setExpenseReminders(value);
+              },
+            ),
+            // Exact-alarm warning (Android 12+): without this special
+            // permission, reminders are deferred by battery management
+            // and may never fire.
+            if (ref.watch(exactAlarmAllowedProvider).value == false) ...[
+              const Divider(height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.alarm_off,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: const Text('Reminders may not fire on time'),
+                subtitle: const Text(
+                    'Allow "Alarms & reminders" so scheduled reminders '
+                    'aren\'t delayed by battery saving'),
+                trailing: FilledButton(
+                  onPressed: () async {
+                    await NotificationService().requestExactAlarmPermission();
+                    ref.invalidate(exactAlarmAllowedProvider);
+                  },
+                  child: const Text('Allow'),
+                ),
+              ),
+            ],
+            const Divider(height: 1),
+            // Test notification — lets users verify delivery end to end
+            ListTile(
+              leading: const Icon(Icons.notifications_active_outlined),
+              title: const Text('Send Test Notification'),
+              subtitle: const Text('Check that notifications reach this device'),
+              onTap: () async {
+                await NotificationService().showTestNotification();
+                if (context.mounted) {
+                  showAppSnackBar(
+                      context, 'Test notification sent — check your shade');
+                }
               },
             ),
           ],
