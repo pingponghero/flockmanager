@@ -1,5 +1,8 @@
+import 'dart:io' show Platform;
+
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart' show Color, Colors, TimeOfDay;
+import 'package:flutter/services.dart' show MethodChannel;
 import '../models/medication_log.dart';
 
 /// Service for managing local notifications using awesome_notifications.
@@ -125,14 +128,44 @@ class NotificationService {
   /// Reminders still work without it but fire at imprecise times — or not
   /// at all under aggressive OEM battery management.
   Future<bool> hasExactAlarmPermission() async {
+    // Ask the OS directly (AlarmManager.canScheduleExactAlarms). The
+    // awesome_notifications PreciseAlarms check does not reliably reflect a
+    // permission the user just granted on the system settings page.
+    if (Platform.isAndroid) {
+      try {
+        final canSchedule =
+            await _exactAlarmChannel.invokeMethod<bool>('canScheduleExactAlarms');
+        if (canSchedule != null) return canSchedule;
+      } catch (_) {
+        // Fall through to the plugin check below.
+      }
+    }
     final allowed = await AwesomeNotifications().checkPermissionList(
       permissions: [NotificationPermission.PreciseAlarms],
     );
     return allowed.contains(NotificationPermission.PreciseAlarms);
   }
 
-  /// Open the system page to grant exact alarms.
+  static const MethodChannel _exactAlarmChannel =
+      MethodChannel('com.tyndallstudios.flockmanager/exact_alarm');
+
+  /// Open the system "Alarms & reminders" page to grant exact alarms.
+  ///
+  /// On Android 12+ `SCHEDULE_EXACT_ALARM` is a special-access permission that
+  /// cannot be granted from the notification-permission dialog; when
+  /// notifications are already allowed, the awesome_notifications request is a
+  /// no-op. We launch the settings intent directly via a platform channel and
+  /// only fall back to the plugin request if that fails.
   Future<void> requestExactAlarmPermission() async {
+    if (Platform.isAndroid) {
+      try {
+        final opened =
+            await _exactAlarmChannel.invokeMethod<bool>('openExactAlarmSettings');
+        if (opened == true) return;
+      } catch (_) {
+        // Fall through to the plugin request below.
+      }
+    }
     await AwesomeNotifications().requestPermissionToSendNotifications(
       permissions: [NotificationPermission.PreciseAlarms],
     );

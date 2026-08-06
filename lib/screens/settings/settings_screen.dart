@@ -1101,11 +1101,51 @@ class _ColorSwatch extends StatelessWidget {
   }
 }
 
-class _NotificationSettingsCard extends ConsumerWidget {
+class _NotificationSettingsCard extends ConsumerStatefulWidget {
   const _NotificationSettingsCard();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_NotificationSettingsCard> createState() =>
+      _NotificationSettingsCardState();
+}
+
+class _NotificationSettingsCardState
+    extends ConsumerState<_NotificationSettingsCard>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Sync permission state on first open too: the observer misses the initial
+    // resume, so a stale "granted" flag from prefs could otherwise keep the
+    // card expanded after notifications were revoked outside the app.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(notificationSettingsProvider.notifier).checkPermissionStatus();
+      ref.invalidate(exactAlarmAllowedProvider);
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Re-check permission state when returning from a system settings page so
+    // the UI reflects changes made there: the exact-alarm warning clears once
+    // granted, and the whole card collapses to the "Enable Notifications"
+    // prompt if notifications were revoked.
+    if (state == AppLifecycleState.resumed) {
+      ref.read(notificationSettingsProvider.notifier).checkPermissionStatus();
+      ref.invalidate(exactAlarmAllowedProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(notificationSettingsProvider);
 
     return Card(
@@ -1225,7 +1265,7 @@ class _NotificationSettingsCard extends ConsumerWidget {
                 await NotificationService().showTestNotification();
                 if (context.mounted) {
                   showAppSnackBar(
-                      context, 'Test notification sent — check your shade');
+                      context, 'Test notification sent — swipe down from the top of your screen to see it');
                 }
               },
             ),
