@@ -7,6 +7,7 @@ import 'app/router.dart';
 import 'app/theme.dart';
 import 'providers/notification_provider.dart';
 import 'providers/onboarding_provider.dart';
+import 'providers/review_prompt_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/iap_service.dart';
 import 'services/notification_service.dart';
@@ -68,6 +69,7 @@ class FlockManagerApp extends ConsumerStatefulWidget {
 class _FlockManagerAppState extends ConsumerState<FlockManagerApp> {
   bool _hasCheckedOnboarding = false;
   bool _hasEvaluatedEggReminder = false;
+  bool _hasRecordedAppOpen = false;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +93,14 @@ class _FlockManagerAppState extends ConsumerState<FlockManagerApp> {
       _hasEvaluatedEggReminder = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(notificationSettingsProvider.notifier).evaluateEggReminder();
+      });
+    }
+
+    // Count this open toward review-prompt eligibility (once per session)
+    if (!_hasRecordedAppOpen) {
+      _hasRecordedAppOpen = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(reviewPromptProvider.notifier).recordAppOpen();
       });
     }
 

@@ -366,7 +366,8 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
               final newAchievements = await checkAndCelebrateAchievements(ref, context);
 
               if (mounted && newAchievements.isNotEmpty) {
-                await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+                await AchievementCelebrationDialog.showMultiple(
+                    context, newAchievements, ref: ref);
                 await markAchievementsAsShown(newAchievements);
               }
 
@@ -410,7 +411,8 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
 
         // Show celebration dialog BEFORE closing sheet (context is still valid)
         if (mounted && newAchievements.isNotEmpty) {
-          await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+          await AchievementCelebrationDialog.showMultiple(context, newAchievements,
+              ref: ref);
           // Mark as shown AFTER dialog is displayed
           await markAchievementsAsShown(newAchievements);
         }

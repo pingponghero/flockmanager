@@ -53,5 +53,10 @@ SharedPreferences instead of SQLite.
 - **onboarding_provider.dart** — `onboardingProvider`, `needsOnboardingProvider`.
   First-run flow state and resume support.
 
+- **review_prompt_provider.dart** — `reviewPromptProvider`,
+  `isEligibleForReviewPrompt`. Tracks app-open days and asks for a native store
+  review after an achievement celebration, gated on engagement and a 90-day
+  cooldown. State is "already prompted this session".
+
 - **theme_provider.dart** — `themeProvider`, `themeModeProvider`. Color palette
   and light/dark mode via SharedPreferences.
