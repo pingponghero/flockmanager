@@ -204,7 +204,7 @@ class _EggLogByHenContentState extends ConsumerState<EggLogByHenContent> {
 
         if (mounted && newAchievements.isNotEmpty) {
           await AchievementCelebrationDialog.showMultiple(
-              context, newAchievements);
+              context, newAchievements, ref: ref);
           await markAchievementsAsShown(newAchievements);
         }
 

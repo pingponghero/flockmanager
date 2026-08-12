@@ -22,6 +22,7 @@ import '../../providers/flock_provider.dart' show flocksProvider, selectedFlockI
 import '../../providers/medication_provider.dart' show medicationsProvider;
 import '../../providers/notification_provider.dart';
 import '../../providers/onboarding_provider.dart';
+import '../../providers/review_prompt_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/forecast_provider.dart';
 import '../../providers/trial_provider.dart';
@@ -397,6 +398,15 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _launchEmail(context, ref),
                 ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.star_outline),
+                  title: const Text('Rate Flock Manager'),
+                  subtitle: const Text('Reviews help other keepers find us'),
+                  trailing: const Icon(Icons.open_in_new, size: 18),
+                  onTap: () =>
+                      ref.read(reviewPromptProvider.notifier).openStoreListing(),
+                ),
                 // TODO: Re-enable when app tour is ready
                 // const Divider(height: 1),
                 // ListTile(
@@ -438,6 +448,39 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () {
                       ref.read(onboardingProvider.notifier).resetOnboarding();
                       showAppSnackBar(context, 'Onboarding reset. Restart app to see it.');
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.star_rate),
+                    title: const Text('Force Review Prompt'),
+                    subtitle: const Text('Bypass eligibility (OS may still skip)'),
+                    onTap: () async {
+                      final requested = await ref
+                          .read(reviewPromptProvider.notifier)
+                          .debugForcePrompt();
+                      if (context.mounted) {
+                        showAppSnackBar(
+                          context,
+                          requested
+                              ? 'Review requested — OS decides whether to show it'
+                              : 'Review API unavailable on this build',
+                        );
+                      }
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.refresh),
+                    title: const Text('Reset Review Tracking'),
+                    subtitle: const Text('Clear open days and prompt history'),
+                    onTap: () async {
+                      await ref
+                          .read(reviewPromptProvider.notifier)
+                          .debugResetReviewPrompt();
+                      if (context.mounted) {
+                        showAppSnackBar(context, 'Review tracking reset');
+                      }
                     },
                   ),
                   const Divider(height: 1),

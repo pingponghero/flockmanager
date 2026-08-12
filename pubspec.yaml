@@ -56,6 +56,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   package_info_plus: ^9.0.0
 
+  # Store review prompts (native OS review sheet)
+  in_app_review: ^2.0.12
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -427,7 +427,8 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
         // Check for new achievements
         final newAchievements = await checkAndCelebrateAchievements(ref, context);
         if (mounted && newAchievements.isNotEmpty) {
-          await AchievementCelebrationDialog.showMultiple(context, newAchievements);
+          await AchievementCelebrationDialog.showMultiple(context, newAchievements,
+              ref: ref);
           await markAchievementsAsShown(newAchievements);
         }
 
