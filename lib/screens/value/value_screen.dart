@@ -23,6 +23,7 @@ import '../settings/settings_screen.dart' show showRetailPriceDialog;
 enum _ListFilter {
   all('All'),
   income('Income'),
+  gifts('Gifts'),
   feed('Feed'),
   bedding('Bedding'),
   supplies('Supplies'),
@@ -37,6 +38,7 @@ enum _ListFilter {
     switch (this) {
       case _ListFilter.all:
       case _ListFilter.income:
+      case _ListFilter.gifts:
         return null;
       case _ListFilter.feed:
         return ExpenseCategory.feed;
@@ -53,9 +55,12 @@ enum _ListFilter {
     }
   }
 
+  /// Sales only. Gifts are zero-amount and are excluded from sold-egg counts
+  /// and averages everywhere else, so they get their own filter.
   bool get isIncomeOnly => this == _ListFilter.income;
+  bool get isGiftsOnly => this == _ListFilter.gifts;
   bool get isAll => this == _ListFilter.all;
-  bool get isExpenseCategory => !isAll && !isIncomeOnly;
+  bool get isExpenseCategory => !isAll && !isIncomeOnly && !isGiftsOnly;
 }
 
 class ValueScreen extends ConsumerStatefulWidget {
@@ -207,8 +212,8 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
           ),
           const SizedBox(height: 8),
 
-          // Expense category breakdown (hidden when filtering to income)
-          if (!_selectedFilter.isIncomeOnly)
+          // Expense category breakdown (hidden when filtering to income/gifts)
+          if (!_selectedFilter.isIncomeOnly && !_selectedFilter.isGiftsOnly)
           _CategoryBreakdown(
             categoryAsync: categoryAsync,
             selectedCategory: _selectedFilter.expenseCategory,
@@ -908,10 +913,17 @@ List<_LineItem> _buildFilteredLineItems({
         .toList();
   }
 
+  // "Income" means sales only; gifts have their own filter.
+  if (filter.isIncomeOnly) {
+    filteredIncome = filteredIncome.where((i) => !i.isGift).toList();
+  } else if (filter.isGiftsOnly) {
+    filteredIncome = filteredIncome.where((i) => i.isGift).toList();
+  }
+
   final items = <_LineItem>[
-    if (!filter.isIncomeOnly)
+    if (!filter.isIncomeOnly && !filter.isGiftsOnly)
       ...filteredExpenses.map((e) => _LineItem.expense(e)),
-    if (filter.isAll || filter.isIncomeOnly)
+    if (filter.isAll || filter.isIncomeOnly || filter.isGiftsOnly)
       ...filteredIncome.map((i) => _LineItem.income(i)),
   ];
   items.sort((a, b) => b.date.compareTo(a.date));
