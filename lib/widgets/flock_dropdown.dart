@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/flock.dart';
 import '../providers/flock_provider.dart';
 
-/// A dropdown for selecting a flock, with icons and colors
-class FlockDropdown extends ConsumerWidget {
+/// A dropdown for selecting a flock, with icons and colors.
+///
+/// Always shown when at least one flock exists — hiding it for single-flock
+/// keepers left them with no visible route to adding a second one (#15).
+class FlockDropdown extends ConsumerStatefulWidget {
   final String? selectedFlockId;
   final ValueChanged<String?> onChanged;
   final String label;
@@ -20,25 +24,40 @@ class FlockDropdown extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FlockDropdown> createState() => _FlockDropdownState();
+}
+
+class _FlockDropdownState extends ConsumerState<FlockDropdown> {
+  /// Sentinel for the "Add flock…" entry. Not a selectable flock, so it can
+  /// never collide with a real flock id.
+  static const String _addFlockValue = '__add_flock__';
+
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final flocksAsync = ref.watch(flocksProvider);
 
     return flocksAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (flocks) {
-        // Hide dropdown if only 1 flock (no need to filter)
-        if (flocks.length <= 1) {
-          return const SizedBox.shrink();
-        }
+        if (flocks.isEmpty) return const SizedBox.shrink();
 
         return DropdownMenu<String?>(
-          initialSelection: selectedFlockId,
+          controller: _controller,
+          initialSelection: widget.selectedFlockId,
           expandedInsets: EdgeInsets.zero,
-          label: Text(label),
-          leadingIcon: _buildLeadingIcon(flocks, selectedFlockId),
+          label: Text(widget.label),
+          leadingIcon: _buildLeadingIcon(flocks, widget.selectedFlockId),
           dropdownMenuEntries: [
-            if (showAllOption)
+            if (widget.showAllOption)
               const DropdownMenuEntry(
                 value: null,
                 label: 'All Flocks',
@@ -49,11 +68,32 @@ class FlockDropdown extends ConsumerWidget {
                   label: flock.name,
                   leadingIcon: _FlockIcon(flock: flock, size: 24),
                 )),
+            const DropdownMenuEntry(
+              value: _addFlockValue,
+              label: 'Add flock…',
+              leadingIcon: Icon(Icons.add, size: 24),
+            ),
           ],
-          onSelected: onChanged,
+          onSelected: (value) {
+            if (value == _addFlockValue) {
+              // An action, not a selection — put the field back the way it was
+              // before handing off to the flock form.
+              _controller.text = _labelFor(flocks, widget.selectedFlockId);
+              context.go('/settings/flocks/new');
+              return;
+            }
+            widget.onChanged(value);
+          },
         );
       },
     );
+  }
+
+  String _labelFor(List<Flock> flocks, String? selectedId) {
+    if (selectedId == null) {
+      return widget.showAllOption ? 'All Flocks' : '';
+    }
+    return flocks.where((f) => f.id == selectedId).firstOrNull?.name ?? '';
   }
 
   Widget? _buildLeadingIcon(List<Flock> flocks, String? selectedId) {
