@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../models/bird.dart';
 import '../models/egg_log.dart';
 import '../models/enums.dart';
 import '../providers/achievements_provider.dart';
@@ -14,6 +15,7 @@ import '../utils/snackbar_utils.dart';
 import 'achievement_celebration_dialog.dart';
 import 'distribute_eggs_dialog.dart';
 import 'egg_log_by_hen.dart';
+import 'spread_eggs_dialog.dart';
 
 /// Shows the quick egg log bottom sheet.
 /// Returns the created EggLog if logged, null otherwise.
@@ -323,6 +325,9 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
         );
         final activeBirds = allActiveBirds.where((b) => b.isEggProducer).toList();
 
+        // A batch after missed days: offer to spread it back across them
+        if (await _offerSpreadAcrossDays(activeBirds)) return;
+
         if (shouldOfferDistribution(
           eggCount: _count,
           activeBirds: activeBirds,
@@ -439,6 +444,84 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  /// If eggs went unlogged for a few days, offers to spread this batch
+  /// across them. Returns true if the batch was saved (spread), false to
+  /// continue with a normal save.
+  Future<bool> _offerSpreadAcrossDays(List<Bird> activeBirds) async {
+    final date = DateTime(_date.year, _date.month, _date.day);
+    final lastLogged = await ref
+        .read(eggRepositoryProvider)
+        .getLastLogDateOnOrBefore(_selectedFlockId!, date);
+    final days = missedDaysToSpread(
+      logDate: date,
+      lastLoggedDate: lastLogged,
+      eggCount: _count,
+      layingHens: activeBirds.length,
+    );
+    if (days.isEmpty || !mounted) return false;
+
+    final perDay = spreadEvenly(_count, days);
+    final spread = await showDialog<bool>(
+      context: context,
+      builder: (context) => SpreadEggsDialog(perDay: perDay),
+    );
+    if (spread != true) return false;
+
+    // Days that come out at one egg per hen follow the auto-distribute
+    // setting, the same as a normal single-day log.
+    final autoDistribute = await ref.read(autoDistributeEggsProvider.future);
+    final now = DateTime.now();
+    final logs = <EggLog>[];
+    var dayIndex = 0;
+    for (final entry in perDay.entries) {
+      // Distinct timestamps per day keep each day's logs grouped together
+      final createdAt = now.subtract(Duration(milliseconds: dayIndex++));
+      EggLog logFor(String? birdId, int count) => EggLog.create(
+            date: entry.key,
+            flockId: _selectedFlockId!,
+            birdId: birdId,
+            count: count,
+            size: _selectedSize,
+            quality: _selectedQuality,
+            notes: _notes,
+          ).copyWith(createdAt: createdAt);
+
+      if (autoDistribute &&
+          shouldOfferDistribution(
+            eggCount: entry.value,
+            activeBirds: activeBirds,
+            selectedFlockId: _selectedFlockId,
+          )) {
+        logs.addAll(activeBirds.map((bird) => logFor(bird.id, 1)));
+      } else {
+        logs.add(logFor(null, entry.value));
+      }
+    }
+
+    await ref.read(eggLogsProvider.notifier).addEggLogs(logs);
+    HapticFeedback.mediumImpact();
+
+    if (mounted) {
+      final newAchievements = await checkAndCelebrateAchievements(ref, context);
+      if (mounted && newAchievements.isNotEmpty) {
+        await AchievementCelebrationDialog.showMultiple(
+            context, newAchievements, ref: ref);
+        await markAchievementsAsShown(newAchievements);
+      }
+
+      await saveLastEggCount(_count);
+
+      if (mounted) {
+        showAppSnackBar(
+          context,
+          '$_count eggs spread over ${perDay.length} days',
+        );
+        Navigator.pop(context, null);
+      }
+    }
+    return true;
   }
 }
 

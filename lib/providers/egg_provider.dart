@@ -74,6 +74,19 @@ class EggLogsNotifier extends AsyncNotifier<List<EggLog>> {
     return logs;
   }
 
+  /// Add several egg logs at once (e.g. a batch spread across missed days)
+  Future<void> addEggLogs(List<EggLog> logs) async {
+    final repository = ref.read(eggRepositoryProvider);
+    await repository.insertEggLogs(logs);
+    ref.invalidateSelf();
+    _invalidateEggCountProviders();
+    try {
+      await ref.read(notificationSettingsProvider.notifier).onEggsLogged();
+    } catch (_) {
+      // Ignore notification errors - egg save should still succeed
+    }
+  }
+
   /// Update an existing egg log
   Future<void> updateEggLog(EggLog log) async {
     final repository = ref.read(eggRepositoryProvider);
