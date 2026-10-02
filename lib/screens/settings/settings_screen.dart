@@ -32,6 +32,7 @@ import '../../services/iap_service.dart';
 import '../../services/import_service.dart';
 import '../../services/notification_service.dart';
 import '../../utils/edge_insets.dart';
+import '../../utils/share_utils.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/import_confirmation_dialog.dart';
 
@@ -332,12 +333,15 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: Column(
               children: [
-                ListTile(
-                  leading: const Icon(Icons.download),
-                  title: const Text('Export Data'),
-                  subtitle: const Text('Save all flock data and photos as a backup file'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _exportData(context, ref),
+                Builder(
+                  // Own context so the share sheet can be anchored on this tile.
+                  builder: (tileContext) => ListTile(
+                    leading: const Icon(Icons.download),
+                    title: const Text('Export Data'),
+                    subtitle: const Text('Save all flock data and photos as a backup file'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _exportData(tileContext, ref),
+                  ),
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -503,6 +507,11 @@ class SettingsScreen extends ConsumerWidget {
     final navigator = Navigator.of(context, rootNavigator: true);
     var dialogOpen = false;
 
+    // Captured before the export runs: iOS needs a non-empty anchor rect inside
+    // the screen to present the share sheet, and the tile is guaranteed to be
+    // in the tree right now.
+    final shareOrigin = shareOriginFor(context);
+
     // Show loading indicator
     unawaited(showDialog(
       context: context,
@@ -550,8 +559,9 @@ class SettingsScreen extends ConsumerWidget {
       closeDialog();
 
       // Share the zip file
-      await Share.shareXFiles(
+      await shareFiles(
         [XFile(zipPath)],
+        origin: shareOrigin,
         subject: 'Flock Manager Data Export',
       );
     } catch (e) {
