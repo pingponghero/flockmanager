@@ -39,7 +39,7 @@ const maxMissedDaysToSpread = 7;
 ///   [logDate]; a zero-count log still counts as logged)
 /// - There are 1 to [maxMissedDays] days with no log between the two
 /// - The batch is more than one day's plausible lay (more eggs than
-///   laying hens), and enough for every day to get at least one egg
+///   laying hens), so some of it must be from earlier days
 List<DateTime> missedDaysToSpread({
   required DateTime logDate,
   required DateTime? lastLoggedDate,
@@ -56,7 +56,6 @@ List<DateTime> missedDaysToSpread({
       lastLoggedDate.year, lastLoggedDate.month, lastLoggedDate.day);
   final missed = end.difference(start).inDays - 1;
   if (missed < 1 || missed > maxMissedDays) return const [];
-  if (eggCount < missed + 1) return const [];
 
   return [
     for (var i = missed; i >= 0; i--)
@@ -65,7 +64,8 @@ List<DateTime> missedDaysToSpread({
 }
 
 /// Splits [eggCount] evenly across [days], oldest first. Any remainder goes
-/// to the earliest days (10 over 3 days is 4, 3, 3).
+/// to the earliest days (10 over 3 days is 4, 3, 3). Days can get 0 when
+/// there are fewer eggs than days.
 Map<DateTime, int> spreadEvenly(int eggCount, List<DateTime> days) {
   final base = eggCount ~/ days.length;
   final remainder = eggCount % days.length;

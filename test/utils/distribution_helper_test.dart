@@ -282,14 +282,14 @@ void main() {
       );
     });
 
-    test('not offered when there are more days than eggs', () {
+    test('offered even when there are more days than eggs', () {
       expect(
         missedDaysToSpread(
             logDate: oct2,
             lastLoggedDate: DateTime(2026, 9, 25), // 6 missed, 7 days
             eggCount: 5,
             layingHens: 2),
-        isEmpty,
+        hasLength(7),
       );
     });
 
@@ -342,6 +342,11 @@ void main() {
     test('gives the remainder to the earliest days', () {
       expect(spreadEvenly(10, days).values, [4, 3, 3]);
       expect(spreadEvenly(11, days).values, [4, 4, 3]);
+    });
+
+    test('gives 0 to the latest days when eggs are fewer than days', () {
+      final week = [for (var d = 0; d < 7; d++) DateTime(2026, 9, 26 + d)];
+      expect(spreadEvenly(5, week).values, [1, 1, 1, 1, 1, 0, 0]);
     });
 
     test('keeps every egg', () {
