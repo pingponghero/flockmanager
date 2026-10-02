@@ -22,6 +22,7 @@ import '../../providers/flock_provider.dart' show flocksProvider, selectedFlockI
 import '../../providers/medication_provider.dart' show medicationsProvider;
 import '../../providers/notification_provider.dart';
 import '../../providers/onboarding_provider.dart';
+import '../../providers/review_prompt_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/forecast_provider.dart';
 import '../../providers/trial_provider.dart';
@@ -31,6 +32,7 @@ import '../../services/iap_service.dart';
 import '../../services/import_service.dart';
 import '../../services/notification_service.dart';
 import '../../utils/edge_insets.dart';
+import '../../utils/share_utils.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/import_confirmation_dialog.dart';
 
@@ -331,12 +333,15 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: Column(
               children: [
-                ListTile(
-                  leading: const Icon(Icons.download),
-                  title: const Text('Export Data'),
-                  subtitle: const Text('Save all flock data and photos as a backup file'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _exportData(context, ref),
+                Builder(
+                  // Own context so the share sheet can be anchored on this tile.
+                  builder: (tileContext) => ListTile(
+                    leading: const Icon(Icons.download),
+                    title: const Text('Export Data'),
+                    subtitle: const Text('Save all flock data and photos as a backup file'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _exportData(tileContext, ref),
+                  ),
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -397,6 +402,15 @@ class SettingsScreen extends ConsumerWidget {
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => _launchEmail(context, ref),
                 ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.star_outline),
+                  title: const Text('Rate Flock Manager'),
+                  subtitle: const Text('Reviews help other keepers find us'),
+                  trailing: const Icon(Icons.open_in_new, size: 18),
+                  onTap: () =>
+                      ref.read(reviewPromptProvider.notifier).openStoreListing(),
+                ),
                 // TODO: Re-enable when app tour is ready
                 // const Divider(height: 1),
                 // ListTile(
@@ -442,6 +456,39 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const Divider(height: 1),
                   ListTile(
+                    leading: const Icon(Icons.star_rate),
+                    title: const Text('Force Review Prompt'),
+                    subtitle: const Text('Bypass eligibility (OS may still skip)'),
+                    onTap: () async {
+                      final requested = await ref
+                          .read(reviewPromptProvider.notifier)
+                          .debugForcePrompt();
+                      if (context.mounted) {
+                        showAppSnackBar(
+                          context,
+                          requested
+                              ? 'Review requested — OS decides whether to show it'
+                              : 'Review API unavailable on this build',
+                        );
+                      }
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.refresh),
+                    title: const Text('Reset Review Tracking'),
+                    subtitle: const Text('Clear open days and prompt history'),
+                    onTap: () async {
+                      await ref
+                          .read(reviewPromptProvider.notifier)
+                          .debugResetReviewPrompt();
+                      if (context.mounted) {
+                        showAppSnackBar(context, 'Review tracking reset');
+                      }
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
                     leading: const Icon(Icons.delete_forever, color: Colors.red),
                     title: const Text('Clear All Data'),
                     subtitle: const Text('Delete database and restart fresh'),
@@ -459,6 +506,11 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _exportData(BuildContext context, WidgetRef ref) async {
     final navigator = Navigator.of(context, rootNavigator: true);
     var dialogOpen = false;
+
+    // Captured before the export runs: iOS needs a non-empty anchor rect inside
+    // the screen to present the share sheet, and the tile is guaranteed to be
+    // in the tree right now.
+    final shareOrigin = shareOriginFor(context);
 
     // Show loading indicator
     unawaited(showDialog(
@@ -507,8 +559,9 @@ class SettingsScreen extends ConsumerWidget {
       closeDialog();
 
       // Share the zip file
-      await Share.shareXFiles(
+      await shareFiles(
         [XFile(zipPath)],
+        origin: shareOrigin,
         subject: 'Flock Manager Data Export',
       );
     } catch (e) {

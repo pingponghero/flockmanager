@@ -1,6 +1,6 @@
 name: flock_manager
 description: "Backyard chicken flock management app"
-version: 2.5.0+26
+version: 2.6.0+28
 publish_to: 'none'  # Not for public Dart package registry
 
 environment:
@@ -46,7 +46,7 @@ dependencies:
   timezone: ^0.11.0
 
   # In-App Purchases
-  in_app_purchase: ^3.2.0
+  in_app_purchase: ^3.3.0
 
   # Models
   freezed_annotation: ^3.1.0
@@ -56,8 +56,13 @@ dependencies:
   cupertino_icons: ^1.0.8
   package_info_plus: ^9.0.0
 
+  # Store review prompts (native OS review sheet)
+  in_app_review: ^2.0.12
+
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
 
   # Code generation

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/achievements_provider.dart';
 import '../providers/egg_provider.dart' show currencySymbolProvider;
+import '../providers/review_prompt_provider.dart';
 
 /// A celebration dialog shown when a user unlocks a new achievement.
 class AchievementCelebrationDialog extends StatefulWidget {
@@ -48,13 +49,23 @@ class AchievementCelebrationDialog extends StatefulWidget {
   }
 
   /// Show multiple achievements in sequence.
+  ///
+  /// Pass [ref] at call sites that follow a genuinely positive moment (logging
+  /// eggs, recording a sale) to also consider asking for a store review once
+  /// the celebrations are done. The prompt has its own eligibility gate, so
+  /// passing [ref] does not mean the user gets asked.
   static Future<void> showMultiple(
     BuildContext context,
-    List<Achievement> achievements,
-  ) async {
+    List<Achievement> achievements, {
+    WidgetRef? ref,
+  }) async {
     for (final achievement in achievements) {
       if (!context.mounted) break;
       await show(context, achievement);
+    }
+
+    if (ref != null && achievements.isNotEmpty) {
+      await ref.read(reviewPromptProvider.notifier).maybePromptForReview();
     }
   }
 
