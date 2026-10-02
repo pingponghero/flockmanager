@@ -63,13 +63,18 @@ List<DateTime> missedDaysToSpread({
   ];
 }
 
-/// Splits [eggCount] evenly across [days], oldest first. Any remainder goes
-/// to the earliest days (10 over 3 days is 4, 3, 3). Days can get 0 when
-/// there are fewer eggs than days.
+/// Splits [eggCount] evenly across [days], oldest first.
+///
+/// Any remainder goes to the earliest days (10 over 3 days is 4, 3, 3) so
+/// the log date doesn't get more than an even share. With fewer eggs than
+/// days it goes to the latest days instead (5 over 7 days is
+/// 0, 0, 1, 1, 1, 1, 1) so the log date, when eggs were found, never gets 0.
 Map<DateTime, int> spreadEvenly(int eggCount, List<DateTime> days) {
   final base = eggCount ~/ days.length;
   final remainder = eggCount % days.length;
+  final extraFrom = base == 0 ? days.length - remainder : 0;
   return {
-    for (var i = 0; i < days.length; i++) days[i]: base + (i < remainder ? 1 : 0),
+    for (var i = 0; i < days.length; i++)
+      days[i]: base + (i >= extraFrom && i < extraFrom + remainder ? 1 : 0),
   };
 }

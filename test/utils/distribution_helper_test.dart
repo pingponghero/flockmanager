@@ -344,13 +344,14 @@ void main() {
       expect(spreadEvenly(11, days).values, [4, 4, 3]);
     });
 
-    test('gives 0 to the latest days when eggs are fewer than days', () {
+    test('never gives the log date 0 when eggs are fewer than days', () {
       final week = [for (var d = 0; d < 7; d++) DateTime(2026, 9, 26 + d)];
-      expect(spreadEvenly(5, week).values, [1, 1, 1, 1, 1, 0, 0]);
+      expect(spreadEvenly(5, week).values, [0, 0, 1, 1, 1, 1, 1]);
+      expect(spreadEvenly(2, week).values.last, 1);
     });
 
     test('keeps every egg', () {
-      for (var n = 3; n < 40; n++) {
+      for (var n = 1; n < 40; n++) {
         expect(spreadEvenly(n, days).values.fold(0, (a, b) => a + b), n);
       }
     });
