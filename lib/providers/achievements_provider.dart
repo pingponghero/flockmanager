@@ -21,6 +21,11 @@ class Achievement {
   final String category;
   final bool Function(AchievementContext ctx) check;
 
+  /// Secret achievements stay fully hidden (name, description, progress)
+  /// until unlocked. Everything else shows its requirement while locked,
+  /// so [description] must state the real unlock condition.
+  final bool secret;
+
   const Achievement({
     required this.id,
     required this.name,
@@ -29,6 +34,7 @@ class Achievement {
     required this.color,
     required this.category,
     required this.check,
+    this.secret = false,
   });
 
   /// Description with the user's currency symbol applied.
@@ -290,6 +296,7 @@ final achievements = <Achievement>[
     color: Colors.amber,
     category: 'Variety Show',
     check: (ctx) => ctx.hasOverachiever,
+    secret: true,
   ),
 
   // ==================== FLOCK SIZE ====================
@@ -390,7 +397,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'beat_the_store',
     name: 'Beat the Store',
-    description: 'Egg value exceeds expenses',
+    description: 'Egg value exceeds expenses (50+ eggs logged)',
     icon: Icons.local_grocery_store,
     color: Colors.green,
     category: 'Nest Egg',
@@ -399,7 +406,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'basically_free',
     name: 'Basically Free',
-    description: 'Cost per egg below \$0.15',
+    description: 'Cost per egg below \$0.15 (100+ eggs logged)',
     icon: Icons.savings,
     color: Colors.lightGreen,
     category: 'Nest Egg',
@@ -426,7 +433,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'in_the_black',
     name: 'In the Black',
-    description: 'Total income exceeds expenses',
+    description: 'Income exceeds expenses (\$50+ earned)',
     icon: Icons.trending_up,
     color: Colors.teal,
     category: 'Nest Egg',
@@ -482,7 +489,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'all_clear',
     name: 'All Clear',
-    description: 'Complete a withdrawal period',
+    description: 'Finish a medication course',
     icon: Icons.check_circle,
     color: Colors.green,
     category: 'Flock Doc',
@@ -498,6 +505,7 @@ final achievements = <Achievement>[
     color: Colors.orange,
     category: 'Star Keeper',
     check: (ctx) => ctx.loggedBeforeSix,
+    secret: true,
   ),
   Achievement(
     id: 'night_owl',
@@ -507,6 +515,7 @@ final achievements = <Achievement>[
     color: Colors.indigo,
     category: 'Star Keeper',
     check: (ctx) => ctx.loggedAfterNine,
+    secret: true,
   ),
   Achievement(
     id: 'year_round_keeper',
@@ -520,7 +529,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'power_user',
     name: 'Power User',
-    description: 'Use the app 100 days',
+    description: 'Log eggs on 100 different days',
     icon: Icons.phone_android,
     color: Colors.deepPurple,
     category: 'Star Keeper',
@@ -531,7 +540,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'photogenic_flock',
     name: 'Photogenic Flock',
-    description: 'Add photos for all birds',
+    description: 'Add photos for every bird (5+ birds)',
     icon: Icons.photo_camera,
     color: Colors.pink,
     category: 'Just for Clucks',
@@ -540,7 +549,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'name_game',
     name: 'Name Game',
-    description: 'Name 10+ birds',
+    description: 'Add 10+ birds (past birds count too)',
     icon: Icons.badge,
     color: Colors.teal,
     category: 'Just for Clucks',
@@ -549,7 +558,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'creative_namer',
     name: 'Creative Namer',
-    description: 'Give a bird a name over 15 characters',
+    description: 'Give a bird a name over 15 characters (3+ birds)',
     icon: Icons.text_fields,
     color: Colors.purple,
     category: 'Just for Clucks',
@@ -563,6 +572,7 @@ final achievements = <Achievement>[
     color: Colors.yellow,
     category: 'Just for Clucks',
     check: (ctx) => ctx.hasBirdNamedDuck,
+    secret: true,
   ),
   Achievement(
     id: 'double_yolk_day',
@@ -572,6 +582,7 @@ final achievements = <Achievement>[
     color: Colors.amber,
     category: 'Just for Clucks',
     check: (ctx) => ctx.hasDoubleYolk,
+    secret: true,
   ),
   Achievement(
     id: 'fairy_egg',
@@ -581,11 +592,12 @@ final achievements = <Achievement>[
     color: Colors.pink,
     category: 'Just for Clucks',
     check: (ctx) => ctx.hasFairyEgg,
+    secret: true,
   ),
   Achievement(
     id: 'the_quiet_life',
     name: 'The Quiet Life',
-    description: 'All females, no males (3+ birds)',
+    description: 'Every bird marked female (3+ birds, 14 days logged)',
     icon: Icons.volume_off,
     color: Colors.teal,
     category: 'Just for Clucks',
@@ -594,7 +606,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'alarm_clock',
     name: 'Alarm Clock',
-    description: 'Have a rooster in your flock',
+    description: 'Keep a rooster (7 days logged)',
     icon: Icons.alarm,
     color: Colors.orange,
     category: 'Just for Clucks',
@@ -603,7 +615,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'winter_warriors',
     name: 'Winter Warriors',
-    description: 'Log eggs in Dec, Jan, and Feb',
+    description: 'Log eggs in Dec, Jan, and Feb (30+ eggs total)',
     icon: Icons.ac_unit,
     color: Colors.lightBlue,
     category: 'Just for Clucks',
@@ -617,7 +629,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'thanksgiving_prep',
     name: 'Turkey Time',
-    description: 'Log eggs in November',
+    description: 'Log eggs in November (50+ eggs total)',
     icon: Icons.restaurant,
     color: Colors.orange,
     category: 'Four Seasons',
@@ -631,11 +643,12 @@ final achievements = <Achievement>[
     color: Colors.red,
     category: 'Four Seasons',
     check: (ctx) => ctx.hasChristmasEggs,
+    secret: true,
   ),
   Achievement(
     id: 'spring_awakening',
     name: 'Spring Awakening',
-    description: 'More eggs in March than February',
+    description: 'More eggs in March than February (10+ in Feb)',
     icon: Icons.local_florist,
     color: Colors.pink,
     category: 'Four Seasons',
@@ -644,7 +657,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'molt_survivor',
     name: 'Molt Survivor',
-    description: 'Log eggs through October (molting season)',
+    description: 'Log eggs in October, molting season (50+ eggs total)',
     icon: Icons.autorenew,
     color: Colors.brown,
     category: 'Four Seasons',

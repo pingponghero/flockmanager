@@ -109,5 +109,24 @@ void main() {
       final ids = achievements.map((a) => a.id).toSet();
       expect(ids.length, achievements.length);
     });
+
+    test('secret achievements have no visible progress tracking', () {
+      // Secret achievements are fully hidden while locked; a progress entry
+      // would be pointless at best and a leak if the UI ever showed it.
+      const progressIds = {
+        'first_egg', 'century_mark', 'thousand_layer', 'golden_flock',
+        'dozen_club', 'summer_surplus', 'perfect_week', 'on_a_roll',
+        'rainbow_basket', 'full_palette', 'breed_collector',
+        'flock_diversity', 'easter_every_day', 'starter_flock',
+        'bakers_dozen', 'full_house', 'mini_homestead', 'flock_boss',
+        'multi_manager', 'budget_tracker', 'first_gift', 'gift_basket',
+        'community_coop', 'flock_doctor', 'year_round_keeper', 'power_user',
+        'name_game',
+      };
+      final secretIds =
+          achievements.where((a) => a.secret).map((a) => a.id).toSet();
+      expect(secretIds, isNotEmpty);
+      expect(secretIds.intersection(progressIds), isEmpty);
+    });
   });
 }

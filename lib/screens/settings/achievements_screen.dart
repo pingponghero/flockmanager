@@ -168,7 +168,9 @@ class _AchievementTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final showProgress = !earned && progress != null && progress!.current > 0;
+    final hidden = achievement.secret && !earned;
+    final showProgress =
+        !earned && !hidden && progress != null && progress!.current > 0;
 
     return GestureDetector(
       onTap: () => _showDetails(context),
@@ -196,7 +198,7 @@ class _AchievementTile extends ConsumerWidget {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                achievement.icon,
+                hidden ? Icons.question_mark : achievement.icon,
                 size: 24,
                 color: earned
                     ? achievement.color
@@ -229,7 +231,7 @@ class _AchievementTile extends ConsumerWidget {
               ),
             ] else
               Text(
-                achievement.name,
+                hidden ? 'Secret' : achievement.name,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.outline,
@@ -286,6 +288,7 @@ void showAchievementDetails(
   AchievementProgress? progress,
   List<Widget> trailing = const [],
 }) {
+  final hidden = achievement.secret && !earned;
   showModalBottomSheet(
     context: context,
     builder: (context) => SafeArea(
@@ -308,7 +311,7 @@ void showAchievementDetails(
                     : null,
               ),
               child: Icon(
-                achievement.icon,
+                hidden ? Icons.question_mark : achievement.icon,
                 size: 40,
                 color: earned
                     ? achievement.color
@@ -318,7 +321,7 @@ void showAchievementDetails(
             const SizedBox(height: 16),
             // Name
             Text(
-              achievement.name,
+              hidden ? 'Secret achievement' : achievement.name,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: earned ? null : Theme.of(context).colorScheme.outline,
@@ -326,8 +329,8 @@ void showAchievementDetails(
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            // Description (only if earned)
-            if (earned)
+            // Description (secret achievements stay hidden until earned)
+            if (!hidden)
               Consumer(
                 builder: (context, ref, _) => Text(
                   achievement.describeWith(ref.watch(currencySymbolProvider)),
@@ -339,7 +342,7 @@ void showAchievementDetails(
               )
             else
               Text(
-                '???',
+                'Keep exploring to discover this one',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.outline,
                       fontStyle: FontStyle.italic,
@@ -347,7 +350,7 @@ void showAchievementDetails(
                 textAlign: TextAlign.center,
               ),
             // Progress (if applicable)
-            if (progress != null && !earned) ...[
+            if (progress != null && !earned && !hidden) ...[
               const SizedBox(height: 16),
               SizedBox(
                 width: 200,
