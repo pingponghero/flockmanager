@@ -224,4 +224,136 @@ void main() {
       expect(distribution.containsKey('Named Bird'), isFalse);
     });
   });
+
+  group('missedDaysToSpread (#47)', () {
+    final oct2 = DateTime(2026, 10, 2);
+
+    test('spreads over missed days plus the log date, oldest first', () {
+      final days = missedDaysToSpread(
+        logDate: oct2,
+        lastLoggedDate: DateTime(2026, 9, 29),
+        eggCount: 9,
+        layingHens: 3,
+      );
+      expect(days, [
+        DateTime(2026, 9, 30),
+        DateTime(2026, 10, 1),
+        oct2,
+      ]);
+    });
+
+    test('not offered without a missed day', () {
+      for (final last in [oct2, DateTime(2026, 10, 1)]) {
+        expect(
+          missedDaysToSpread(
+              logDate: oct2, lastLoggedDate: last, eggCount: 9, layingHens: 3),
+          isEmpty,
+        );
+      }
+    });
+
+    test('not offered when the flock has never been logged', () {
+      expect(
+        missedDaysToSpread(
+            logDate: oct2, lastLoggedDate: null, eggCount: 9, layingHens: 3),
+        isEmpty,
+      );
+    });
+
+    test('not offered when the batch fits in one day', () {
+      expect(
+        missedDaysToSpread(
+            logDate: oct2,
+            lastLoggedDate: DateTime(2026, 9, 29),
+            eggCount: 3,
+            layingHens: 3),
+        isEmpty,
+      );
+    });
+
+    test('not offered without laying hens to judge against', () {
+      expect(
+        missedDaysToSpread(
+            logDate: oct2,
+            lastLoggedDate: DateTime(2026, 9, 29),
+            eggCount: 9,
+            layingHens: 0),
+        isEmpty,
+      );
+    });
+
+    test('offered even when there are more days than eggs', () {
+      expect(
+        missedDaysToSpread(
+            logDate: oct2,
+            lastLoggedDate: DateTime(2026, 9, 25), // 6 missed, 7 days
+            eggCount: 5,
+            layingHens: 2),
+        hasLength(7),
+      );
+    });
+
+    test('allows up to 7 missed days, not 8', () {
+      expect(
+        missedDaysToSpread(
+            logDate: oct2,
+            lastLoggedDate: DateTime(2026, 9, 24), // 7 missed
+            eggCount: 16,
+            layingHens: 2),
+        hasLength(8),
+      );
+      expect(
+        missedDaysToSpread(
+            logDate: oct2,
+            lastLoggedDate: DateTime(2026, 9, 23), // 8 missed
+            eggCount: 18,
+            layingHens: 2),
+        isEmpty,
+      );
+    });
+
+    test('counts calendar days across a DST change', () {
+      // US DST ends Nov 1 2026; Europe Oct 25 2026
+      final days = missedDaysToSpread(
+        logDate: DateTime(2026, 11, 3),
+        lastLoggedDate: DateTime(2026, 10, 31),
+        eggCount: 9,
+        layingHens: 2,
+      );
+      expect(days, [
+        DateTime(2026, 11, 1),
+        DateTime(2026, 11, 2),
+        DateTime(2026, 11, 3),
+      ]);
+    });
+  });
+
+  group('spreadEvenly (#47)', () {
+    final days = [
+      DateTime(2026, 9, 30),
+      DateTime(2026, 10, 1),
+      DateTime(2026, 10, 2),
+    ];
+
+    test('splits evenly', () {
+      expect(spreadEvenly(9, days).values, [3, 3, 3]);
+    });
+
+    test('gives the remainder to the earliest days', () {
+      expect(spreadEvenly(10, days).values, [4, 3, 3]);
+      expect(spreadEvenly(11, days).values, [4, 4, 3]);
+    });
+
+    test('never gives the log date 0 when eggs are fewer than days', () {
+      final week = [for (var d = 0; d < 7; d++) DateTime(2026, 9, 26 + d)];
+      expect(spreadEvenly(5, week).values, [0, 0, 1, 1, 1, 1, 1]);
+      expect(spreadEvenly(2, week).values.last, 1);
+    });
+
+    test('keeps every egg', () {
+      for (var n = 1; n < 40; n++) {
+        expect(spreadEvenly(n, days).values.fold(0, (a, b) => a + b), n);
+      }
+    });
+  });
 }

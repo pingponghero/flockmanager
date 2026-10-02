@@ -175,6 +175,36 @@ class EggRepository {
     return logs;
   }
 
+  /// Insert several egg logs in one transaction.
+  Future<void> insertEggLogs(List<EggLog> logs) async {
+    final db = await _db.database;
+
+    await db.transaction((txn) async {
+      for (final log in logs) {
+        await txn.insert('egg_logs', log.toMap());
+      }
+    });
+  }
+
+  /// Most recent day on or before [date] the flock has any egg log
+  /// (zero-count logs included), or null if it has none that early.
+  Future<DateTime?> getLastLogDateOnOrBefore(
+    String flockId,
+    DateTime date,
+  ) async {
+    final db = await _db.database;
+
+    final dateStr = DateTime(date.year, date.month, date.day).toIso8601String();
+    final result = await db.rawQuery(
+      'SELECT MAX(date(date)) as last FROM egg_logs '
+      'WHERE flock_id = ? AND date(date) <= date(?)',
+      [flockId, dateStr],
+    );
+
+    final last = result.first['last'] as String?;
+    return last == null ? null : DateTime.parse(last);
+  }
+
   /// Update an existing egg log.
   Future<void> updateEggLog(EggLog log) async {
     final db = await _db.database;

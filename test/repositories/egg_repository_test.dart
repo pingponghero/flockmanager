@@ -404,5 +404,36 @@ void main() {
         expect(count, 4);
       });
     });
+
+    group('getLastLogDateOnOrBefore', () {
+      const sql = 'SELECT MAX(date(date)) as last FROM egg_logs '
+          'WHERE flock_id = ? AND date(date) <= date(?)';
+
+      test('returns the latest logged day as a local date', () async {
+        when(() => mockDatabase.rawQuery(
+              sql,
+              ['flock-1', '2026-10-02T00:00:00.000'],
+            )).thenAnswer((_) async => [
+              {'last': '2026-09-29'}
+            ]);
+
+        final last = await repository.getLastLogDateOnOrBefore(
+            'flock-1', DateTime(2026, 10, 2, 18, 30));
+
+        expect(last, DateTime(2026, 9, 29));
+      });
+
+      test('returns null when the flock has no logs', () async {
+        when(() => mockDatabase.rawQuery(sql, any()))
+            .thenAnswer((_) async => [
+                  {'last': null}
+                ]);
+
+        final last = await repository.getLastLogDateOnOrBefore(
+            'flock-1', DateTime(2026, 10, 2));
+
+        expect(last, isNull);
+      });
+    });
   });
 }
