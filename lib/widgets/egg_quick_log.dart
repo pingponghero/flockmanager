@@ -506,8 +506,7 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
     if (mounted) {
       final newAchievements = await checkAndCelebrateAchievements(ref, context);
       if (mounted && newAchievements.isNotEmpty) {
-        await AchievementCelebrationDialog.showMultiple(
-            context, newAchievements, ref: ref);
+        await AchievementCelebrationDialog.showMultiple(context, newAchievements);
         await markAchievementsAsShown(newAchievements);
       }
 
