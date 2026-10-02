@@ -1,9 +1,10 @@
 # Changelog
 
-## 2.6.0 (+28) — 2026-10-02
+## 2.6.0 (+29) — 2026-10-02
 
-Store review prompt, Play Billing 8, value-feed filters, and an iOS
-export fix (#15, #38, #39, #40, #41).
+Store review prompt, achievement requirements, spreading a batch of eggs
+across missed days, Play Billing 8, value-feed filters, and an iOS export
+fix (#15, #38, #39, #40, #41, #43, #47).
 
 ### Added
 
@@ -15,6 +16,24 @@ export fix (#15, #38, #39, #40, #41).
   when you only have one flock.
 - **"Gifts" filter on the value feed** (#38) — gifts are filterable in
   their own right.
+- **Spread a batch of eggs across missed days** (#47) — logging several
+  days' worth at once put them all on one day (`0 · 0 · 9` instead of
+  roughly `3 · 3 · 3`), skewing daily charts and records. Quick log now
+  offers to spread the batch when a flock's last log was 2–8 days earlier
+  and the batch is more than one egg per laying hen, previewing the split
+  per day before you accept. Days that work out to one egg per hen follow
+  your auto-distribute setting.
+- **Secret achievements** (#43) — Plot Twist, Santa's Omelet, Double Yolk
+  Day, Fairy Egg, Early Bird, Night Owl and Overachiever stay hidden until
+  earned, then reveal themselves.
+
+### Improved
+
+- **Locked achievements say what they need** (#43) — the details sheet
+  showed `???` instead of the requirement. It now shows the description,
+  and 14 descriptions were corrected to match the checks they describe
+  (hidden conditions such as "50+ eggs logged" were missing). No checks
+  changed.
 
 ### Fixed
 
