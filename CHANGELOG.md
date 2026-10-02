@@ -1,5 +1,39 @@
 # Changelog
 
+## 2.6.0 (+28) — 2026-10-02
+
+Store review prompt, Play Billing 8, value-feed filters, and an iOS
+export fix (#15, #38, #39, #40, #41).
+
+### Added
+
+- **Store review prompt** (#39) — engaged users are asked for an App
+  Store / Play Store review at a sensible moment, at most once per
+  release and never during an error flow.
+- **"Add flock" in the flock dropdown** (#15) — creating a flock no
+  longer means a trip to Settings; the dropdown offers it inline, including
+  when you only have one flock.
+- **"Gifts" filter on the value feed** (#38) — gifts are filterable in
+  their own right.
+
+### Fixed
+
+- **Export failed on iOS** (#41) — "Export Data" built the backup zip and
+  then died with `PlatformException ... sharePositionOrigin: argument must
+  be set`, so the share sheet never opened and the backup could not leave
+  the device. The share sheet is presented as a popover on iPad, on Mac,
+  and on iPhone on current iOS versions, and iOS requires a non-empty
+  anchor rect inside the presenting view; the app passed none, so iOS
+  fell back to an empty rect and refused. Export now anchors the sheet on
+  the Export Data row, which also places the popover correctly on iPad.
+- **'Income' filter on the value feed showed gifts** (#38) — it now shows
+  sales only.
+
+### Changed
+
+- **Google Play Billing Library 8.0.0** (#40) — `in_app_purchase` upgraded
+  to 3.3.0 ahead of Google's 2026-08-30 deadline.
+
 ## 2.5.0 (+26) — 2026-08-06
 
 Gifts, recipients, and a reliability & editing pass
