@@ -18,7 +18,9 @@ flutter run                        # Run debug on connected device/simulator
 flutter run --release              # Run release build
 flutter run -d <device_id>         # Run on specific device
 flutter devices                    # List connected devices
-flutter test                       # Run all tests
+flutter test                       # Run all tests (skips integration_test/)
+flutter test integration_test/share_sheet_test.dart -d <device_id>
+                                   # On-device share sheet checks (#41)
 flutter pub get                    # Fetch dependencies
 flutter pub outdated               # Check for outdated packages
 flutter pub upgrade                # Upgrade dependencies (within constraints)
@@ -26,8 +28,20 @@ flutter build ipa --release        # Build iOS archive + IPA
 flutter build appbundle --release  # Build Android AAB
 flutter build apk --release       # Build Android APK (for device testing)
 flutter clean                      # Delete build artifacts
+flutter build ios --release --config-only
+                                   # Repair ios/Flutter/Generated.xcconfig after
+                                   # an integration-test run (see note below)
 flutter upgrade                    # Upgrade Flutter SDK itself
 ```
+
+**After running integration tests, before archiving in Xcode:** a
+`flutter test integration_test/... -d <device>` run rewrites
+`ios/Flutter/Generated.xcconfig` to point `FLUTTER_TARGET` at a temporary test
+listener and leaves it there. The temp file is then deleted, so archiving fails
+in the Run Script phase with `No such file or directory ... listener.dart` /
+`No 'main' method found`, and `TRACK_WIDGET_CREATION` is left on. Run
+`flutter build ios --release --config-only` first, or use `flutter build ipa`
+instead of archiving from Xcode.
 
 ## Dart / Code Generation
 

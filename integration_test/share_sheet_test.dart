@@ -8,6 +8,17 @@
 // Run against a booted simulator or an attached device:
 //   flutter test integration_test/share_sheet_test.dart -d <device-id>
 //
+// Afterwards, regenerate the iOS build config before archiving:
+//   flutter build ios --release --config-only
+//
+// Running this suite rewrites ios/Flutter/Generated.xcconfig so FLUTTER_TARGET
+// points at a temporary test listener, and leaves it pointing there on exit.
+// The temp file is deleted, so a later Xcode archive fails in the "Run Script"
+// phase with "No such file or directory ... listener.dart" and "No 'main'
+// method found". It also leaves TRACK_WIDGET_CREATION=true, which does not
+// belong in a release build. Using `flutter build ipa` rather than archiving
+// from Xcode avoids this, since it sets the config itself.
+//
 // On iPad this is the case that originally failed outright. On iPhone it
 // depends on whether UIActivityViewController is given a popover presentation
 // controller, which is why the negative control below reports rather than
