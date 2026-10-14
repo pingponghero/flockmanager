@@ -30,86 +30,75 @@ Primary name options (30 character limit for iOS, 50 for Android):
 
 ### Primary Description
 
----
-
-**Finally, a simple chicken keeping app that doesn't nickel and dime you.**
-
-Flock Manager is a simple, powerful app for backyard chicken keepers who want to track their flock without the hassle of subscriptions, accounts, or complicated features you'll never use.
-
-**LOG EGGS IN 2 TAPS**
-
-Quick egg logging is always one tap away. Open the app, tap the count, done. Yesterday's default count is already there—just confirm and get back to your birds. It's the fastest egg log you'll find.
-
-**MANAGE MULTIPLE FLOCKS**
-
-Keep your layers separate from your bantams, or track your breeding project apart from your backyard girls. Switch between flocks instantly, or view everything at once.
-
-**TRACK EVERY BIRD**
-
-• Add photos so you can tell Henrietta from Ginger
-• Record breed, hatch date, and where they came from
-• Note expected egg color for each hen
-• Track status changes (sold, deceased, given away)
-
-**SEE YOUR PRODUCTION**
-
-• Calendar view shows eggs per day at a glance
-• Weekly and monthly totals with trend comparisons
-• Per-bird production estimates
-• Spot your top layers and your freeloaders
-
-**STAY ON TOP OF HEALTH**
-
-• Log medications with automatic withdrawal tracking
-• Get notified when withdrawal periods end
-• Add health notes for each bird
-• Never wonder "when did I last treat for mites?"
-
-**KNOW YOUR COSTS**
-
-• Track feed, bedding, medical, and equipment expenses
-• Optional income tracking for egg sales
-• See your true cost per egg
-• Understand if your flock is paying for itself
-
-**BREED REFERENCE**
-
-• Built-in guide to 50+ chicken breeds
-• Egg color, production, temperament info
-• Filter by cold hardy, broody, best layers
-• Perfect for planning your next additions
-
-**PRIVACY FIRST**
-
-• All data stored locally on your device
-• No account required
-• No cloud sync (your flock, your business)
-• No ads, ever
-
-**ONE PRICE, FOREVER**
-
-Try free for 14 days, then unlock everything with a single $4.99 purchase. No subscriptions. No "pro" tiers. No annual renewals. Just a straightforward app that works.
-
-**EXPORT YOUR DATA**
-
-Your data belongs to you. Export everything to CSV anytime. We'll never hold your flock records hostage.
+*Last reviewed against the app for 2.6.0 (+29).*
 
 ---
 
-**Perfect for:**
-• Backyard chicken keepers with 3-50 birds
-• Homesteaders tracking multiple flocks
-• 4-H and FFA poultry projects
-• Anyone tired of subscription apps
+The chicken keeping app backyard keepers actually asked for.
+
+Log eggs in seconds. Track every hen by name. Know your true cost per egg. Flock Manager fits how backyard keepers actually live — it isn't a commercial poultry tool duct-taped to work for the rest of us. No subscriptions, no account, no features you'll never use.
+
+LOG EGGS IN SECONDS
+
+Open the app, tap the count, done. It's the fastest egg log you'll find. Logging a few days at once? Flock Manager offers to spread them back across the days you missed, so your charts stay honest.
+
+KNOW YOUR GIRLS
+
+Add photos so you can tell Henrietta from Ginger. Record each bird's breed, hatch date, and expected egg color. Track when hens are sold, rehomed, or pass away. Your flock history, always at hand.
+
+SEE YOUR PRODUCTION
+
+- Calendar view shows eggs per day at a glance
+- Weekly and monthly totals with trend comparisons
+- Per-bird production rankings
+- Spot your top layers — and your freeloaders!
+- Forecast the months ahead from your flock and your daylight hours
+
+IS YOUR FLOCK WORTH IT?
+
+Set your local store egg price once and see exactly how your flock stacks up. Log feed and supply costs, record egg sales, and keep track of the dozens you give away. Flock Manager shows your true cost per egg, the retail value of what you produce, and whether you're beating the store.
+
+STAY ON TOP OF HEALTH
+
+- Log medications with automatic withdrawal tracking
+- Get notified when eggs are safe to collect again
+- Add health notes for each bird
+- Never wonder "when did I last treat for mites?"
+
+MANAGE MULTIPLE FLOCKS
+
+Keep your layers separate from your bantams. Track a breeding project apart from your backyard girls. Switch flocks instantly, or see everything at once.
+
+50+ BREED REFERENCE GUIDE
+
+Built-in guide to over 50 chicken breeds — egg color, production rates, temperament, cold hardiness, and more. Filter by what matters to you. Perfect for planning your next additions.
+
+COLLECT THE BADGES
+
+Earn achievements as your flock hits its milestones, from the first egg of the season to a few you'll have to discover for yourself.
+
+PRIVACY FIRST
+
+All your data lives on your device. No account required. No cloud sync. No ads. Ever. Your flock is your business.
+
+YOUR DATA, YOUR RULES
+
+Back up everything — every record and every bird photo — into a single file you keep. Restore it on a new phone in a couple of taps, or open the spreadsheets yourself. We'll never hold your data hostage.
+
+ONE PRICE, FOREVER
+
+Try free for 14 days, then unlock everything with a single purchase — less than a dozen eggs at the farmer's market. No subscriptions. No "pro" tiers. No annual renewals.
 
 ---
 
-Built by chicken keepers, for chicken keepers. Questions? We'd love to hear from you at flockmanager.app@gmail.com.
+Perfect for backyard keepers with 3–50 birds, homesteaders juggling multiple flocks, and anyone tired of using spreadsheets or paying monthly for an app.
+
+Questions? We'd love to hear from you at flockmanager.app@gmail.com
 
 ---
 
 ### Character Count
-Approximately 2,100 characters — well under 4,000 limit. Room to expand if needed.
+2,877 characters — under the 4,000 limit on both stores, with room to expand.
 
 ---
 
@@ -172,37 +161,24 @@ For future updates:
 
 ---
 
-### Example: Version 1.0 (Launch)
+### Version 2.6.0 (+29)
 
 ```
-Welcome to Flock Manager!
+• Log a few days' eggs at once and spread them back across the days you missed,
+  so your daily charts and records stay honest
+• Locked achievements now tell you what they need instead of "???", and a few
+  stay secret until you earn them
+• Add a flock straight from the flock dropdown, no trip to Settings
+• The value feed's Income filter shows sales only, with gifts on their own filter
 
-Track your backyard flock with ease:
-• Quick 2-tap egg logging
-• Multi-flock management
-• Bird profiles with photos
-• Production analytics
-• Expense tracking
-• Medication & withdrawal reminders
-• 50+ breed reference guide
-
-Try free for 14 days, then unlock everything for a one-time purchase. No subscriptions!
+Fixed: exporting your data on iPhone and iPad failed to open the share sheet, so
+backups could not leave the device. Export works again.
 
 Questions? Reach us at flockmanager.app@gmail.com
 ```
 
-### Example: Version 1.1
-
-```
-Thanks for the great feedback! Here's what's new:
-
-• Widget support — log eggs from your home screen
-• Dark mode
-• Improved calendar performance
-• Fixed: Egg count sometimes showing yesterday's date
-
-Love Flock Manager? A review helps other chicken keepers find us!
-```
+*Drawn from CHANGELOG.md. Keep store notes user-facing — leave the toolchain and
+build-system entries out.*
 
 ---
 
