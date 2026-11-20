@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import '../../data/breeds.dart';
 import '../../models/bird.dart';
@@ -16,6 +15,7 @@ import '../../providers/bird_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../providers/flock_provider.dart';
+import '../../services/photo_storage.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
 
 class BirdFormScreen extends ConsumerStatefulWidget {
@@ -407,18 +407,11 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
 
       if (pickedFile == null) return;
 
-      // Copy to app documents directory
-      final appDir = await getApplicationDocumentsDirectory();
-      final photosDir = Directory('${appDir.path}/bird_photos');
-      if (!await photosDir.exists()) {
-        await photosDir.create(recursive: true);
-      }
-
+      // Copy into app storage; the database keeps only the filename.
       final fileName = '${DateTime.now().millisecondsSinceEpoch}_${path.basename(pickedFile.path)}';
-      final savedPath = '${photosDir.path}/$fileName';
-      await File(pickedFile.path).copy(savedPath);
+      final storedName = await PhotoStorage.save(File(pickedFile.path), fileName);
 
-      setState(() => _photoPath = savedPath);
+      setState(() => _photoPath = storedName);
     } catch (e) {
       if (mounted) {
         showAppSnackBar(
@@ -560,6 +553,7 @@ class _PhotoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final photoFile = PhotoStorage.resolve(photoPath);
     return Center(
       child: GestureDetector(
         onTap: onPhotoTap,
@@ -575,11 +569,11 @@ class _PhotoSection extends StatelessWidget {
             ),
           ),
           clipBehavior: Clip.antiAlias,
-          child: photoPath != null && File(photoPath!).existsSync()
+          child: photoFile != null
               ? Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.file(File(photoPath!), fit: BoxFit.cover),
+                    Image.file(photoFile, fit: BoxFit.cover),
                     Positioned(
                       bottom: 0,
                       left: 0,

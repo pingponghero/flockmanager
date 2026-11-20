@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +10,7 @@ import '../providers/achievements_provider.dart';
 import '../providers/bird_provider.dart';
 import '../providers/egg_provider.dart';
 import '../providers/flock_provider.dart';
+import '../services/photo_storage.dart';
 import '../utils/snackbar_utils.dart';
 import 'achievement_celebration_dialog.dart';
 
@@ -387,8 +386,8 @@ class _HenRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasPhoto =
-        bird.photoPrimary != null && File(bird.photoPrimary!).existsSync();
+    final photoFile = bird.photoFile;
+    final hasPhoto = photoFile != null;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -405,7 +404,7 @@ class _HenRow extends StatelessWidget {
                       fit: StackFit.expand,
                       children: [
                         Image.file(
-                          File(bird.photoPrimary!),
+                          photoFile,
                           fit: BoxFit.cover,
                         ),
                         // Tint overlay when count > 0

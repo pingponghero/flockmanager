@@ -1,9 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../../models/bird.dart';
 import '../../../models/enums.dart';
+import '../../../services/photo_storage.dart';
 
 /// Header widget displaying bird photo, name, breed, and age
 class BirdHeader extends StatelessWidget {
@@ -13,8 +12,8 @@ class BirdHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasPhoto =
-        bird.photoPrimary != null && File(bird.photoPrimary!).existsSync();
+    final photoFile = bird.photoFile;
+    final hasPhoto = photoFile != null;
 
     return Stack(
       fit: StackFit.expand,
@@ -22,7 +21,7 @@ class BirdHeader extends StatelessWidget {
         // Photo or fallback background
         if (hasPhoto)
           Image.file(
-            File(bird.photoPrimary!),
+            photoFile,
             fit: BoxFit.cover,
           )
         else
