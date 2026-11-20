@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
@@ -12,6 +11,7 @@ import '../../providers/analytics_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
 import '../../providers/forecast_provider.dart';
+import '../../services/photo_storage.dart';
 import '../../utils/daylight_calculator.dart';
 import '../../providers/flock_provider.dart';
 import '../../widgets/flock_dropdown.dart';
@@ -741,10 +741,10 @@ class _CollapsibleBirdBreakdown extends StatelessWidget {
             leading: Stack(
               children: [
                 CircleAvatar(
-                  backgroundImage: stats.bird.photoPrimary != null
-                      ? FileImage(File(stats.bird.photoPrimary!))
+                  backgroundImage: stats.bird.photoFile != null
+                      ? FileImage(stats.bird.photoFile!)
                       : null,
-                  child: stats.bird.photoPrimary == null
+                  child: stats.bird.photoFile == null
                       ? Image.asset(
                           'assets/icons/cute_hen.png',
                           width: 24,

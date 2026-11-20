@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../database/database_helper.dart';
+import 'photo_storage.dart';
 
 /// Service for exporting app data to CSV files in a zip archive.
 class ExportService {
@@ -250,8 +251,8 @@ class ExportService {
         final birdId = birdPhoto['id'] as String;
 
         try {
-          final photoFile = File(photoPath);
-          if (await photoFile.exists()) {
+          final photoFile = PhotoStorage.resolve(photoPath);
+          if (photoFile != null) {
             final photoBytes = await photoFile.readAsBytes();
             archive.addFile(ArchiveFile(
                 'photos/bird_$birdId.jpg', photoBytes.length, photoBytes));

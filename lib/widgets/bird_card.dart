@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/breeds.dart';
 import '../models/bird.dart';
 import '../models/enums.dart';
+import '../services/photo_storage.dart';
 
 /// Reusable card widget for displaying bird information.
 class BirdCard extends StatelessWidget {
@@ -22,8 +21,8 @@ class BirdCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasPhoto =
-        bird.photoPrimary != null && File(bird.photoPrimary!).existsSync();
+    final photoFile = bird.photoFile;
+    final hasPhoto = photoFile != null;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -41,7 +40,7 @@ class BirdCard extends StatelessWidget {
                     ? GestureDetector(
                         onTap: onTap,
                         child: Image.file(
-                          File(bird.photoPrimary!),
+                          photoFile,
                           fit: BoxFit.cover,
                           height: double.infinity,
                           width: double.infinity,

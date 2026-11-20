@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 
 import '../database/database_helper.dart';
 import '../models/import_result.dart';
+import 'photo_storage.dart';
 
 /// Service for importing app data from a ZIP archive.
 class ImportService {
@@ -77,8 +78,7 @@ class ImportService {
       _reportProgress(0.35);
 
       // 5. Get photo directory and prepare for photo import
-      final appDir = await getApplicationDocumentsDirectory();
-      final photoDir = Directory('${appDir.path}/photos');
+      final photoDir = await PhotoStorage.photosDir();
       final photosFolder = Directory('${tempDir.path}/photos');
       final hasPhotosFolder = await photosFolder.exists();
 
@@ -96,6 +96,7 @@ class ImportService {
       int incomeCount = 0;
       int medicationLogsCount = 0;
       int healthNotesCount = 0;
+      final importedPhotoNames = <String>{};
 
       await db.transaction((txn) async {
         _reportProgress(0.4);
@@ -113,16 +114,9 @@ class ImportService {
         await txn.delete('flocks');
         _reportProgress(0.45);
 
-        // 8. Delete existing photo files
-        if (await photoDir.exists()) {
-          await for (final entity in photoDir.list()) {
-            if (entity is File) {
-              await entity.delete();
-            }
-          }
-        } else {
-          await photoDir.create(recursive: true);
-        }
+        // 8. Existing photo files are removed only after the transaction
+        // commits (step 11), so a failed import can't destroy photos the
+        // rolled-back database still references.
         _reportProgress(0.5);
 
         // 9. Insert imported data (dependency order)
@@ -156,17 +150,17 @@ class ImportService {
 
             if (await sourceFile.exists()) {
               try {
-                // Copy photo to app storage
-                final destPath = '${photoDir.path}/$photoFilename';
-                await sourceFile.copy(destPath);
+                // Copy photo to app storage; store only the filename
+                final storedName = PhotoStorage.toStoredName(photoFilename);
+                await sourceFile.copy(p.join(photoDir.path, storedName));
 
-                // Update bird record with new absolute path
                 await txn.update(
                   'birds',
-                  {'photo_primary': destPath},
+                  {'photo_primary': storedName},
                   where: 'id = ?',
                   whereArgs: [birdId],
                 );
+                importedPhotoNames.add(storedName);
                 photosCount++;
               } catch (e) {
                 warnings.add('Failed to import photo for bird $birdId: $e');
@@ -284,7 +278,20 @@ class ImportService {
         _reportProgress(0.95);
       });
 
-      // 11. Clean up temp directory
+      // 11. Import replaced every bird, so photos not referenced by the
+      // imported data are orphans. Best effort: a leftover file is harmless.
+      try {
+        await for (final entity in photoDir.list()) {
+          if (entity is File &&
+              !importedPhotoNames.contains(p.basename(entity.path))) {
+            await entity.delete();
+          }
+        }
+      } catch (e) {
+        warnings.add('Could not remove old photos: $e');
+      }
+
+      // 12. Clean up temp directory
       await tempDir.delete(recursive: true);
       tempDir = null;
 
