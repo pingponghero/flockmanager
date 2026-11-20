@@ -1,10 +1,11 @@
 # Changelog
 
-## 2.6.0 (+29) — 2026-10-02
+## 2.6.0 (+30) — 2026-11-20
 
 Store review prompt, achievement requirements, spreading a batch of eggs
-across missed days, Play Billing 8, value-feed filters, and an iOS export
-fix (#15, #38, #39, #40, #41, #43, #47).
+across missed days, Play Billing 8, value-feed filters, an iOS export fix,
+and a fix for bird photos disappearing after updates (#15, #38, #39, #40,
+#41, #43, #47, #52).
 
 ### Added
 
@@ -37,6 +38,14 @@ fix (#15, #38, #39, #40, #41, #43, #47).
 
 ### Fixed
 
+- **Bird photos disappeared after updating the app** (#52) — photos were
+  stored by absolute path, and iOS can move the app's data container on
+  update or restore, leaving every stored path pointing at a folder that
+  no longer existed. Photos are now stored by filename and resolved
+  against the current photo directory; a v7 database migration rewrites
+  existing paths, so photos that had gone missing come back on their own.
+  Import now removes orphaned photo files only after its transaction
+  commits.
 - **Export failed on iOS** (#41) — "Export Data" built the backup zip and
   then died with `PlatformException ... sharePositionOrigin: argument must
   be set`, so the share sheet never opened and the backup could not leave
