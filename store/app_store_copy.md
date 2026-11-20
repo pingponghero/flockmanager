@@ -161,24 +161,25 @@ For future updates:
 
 ---
 
-### Version 2.6.0 (+29)
+### Version 2.6.0 (+30)
 
 ```
-• Log a few days' eggs at once and spread them back across the days you missed,
-  so your daily charts and records stay honest
-• Locked achievements now tell you what they need instead of "???", and a few
-  stay secret until you earn them
-• Add a flock straight from the flock dropdown, no trip to Settings
-• The value feed's Income filter shows sales only, with gifts on their own filter
+• Log a few days' eggs at once and spread them back across the days you missed, so your daily charts and records stay accurate
+• Locked achievements now show what you need to earn them instead of "???"
+• New secret achievements, hidden until you earn them. See if you can find them all!
+• Add a flock straight from the flock dropdown, no trip to Settings needed
+• Gifts now have their own filter in the value feed, and the Income filter shows sales only
 
-Fixed: exporting your data on iPhone and iPad failed to open the share sheet, so
-backups could not leave the device. Export works again.
+Fixed: bird photos could disappear after updating the app. Missing photos are restored automatically.
+
+Fixed: on iPhone and iPad, exporting your data failed before the share sheet opened, so backups couldn't leave your device. Export works again.
 
 Questions? Reach us at flockmanager.app@gmail.com
 ```
 
 *Drawn from CHANGELOG.md. Keep store notes user-facing — leave the toolchain and
-build-system entries out.*
+build-system entries out. Write each item on one line: App Store Connect and Play
+Console keep line breaks, so wrapped lines show up broken mid-sentence.*
 
 ---
 
