@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../models/bird.dart';
 import '../../../providers/bird_provider.dart';
 import '../../../providers/egg_provider.dart';
+import '../../../services/photo_storage.dart';
 
 /// Swipable gallery of all living birds in the flock.
 class FlockSpotlight extends ConsumerStatefulWidget {
@@ -129,9 +128,9 @@ class _BirdCard extends ConsumerWidget {
             // Photo strip
             SizedBox(
               width: 120,
-              child: bird.photoPrimary != null
+              child: bird.photoFile != null
                   ? Image.file(
-                      File(bird.photoPrimary!),
+                      bird.photoFile!,
                       fit: BoxFit.cover,
                       height: double.infinity,
                       width: double.infinity,

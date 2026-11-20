@@ -1,8 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../models/bird.dart';
+import '../services/photo_storage.dart';
 
 class DistributeEggsDialog extends StatelessWidget {
   final int eggCount;
@@ -86,10 +85,10 @@ class _BirdDistributionRow extends StatelessWidget {
             // Bird avatar (photo or placeholder)
             CircleAvatar(
               radius: 16,
-              backgroundImage: bird.photoPrimary != null
-                  ? FileImage(File(bird.photoPrimary!))
+              backgroundImage: bird.photoFile != null
+                  ? FileImage(bird.photoFile!)
                   : null,
-              child: bird.photoPrimary == null
+              child: bird.photoFile == null
                   ? const Icon(Icons.egg, size: 16)
                   : null,
             ),

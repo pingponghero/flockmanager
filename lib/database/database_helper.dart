@@ -16,7 +16,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String _databaseName = 'flock_manager.db';
-  static const int _databaseVersion = 6;
+  static const int _databaseVersion = 7;
 
   /// Get the database instance, initializing if needed.
   Future<Database> get database async {
@@ -192,6 +192,26 @@ class DatabaseHelper {
             "ALTER TABLE income ADD COLUMN type TEXT NOT NULL DEFAULT 'sale'");
         await db.execute(
             'ALTER TABLE income ADD COLUMN recipient_id TEXT REFERENCES recipients(id)');
+      }
+    }
+
+    // Migration to version 7: store bird photos by filename, not absolute
+    // path. iOS can move the app container on update, which broke every
+    // absolute path saved before (issue #52). PhotoStorage resolves the
+    // filename against the current photo directory.
+    if (oldVersion < 7 && newVersion >= 7) {
+      final birds = await db.query(
+        'birds',
+        columns: ['id', 'photo_primary'],
+        where: "photo_primary IS NOT NULL AND photo_primary != ''",
+      );
+      for (final bird in birds) {
+        final stored = bird['photo_primary'] as String;
+        final name = basename(stored);
+        if (name != stored) {
+          await db.update('birds', {'photo_primary': name},
+              where: 'id = ?', whereArgs: [bird['id']]);
+        }
       }
     }
   }

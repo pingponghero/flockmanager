@@ -11,6 +11,7 @@ import 'providers/review_prompt_provider.dart';
 import 'providers/theme_provider.dart';
 import 'services/iap_service.dart';
 import 'services/notification_service.dart';
+import 'services/photo_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,12 @@ void main() async {
 /// Initialize all services with graceful error handling.
 /// App launches with degraded features if any service fails.
 Future<void> _initServices() async {
+  try {
+    await PhotoStorage.init();
+  } catch (e) {
+    debugPrint('Photo storage init failed: $e');
+  }
+
   try {
     await NotificationService().initialize();
     NotificationService.onEggReminderTapped = () {
