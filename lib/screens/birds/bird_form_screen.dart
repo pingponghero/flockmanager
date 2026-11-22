@@ -145,23 +145,28 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Sex dropdown
-            DropdownMenu<BirdSex>(
-              initialSelection: _selectedSex,
-              expandedInsets: EdgeInsets.zero,
-              label: const Text('Sex'),
-              dropdownMenuEntries: BirdSex.values
-                  .map((sex) => DropdownMenuEntry(
-                        value: sex,
-                        label: sex.displayName,
-                      ))
-                  .toList(),
-              onSelected: (value) {
-                if (value != null) {
-                  setState(() => _selectedSex = value);
-                  _generateDefaultName();
-                }
-              },
+            // Sex (#62)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Sex', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<BirdSex>(
+                  segments: [
+                    for (final sex in BirdSex.values)
+                      ButtonSegment(value: sex, label: Text(sex.displayName)),
+                  ],
+                  selected: {_selectedSex},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) {
+                    setState(() => _selectedSex = selection.first);
+                    _generateDefaultName();
+                  },
+                ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 

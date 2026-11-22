@@ -14,6 +14,7 @@ import '../../providers/forecast_provider.dart';
 import '../../services/photo_storage.dart';
 import '../../utils/daylight_calculator.dart';
 import '../../providers/flock_provider.dart';
+import '../../widgets/choice_chip_row.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/scaffold_with_nav_bar.dart';
@@ -65,9 +66,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Column(
               children: [
-                // Flock filter (hidden if only 1 flock)
+                // Flock filter
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: FlockDropdown(
                     selectedFlockId: selectedFlockId,
                     onChanged: (value) {
@@ -75,25 +76,16 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                     },
                   ),
                 ),
-                // Period selector
-                DropdownMenu<AnalyticsPeriod>(
-                  initialSelection: selectedPeriod,
-                  expandedInsets: EdgeInsets.zero,
-                  label: const Text('Period'),
-                  dropdownMenuEntries: AnalyticsPeriod.values
-                      .map((period) => DropdownMenuEntry(
-                            value: period,
-                            label: period.displayName,
-                          ))
-                      .toList(),
-                  onSelected: (value) {
-                    if (value != null) {
-                      ref.read(analyticsPeriodProvider.notifier).setPeriod(value);
-                    }
-                  },
-                ),
               ],
             ),
+          ),
+          // Period selector (#62)
+          ChoiceChipRow<AnalyticsPeriod>(
+            values: AnalyticsPeriod.values,
+            selected: selectedPeriod,
+            labelOf: (period) => period.shortLabel,
+            onSelected: (period) =>
+                ref.read(analyticsPeriodProvider.notifier).setPeriod(period),
           ),
           const SizedBox(height: 8),
           // Loading indicator (shows while refreshing, doesn't disrupt scroll)

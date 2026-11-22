@@ -152,6 +152,14 @@ enum FinanceDateRange {
   final String displayName;
   const FinanceDateRange(this.displayName);
 
+  /// Compact label for the period chips (#62).
+  String get shortLabel => switch (this) {
+        FinanceDateRange.last30Days => '30 days',
+        FinanceDateRange.last90Days => '90 days',
+        FinanceDateRange.thisYear => 'This year',
+        FinanceDateRange.allTime => 'All time',
+      };
+
   (DateTime start, DateTime end) get dates {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day, 23, 59, 59);

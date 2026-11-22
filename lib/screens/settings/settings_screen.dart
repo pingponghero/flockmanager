@@ -281,27 +281,37 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DropdownMenu<ThemeMode>(
-                    initialSelection: currentThemeMode,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Theme Mode'),
-                    leadingIcon: Icon(
-                      currentThemeMode == ThemeMode.light
-                          ? Icons.light_mode
-                          : currentThemeMode == ThemeMode.dark
-                              ? Icons.dark_mode
-                              : Icons.settings_brightness,
+                  Text(
+                    'Theme',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<ThemeMode>(
+                      segments: const [
+                        ButtonSegment(
+                          value: ThemeMode.system,
+                          label: Text('System'),
+                          icon: Icon(Icons.settings_brightness),
+                        ),
+                        ButtonSegment(
+                          value: ThemeMode.light,
+                          label: Text('Light'),
+                          icon: Icon(Icons.light_mode),
+                        ),
+                        ButtonSegment(
+                          value: ThemeMode.dark,
+                          label: Text('Dark'),
+                          icon: Icon(Icons.dark_mode),
+                        ),
+                      ],
+                      selected: {currentThemeMode},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (selection) => ref
+                          .read(themeModeProvider.notifier)
+                          .setThemeMode(selection.first),
                     ),
-                    dropdownMenuEntries: const [
-                      DropdownMenuEntry(value: ThemeMode.system, label: 'System'),
-                      DropdownMenuEntry(value: ThemeMode.light, label: 'Light'),
-                      DropdownMenuEntry(value: ThemeMode.dark, label: 'Dark'),
-                    ],
-                    onSelected: (value) {
-                      if (value != null) {
-                        ref.read(themeModeProvider.notifier).setThemeMode(value);
-                      }
-                    },
                   ),
                   const SizedBox(height: 20),
                   Text(
