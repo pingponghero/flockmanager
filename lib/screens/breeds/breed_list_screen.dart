@@ -58,7 +58,7 @@ class _BreedListScreenState extends State<BreedListScreen> {
                             decoration: BoxDecoration(
                               color: _getEggColorValue(color),
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.grey.shade400),
+                              border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                             ),
                           ),
                         )),
@@ -236,7 +236,7 @@ class _BreedCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: _getEggColorValue(breed.eggColor),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
         ),
         title: Text(

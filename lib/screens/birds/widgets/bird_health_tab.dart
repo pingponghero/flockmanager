@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../models/bird.dart';
 import '../../../providers/medication_provider.dart';
+import '../../../app/status_colors.dart';
 
 /// Health tab showing medications and health notes for a bird
 class BirdHealthTab extends ConsumerWidget {
@@ -89,11 +90,11 @@ class BirdHealthTab extends ConsumerWidget {
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: isMed
-                          ? Colors.orange.shade100
-                          : Colors.blue.shade100,
+                          ? StatusColors.of(context).caution.strongContainer
+                          : StatusColors.of(context).info.strongContainer,
                       child: Icon(
                         isMed ? Icons.medication : Icons.note,
-                        color: isMed ? Colors.orange.shade700 : Colors.blue.shade700,
+                        color: isMed ? StatusColors.of(context).caution.icon : StatusColors.of(context).info.icon,
                       ),
                     ),
                     title: Text(item.title),

@@ -353,7 +353,7 @@ class _IconChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = isSelected ? color : Colors.grey.shade600;
+    final iconColor = isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant;
 
     return InkWell(
       onTap: onTap,
@@ -362,11 +362,11 @@ class _IconChip extends StatelessWidget {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.2) : Colors.grey.shade100,
+          color: isSelected ? color.withValues(alpha: 0.2) : Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: isSelected
               ? Border.all(color: color, width: 2)
-              : Border.all(color: Colors.grey.shade300),
+              : Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Center(
           child: icon != null

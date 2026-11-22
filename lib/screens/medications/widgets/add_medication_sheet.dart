@@ -12,6 +12,7 @@ import '../../../providers/notification_provider.dart';
 import '../../../utils/snackbar_utils.dart';
 import '../../../widgets/achievement_celebration_dialog.dart';
 import 'legal_status_badge.dart';
+import '../../../app/status_colors.dart';
 
 class AddMedicationSheet extends ConsumerStatefulWidget {
   /// When set, the sheet edits this medication log instead of creating one.
@@ -184,16 +185,16 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
+                  color: StatusColors.of(context).warning.container,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber.shade200),
+                  border: Border.all(color: StatusColors.of(context).warning.border),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.warning_amber,
-                      color: Colors.amber.shade700,
+                      color: StatusColors.of(context).warning.icon,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -202,7 +203,7 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
                         _selectedMedication!.legalWarning!,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.amber.shade900,
+                          color: StatusColors.of(context).warning.onContainer,
                         ),
                       ),
                     ),
@@ -349,7 +350,7 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
                           'No established withdrawal - using conservative estimate',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.orange.shade700,
+                            color: StatusColors.of(context).caution.icon,
                           ),
                         ),
                     ],
@@ -383,7 +384,7 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
       return Text(
         '?',
         style: TextStyle(
-          color: Colors.orange.shade700,
+          color: StatusColors.of(context).caution.icon,
           fontWeight: FontWeight.bold,
         ),
       );
@@ -392,7 +393,7 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
       return Text(
         '${med.withdrawalDaysEgg}d',
         style: TextStyle(
-          color: Colors.amber.shade700,
+          color: StatusColors.of(context).warning.icon,
           fontWeight: FontWeight.bold,
         ),
       );
