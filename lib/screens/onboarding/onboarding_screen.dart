@@ -114,7 +114,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       setState(() => _isCreatingFlock = false);
       if (mounted) {
-        showAppSnackBar(context, 'Error creating flock: $e');
+        showErrorSnackBar(context, "Couldn't create the flock", e);
       }
     }
   }
@@ -152,7 +152,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       setState(() => _isCreatingBird = false);
       if (mounted) {
-        showAppSnackBar(context, 'Error adding bird: $e');
+        showErrorSnackBar(context, "Couldn't add the bird", e);
       }
     }
   }

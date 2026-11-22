@@ -16,6 +16,7 @@ import 'achievement_celebration_dialog.dart';
 import 'distribute_eggs_dialog.dart';
 import 'egg_log_by_hen.dart';
 import 'spread_eggs_dialog.dart';
+import 'error_state.dart';
 
 /// Shows the quick egg log bottom sheet.
 /// Returns the created EggLog if logged, null otherwise.
@@ -438,11 +439,7 @@ class _EggQuickLogSheetState extends ConsumerState<EggQuickLogSheet> {
       }
     } catch (e) {
       if (mounted) {
-        showAppSnackBar(
-          context,
-          'Error: $e',
-          backgroundColor: Theme.of(context).colorScheme.error,
-        );
+        showErrorSnackBar(context, "Couldn't save your eggs", e);
         setState(() => _isLoading = false);
       }
     }
@@ -543,7 +540,11 @@ class _FlockSelector extends ConsumerWidget {
 
     return flocksAsync.when(
       loading: () => const LinearProgressIndicator(),
-      error: (error, stack) => Text('Error: $error'),
+      error: (error, stack) => ErrorState.compact(
+        message: "Couldn't load flocks",
+        error: error,
+        onRetry: () => ref.invalidate(flocksProvider),
+      ),
       data: (flocks) {
         if (flocks.isEmpty) {
           return Card(

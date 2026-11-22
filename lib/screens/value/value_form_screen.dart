@@ -127,7 +127,7 @@ class _ExpenseFormScreenState extends ConsumerState<ExpenseFormScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showAppSnackBar(context, 'Error saving expense: $e');
+        showErrorSnackBar(context, "Couldn't save the expense", e);
       }
     } finally {
       if (mounted) {
@@ -436,7 +436,7 @@ class _IncomeFormScreenState extends ConsumerState<IncomeFormScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showAppSnackBar(context, 'Error saving income: $e');
+        showErrorSnackBar(context, "Couldn't save the income", e);
       }
     } finally {
       if (mounted) {

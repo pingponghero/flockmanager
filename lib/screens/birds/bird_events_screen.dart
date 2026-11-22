@@ -8,6 +8,7 @@ import '../../providers/bird_status_event_provider.dart';
 import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/flock_dropdown.dart';
+import '../../widgets/error_state.dart';
 
 /// Screen displaying history of bird status events (added, status changes, etc.)
 class BirdEventsScreen extends ConsumerWidget {
@@ -47,18 +48,9 @@ class BirdEventsScreen extends ConsumerWidget {
           Expanded(
             child: eventsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text('Error: $error'),
-                    ],
-                  ),
-                ),
+              error: (error, stack) => ErrorState(
+                message: "Couldn't load flock history",
+                error: error,
               ),
               data: (events) {
                 if (events.isEmpty) {

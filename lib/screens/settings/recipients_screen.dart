@@ -8,6 +8,7 @@ import '../../repositories/finance_repository.dart' show RecipientStats;
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/recipient_selector.dart' show showAddRecipientDialog;
+import '../../widgets/error_state.dart';
 
 /// Manages the directory of sale/gift recipients with per-recipient stats.
 class RecipientsScreen extends ConsumerWidget {
@@ -22,7 +23,11 @@ class RecipientsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Recipients')),
       body: recipientsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
+        error: (error, _) => ErrorState(
+          message: "Couldn't load recipients",
+          error: error,
+          onRetry: () => ref.invalidate(recipientsProvider),
+        ),
         data: (recipients) {
           if (recipients.isEmpty) {
             return Center(

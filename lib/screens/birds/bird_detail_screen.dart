@@ -14,6 +14,7 @@ import 'widgets/bird_header.dart';
 import 'widgets/bird_health_tab.dart';
 import 'widgets/bird_info_tab.dart';
 import 'widgets/bird_stats_row.dart';
+import '../../widgets/error_state.dart';
 
 class BirdDetailScreen extends ConsumerWidget {
   final String birdId;
@@ -31,20 +32,10 @@ class BirdDetailScreen extends ConsumerWidget {
       ),
       error: (error, stack) => Scaffold(
         appBar: AppBar(),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error loading bird: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => context.pop(),
-                child: const Text('Go Back'),
-              ),
-            ],
-          ),
+        body: ErrorState(
+          message: "Couldn't load this bird",
+          error: error,
+          onRetry: () => ref.invalidate(birdByIdProvider(birdId)),
         ),
       ),
       data: (bird) {
@@ -369,11 +360,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    showAppSnackBar(
-                      context,
-                      'Error: $e',
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                    );
+                    showErrorSnackBar(context, "Couldn't update the bird's status", e);
                   }
                 }
               },
@@ -431,11 +418,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    showAppSnackBar(
-                      context,
-                      'Error: $e',
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                    );
+                    showErrorSnackBar(context, "Couldn't reactivate the bird", e);
                   }
                 }
               },
@@ -561,11 +544,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                 }
               } catch (e) {
                 if (context.mounted) {
-                  showAppSnackBar(
-                    context,
-                    'Error deleting bird: $e',
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                  );
+                  showErrorSnackBar(context, "Couldn't delete the bird", e);
                 }
               }
             },

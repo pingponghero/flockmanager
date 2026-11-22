@@ -99,7 +99,7 @@ Future<String?> showAddRecipientDialog(
     return recipient.id;
   } catch (e) {
     if (context.mounted) {
-      showAppSnackBar(context, 'Could not add recipient: $e');
+      showErrorSnackBar(context, "Couldn't add the recipient", e);
     }
     return null;
   }

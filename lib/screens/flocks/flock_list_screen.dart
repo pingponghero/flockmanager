@@ -8,6 +8,7 @@ import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
+import '../../widgets/error_state.dart';
 
 class FlockListScreen extends ConsumerWidget {
   const FlockListScreen({super.key});
@@ -44,29 +45,10 @@ class FlockListScreen extends ConsumerWidget {
       ),
       body: flocksAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                'Error loading flocks',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                error.toString(),
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(flocksProvider),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+        error: (error, stack) => ErrorState(
+          message: "Couldn't load your flocks",
+          error: error,
+          onRetry: () => ref.invalidate(flocksProvider),
         ),
         data: (flocks) {
           if (flocks.isEmpty) {
@@ -188,7 +170,10 @@ class FlockListScreen extends ConsumerWidget {
                 Expanded(
                   child: archivedAsync.when(
                     loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('Error: $e')),
+                    error: (e, _) => ErrorState.compact(
+                      message: "Couldn't load archived flocks",
+                      error: e,
+                    ),
                     data: (flocks) {
                       if (flocks.isEmpty) {
                         return const Center(

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../providers/achievements_provider.dart';
 import '../../providers/egg_provider.dart' show currencySymbolProvider;
 import '../../utils/edge_insets.dart';
+import '../../widgets/error_state.dart';
 
 class AchievementsScreen extends ConsumerWidget {
   const AchievementsScreen({super.key});
@@ -40,7 +41,10 @@ class AchievementsScreen extends ConsumerWidget {
       ),
       body: achievementsByCategory.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        error: (error, stack) => ErrorState(
+          message: "Couldn't load achievements",
+          error: error,
+        ),
         data: (categories) {
           final progress = progressData.value ?? {};
 
