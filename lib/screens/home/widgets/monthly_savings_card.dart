@@ -21,49 +21,45 @@ class MonthlySavingsCard extends ConsumerWidget {
 
         final primaryColor = Theme.of(context).colorScheme.primary;
 
-        return GestureDetector(
-          onTap: () => context.go('/expenses'),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: primaryColor.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: primaryColor.withValues(alpha: 0.2),
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: GestureDetector(
+            onTap: () => context.go('/expenses'),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: primaryColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
               ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.egg,
-                  color: primaryColor,
-                  size: 22,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        const TextSpan(text: 'Your eggs cost '),
-                        TextSpan(
-                          text:
-                              '${ref.watch(currencySymbolProvider)}${netCostPerDozen.toStringAsFixed(2)}/dz',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: primaryColor,
-                                  ),
-                        ),
-                      ],
+              child: Row(
+                children: [
+                  Icon(Icons.egg, color: primaryColor, size: 22),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          const TextSpan(text: 'Your eggs cost '),
+                          TextSpan(
+                            text:
+                                '${ref.watch(currencySymbolProvider)}${netCostPerDozen.toStringAsFixed(2)}/dz',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  size: 20,
-                ),
-              ],
+                  Icon(
+                    Icons.chevron_right,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 20,
+                  ),
+                ],
+              ),
             ),
           ),
         );

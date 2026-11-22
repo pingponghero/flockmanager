@@ -97,7 +97,10 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    // Quiet, borderless tiles so the Today hero leads the screen (#68)
+    return Material(
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
