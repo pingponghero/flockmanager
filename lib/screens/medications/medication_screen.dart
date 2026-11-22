@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/medication_log.dart';
+import '../../widgets/error_state.dart';
 import '../../data/medications.dart';
 import '../../providers/medication_provider.dart';
 import '../../providers/notification_provider.dart';
@@ -11,7 +12,6 @@ import '../../utils/edge_insets.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 import 'widgets/add_medication_sheet.dart';
 import 'widgets/legal_status_badge.dart';
-import '../../widgets/error_state.dart';
 
 class MedicationScreen extends ConsumerStatefulWidget {
   /// Tab to open on: 0 = Active, 1 = History, 2 = Reference.

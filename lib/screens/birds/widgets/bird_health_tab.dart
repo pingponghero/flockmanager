@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../models/bird.dart';
-import '../../../providers/medication_provider.dart';
 import '../../../widgets/error_state.dart';
+import '../../../providers/medication_provider.dart';
 
 /// Health tab showing medications and health notes for a bird
 class BirdHealthTab extends ConsumerWidget {

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/egg_log.dart';
+import '../../widgets/error_state.dart';
 import '../../providers/analytics_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
@@ -17,7 +18,6 @@ import '../../providers/flock_provider.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/scaffold_with_nav_bar.dart';
-import '../../widgets/error_state.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});

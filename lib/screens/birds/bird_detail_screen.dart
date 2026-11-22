@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/bird.dart';
+import '../../widgets/error_state.dart';
 import '../../models/enums.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
@@ -14,7 +15,6 @@ import 'widgets/bird_header.dart';
 import 'widgets/bird_health_tab.dart';
 import 'widgets/bird_info_tab.dart';
 import 'widgets/bird_stats_row.dart';
-import '../../widgets/error_state.dart';
 
 class BirdDetailScreen extends ConsumerWidget {
   final String birdId;
