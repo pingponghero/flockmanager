@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -91,6 +92,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       // Trigger rebuild when tab changes (for FAB visibility)
@@ -102,8 +104,32 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  static const _headerHeight = 350.0;
+
+  /// Outer scroll position, used to tell when the photo header has collapsed.
+  final _scrollController = ScrollController();
+
+  /// True once the photo header has faded out. FlexibleSpaceBar fades the
+  /// photo away as the bar collapses, exposing the theme's app bar colour
+  /// (white in light mode), so the white icons and status bar styling that
+  /// suit the photo must switch back to the theme's colours.
+  bool _headerCollapsed = false;
+
+  void _onScroll() {
+    final topPadding = MediaQuery.paddingOf(context).top;
+    // FlexibleSpaceBar starts fading once less than one toolbar height of
+    // header remains; flip at the midpoint of that fade.
+    final threshold =
+        _headerHeight - kToolbarHeight - topPadding - kToolbarHeight / 2;
+    final collapsed = _scrollController.offset > threshold;
+    if (collapsed != _headerCollapsed) {
+      setState(() => _headerCollapsed = collapsed);
+    }
   }
 
   Bird get bird => widget.bird;
@@ -114,12 +140,26 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
 
     return Scaffold(
       body: NestedScrollView(
+          controller: _scrollController,
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               SliverAppBar(
-                expandedHeight: 350,
+                expandedHeight: _headerHeight,
                 pinned: true,
-                foregroundColor: Colors.white,
+                // Over the photo: white icons + light status bar. Collapsed:
+                // null falls back to the theme so icons stay legible.
+                foregroundColor: _headerCollapsed ? null : Colors.white,
+                systemOverlayStyle:
+                    _headerCollapsed ? null : SystemUiOverlayStyle.light,
+                title: AnimatedOpacity(
+                  opacity: _headerCollapsed ? 1 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Text(
+                    bird.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.edit),
