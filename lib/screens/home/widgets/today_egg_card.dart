@@ -6,13 +6,23 @@ import '../../../providers/egg_provider.dart';
 import '../../../providers/trial_provider.dart';
 import '../../../widgets/egg_quick_log.dart';
 import '../../../widgets/trial_banner.dart' show showTrialExpiredDialog;
-import '../../../app/status_colors.dart';
 
-/// Card showing today's egg count with weekly average comparison
+/// Hero card for today's egg count — the visual anchor of Home (#68).
+///
+/// Filled with the palette's primary colour so it clearly outranks the
+/// quieter cards below it. With nothing logged yet it invites a tap to log;
+/// otherwise it compares today against the weekly average.
 class TodayEggCard extends ConsumerWidget {
   final String? selectedFlockId;
 
   const TodayEggCard({super.key, this.selectedFlockId});
+
+  /// Foreground for text and icons on [background]: whichever of black or
+  /// white reads better, so every palette works in light and dark mode.
+  static Color foregroundOn(Color background) =>
+      ThemeData.estimateBrightnessForColor(background) == Brightness.dark
+          ? Colors.white
+          : Colors.black;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,125 +31,164 @@ class TodayEggCard extends ConsumerWidget {
     final canEdit = ref.watch(canEditProvider);
 
     final todayCount = todayAsync.value ?? 0;
+    final avg = avgAsync.value ?? 0;
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final fg = foregroundOn(primary);
+    final shaded = Color.lerp(primary, Colors.black, 0.18)!;
 
-    return Card(
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () async {
-          if (todayCount == 0 && canEdit) {
-            await showEggQuickLog(context);
-          } else if (todayCount == 0 && !canEdit) {
-            showTrialExpiredDialog(context, ref);
-          } else {
-            final today = DateTime.now();
-            context.push('/eggs', extra: DateTime(today.year, today.month, today.day));
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [primary, shaded],
+          ),
+        ),
+        child: InkWell(
+          onTap: () async {
+            if (todayCount == 0 && canEdit) {
+              await showEggQuickLog(context);
+            } else if (todayCount == 0 && !canEdit) {
+              showTrialExpiredDialog(context, ref);
+            } else {
+              final today = DateTime.now();
+              context.push('/eggs',
+                  extra: DateTime(today.year, today.month, today.day));
+            }
+          },
+          child: Stack(
             children: [
-              Expanded(
+              // Decorative hen watermark, bleeding off the corner
+              Positioned(
+                right: -20,
+                bottom: -28,
+                child: Image.asset(
+                  'assets/icons/cute_hen.png',
+                  width: 150,
+                  height: 150,
+                  color: fg.withValues(alpha: 0.1),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Today's Eggs",
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    todayAsync.when(
-                      loading: () => const SizedBox(
-                        height: 48,
-                        child: Center(child: CircularProgressIndicator()),
+                      "Today's eggs",
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: fg.withValues(alpha: 0.85),
                       ),
-                      error: (error, stack) => const Text('--'),
+                    ),
+                    const SizedBox(height: 4),
+                    todayAsync.when(
+                      loading: () => SizedBox(
+                        height: 64,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: CircularProgressIndicator(color: fg),
+                        ),
+                      ),
+                      error: (error, stack) => Text(
+                        '--',
+                        style: theme.textTheme.displayLarge
+                            ?.copyWith(color: fg, fontWeight: FontWeight.bold),
+                      ),
                       data: (today) => Text(
                         '$today',
-                        style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                        style: theme.textTheme.displayLarge?.copyWith(
+                          color: fg,
+                          fontWeight: FontWeight.bold,
+                          height: 1.05,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    if (todayCount == 0)
+                      _Pill(
+                        fg: fg,
+                        icon: Icons.add_circle_outline,
+                        label: avg > 0
+                            ? 'Tap to log · avg ${avg.toStringAsFixed(1)}'
+                            : "Tap to log today's eggs",
+                      )
+                    else if (avg > 0)
+                      _TrendPill(fg: fg, today: todayCount, average: avg),
                   ],
                 ),
-              ),
-              // Comparison with weekly average
-              avgAsync.when(
-                loading: () => const SizedBox.shrink(),
-                error: (error, stack) => const SizedBox.shrink(),
-                data: (avg) {
-                  if (avg == 0) {
-                    return const SizedBox.shrink();
-                  }
-
-                  // When today is 0, assume eggs haven't been logged yet
-                  // Show average in gray with no arrow
-                  if (todayCount == 0) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: StatusColors.of(context).neutral.container,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'avg ${avg.toStringAsFixed(1)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: StatusColors.of(context).neutral.icon,
-                        ),
-                      ),
-                    );
-                  }
-
-                  // Only colorize for significant deviations (25%+ from average)
-                  // Normal fluctuation stays gray
-                  final percentDiff = (todayCount - avg) / avg;
-                  final isSignificantlyUp = percentDiff >= 0.25;
-                  final isSignificantlyDown = percentDiff <= -0.25;
-
-                  final status = StatusColors.of(context);
-                  final tone = isSignificantlyUp
-                      ? status.success
-                      : isSignificantlyDown
-                          ? status.danger
-                          : status.neutral;
-
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: tone.container,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isSignificantlyUp
-                              ? Icons.arrow_upward
-                              : isSignificantlyDown
-                                  ? Icons.arrow_downward
-                                  : Icons.remove,
-                          size: 16,
-                          color: tone.icon,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'avg ${avg.toStringAsFixed(1)}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: tone.icon,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Today vs. the weekly average. Only calls out deviations of 25%+ so
+/// normal day-to-day wobble doesn't read as good or bad news.
+class _TrendPill extends StatelessWidget {
+  final Color fg;
+  final int today;
+  final double average;
+
+  const _TrendPill({
+    required this.fg,
+    required this.today,
+    required this.average,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final percentDiff = (today - average) / average;
+    final icon = percentDiff >= 0.25
+        ? Icons.arrow_upward
+        : percentDiff <= -0.25
+            ? Icons.arrow_downward
+            : Icons.remove;
+    return _Pill(
+      fg: fg,
+      icon: icon,
+      label: 'avg ${average.toStringAsFixed(1)}',
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final Color fg;
+  final IconData icon;
+  final String label;
+
+  const _Pill({required this.fg, required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: fg.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: fg),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: fg,
+            ),
+          ),
+        ],
       ),
     );
   }

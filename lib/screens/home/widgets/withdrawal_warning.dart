@@ -17,7 +17,7 @@ class WithdrawalWarning extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (withdrawals) {
-        if (withdrawals.isEmpty) return const SizedBox(height: 8);
+        if (withdrawals.isEmpty) return const SizedBox.shrink();
 
         // Find the soonest withdrawal end
         int? minDays;

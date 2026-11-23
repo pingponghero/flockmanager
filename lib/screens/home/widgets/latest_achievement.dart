@@ -40,9 +40,6 @@ class LatestAchievement extends ConsumerWidget {
             decoration: BoxDecoration(
               color: achievement.color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: achievement.color.withValues(alpha: 0.3),
-              ),
             ),
             child: Row(
               children: [
