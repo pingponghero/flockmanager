@@ -10,7 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Two hens logged individually through 2025 and most of this year.
-YearRingsBuilder _builder() {
+YearRingsBuilder _builder({int latitude = 39}) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final birds = [
@@ -23,7 +23,7 @@ YearRingsBuilder _builder() {
       EggLog(id: 'b$d', date: d, flockId: 'f', birdId: 'b', count: d.day % 2, createdAt: d),
     ],
   ];
-  return YearRingsBuilder(logs: logs, birds: birds, events: const [], today: today, latitude: 39);
+  return YearRingsBuilder(logs: logs, birds: birds, events: const [], today: today, latitude: latitude);
 }
 
 void main() {
@@ -60,5 +60,27 @@ void main() {
     expect(find.text('How your year is counted'), findsOneWidget);
     expect(find.text('Lay rate'), findsWidgets);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('no light-and-laying card near the equator', (tester) async {
+    Future<void> pumpAt(int latitude) async {
+      final builder = _builder(latitude: latitude);
+      await tester.pumpWidget(ProviderScope(
+        key: ValueKey(latitude),
+        overrides: [
+          yearRingsProvider.overrideWith((ref, q) async => builder.build(mode: RingMode.years, year: q.year)),
+          yearDaysProvider.overrideWith((ref, year) async => (days: builder.buildDays(year), latitude: latitude)),
+        ],
+        child: const MaterialApp(home: YearViewScreen()),
+      ));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView).first, const Offset(0, -3000));
+      await tester.pumpAndSettle();
+    }
+
+    await pumpAt(39);
+    expect(find.text('Light and laying'), findsOneWidget);
+    await pumpAt(0);
+    expect(find.text('Light and laying'), findsNothing);
   });
 }

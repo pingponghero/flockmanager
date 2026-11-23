@@ -187,7 +187,8 @@ List<Widget> _loopFor(YearRingsData data, int? selected) {
   final ring = data.rings[i];
   final loop = buildLightLayingLoop(ring, data.weeklyDaylight);
   final year = int.tryParse(ring.id);
-  if (loop == null || year == null) return const [];
+  // Near the equator day length barely changes, so there's no loop to show.
+  if (loop == null || year == null || !loop.hasDaylightSwing) return const [];
   return [
     const SizedBox(height: 12),
     LightLayingLoopCard(

@@ -67,12 +67,7 @@ class LightLayingLoopCard extends StatelessWidget {
                         'Light and laying',
                         style: theme.textTheme.titleMedium,
                       ),
-                      Text(
-                        loop.hasDaylightSwing
-                            ? '${loop.label} \u00b7 week by week'
-                            : loop.label,
-                        style: muted,
-                      ),
+                      Text('${loop.label} \u00b7 week by week', style: muted),
                     ],
                   ),
                 ),
@@ -84,18 +79,7 @@ class LightLayingLoopCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            if (!loop.hasDaylightSwing)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'Day length here barely changes through the year '
-                  '(${loop.shortestDay.toStringAsFixed(1)}\u2013${loop.longestDay.toStringAsFixed(1)} h), '
-                  'so there\u2019s no light-and-laying loop. Laying follows other '
-                  'things, like heat, rain and molt.',
-                  style: theme.textTheme.bodyMedium,
-                ),
-              )
-            else ...[
+            ...[
               Semantics(
                 label:
                     'Weekly lay rate plotted against daylight hours for ${loop.label}. '
