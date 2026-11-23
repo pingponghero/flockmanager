@@ -11,6 +11,7 @@ import '../../utils/edge_insets.dart';
 import '../../widgets/bird_card.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
+import '../../widgets/error_state.dart';
 
 /// Sort options for bird list
 enum BirdSortOption {
@@ -137,8 +138,9 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
           Expanded(
             child: birdsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => _ErrorState(
-                error: error.toString(),
+              error: (error, stack) => ErrorState(
+                message: "Couldn't load your birds",
+                error: error,
                 onRetry: () => ref.invalidate(birdsProvider),
               ),
               data: (allBirds) {
@@ -301,44 +303,6 @@ class _EmptyState extends StatelessWidget {
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  final String error;
-  final VoidCallback onRetry;
-
-  const _ErrorState({
-    required this.error,
-    required this.onRetry,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
-          const SizedBox(height: 16),
-          Text(
-            'Error loading birds',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error,
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: onRetry,
-            child: const Text('Retry'),
-          ),
-        ],
       ),
     );
   }

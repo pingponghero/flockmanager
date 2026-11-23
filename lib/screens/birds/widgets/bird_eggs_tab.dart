@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../models/bird.dart';
 import '../../../models/egg_log.dart';
 import '../../../providers/egg_provider.dart';
+import '../../../widgets/error_state.dart';
 
 /// Eggs tab showing egg log history for a bird
 class BirdEggsTab extends ConsumerWidget {
@@ -18,7 +19,11 @@ class BirdEggsTab extends ConsumerWidget {
 
     return logsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('Error: $error')),
+      error: (error, _) => ErrorState(
+        message: "Couldn't load egg history",
+        error: error,
+        onRetry: () => ref.invalidate(eggLogsByBirdProvider(bird.id)),
+      ),
       data: (logs) {
         if (logs.isEmpty) {
           return Center(

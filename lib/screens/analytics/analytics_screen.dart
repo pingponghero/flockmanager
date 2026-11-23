@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/egg_log.dart';
+import '../../widgets/error_state.dart';
 import '../../providers/analytics_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
@@ -114,18 +115,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                 builder: (context) {
                   // Show error state
                   if (analyticsAsync.hasError && !analyticsAsync.hasValue) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(48),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                            const SizedBox(height: 16),
-                            Text('Error: ${analyticsAsync.error}'),
-                          ],
-                        ),
-                      ),
+                    return ErrorState(
+                      message: "Couldn't load your stats",
+                      error: analyticsAsync.error,
+                      onRetry: () => ref.invalidate(analyticsProvider),
                     );
                   }
 
@@ -839,10 +832,12 @@ class _CollapsibleRecentActivity extends ConsumerWidget {
           ),
           initiallyExpanded: false,
           children: [
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text('Error: $error'),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: ErrorState.compact(
+                message: "Couldn't load recent activity",
+                error: error,
+                onRetry: () => ref.invalidate(recentEggLogsProvider),
               ),
             ),
           ],

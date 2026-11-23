@@ -28,3 +28,14 @@ void showAppSnackBar(
     ),
   );
 }
+
+/// Shows a friendly failure message in an error-coloured snackbar and logs
+/// the underlying [error] instead of displaying it (#57).
+void showErrorSnackBar(BuildContext context, String message, Object error) {
+  debugPrint('$message: $error');
+  showAppSnackBar(
+    context,
+    message,
+    backgroundColor: Theme.of(context).colorScheme.error,
+  );
+}

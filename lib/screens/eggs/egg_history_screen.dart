@@ -11,6 +11,7 @@ import '../../utils/egg_log_grouper.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/egg_quick_log.dart';
+import '../../widgets/error_state.dart';
 
 class EggHistoryScreen extends ConsumerStatefulWidget {
   final DateTime? initialDate;
@@ -69,15 +70,10 @@ class _EggHistoryScreenState extends ConsumerState<EggHistoryScreen> {
         },
         child: dailyCountsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error: $error'),
-            ],
-          ),
+        error: (error, stack) => ErrorState(
+          message: "Couldn't load egg history",
+          error: error,
+          onRetry: () => ref.invalidate(dailyEggCountsProvider(dateRange)),
         ),
         data: (dailyCounts) => ListView(
           children: [
@@ -481,8 +477,12 @@ class _DayDetailsInline extends ConsumerWidget {
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) => Padding(
-        padding: const EdgeInsets.all(32),
-        child: Center(child: Text('Error: $error')),
+        padding: const EdgeInsets.all(16),
+        child: ErrorState.compact(
+          message: "Couldn't load this day's eggs",
+          error: error,
+          onRetry: () => ref.invalidate(eggLogsByDateProvider(date)),
+        ),
       ),
       data: (logs) {
         if (logs.isEmpty) {

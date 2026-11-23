@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/medication_log.dart';
+import '../../widgets/error_state.dart';
 import '../../data/medications.dart';
 import '../../providers/medication_provider.dart';
 import '../../providers/notification_provider.dart';
@@ -153,7 +154,11 @@ class _ActiveMedicationsTab extends ConsumerWidget {
 
           activeAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Center(child: Text('Error: $error')),
+            error: (error, _) => ErrorState(
+              message: "Couldn't load active treatments",
+              error: error,
+              onRetry: () => ref.invalidate(activeMedicationsProvider),
+            ),
             data: (medications) {
               if (medications.isEmpty) {
                 return Card(
@@ -311,7 +316,11 @@ class _HistoryTab extends ConsumerWidget {
       },
       child: medicationsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
+        error: (error, _) => ErrorState(
+          message: "Couldn't load medications",
+          error: error,
+          onRetry: () => ref.invalidate(medicationsProvider),
+        ),
         data: (medications) {
           if (medications.isEmpty) {
             return ListView(

@@ -568,7 +568,7 @@ class SettingsScreen extends ConsumerWidget {
     } catch (e) {
       closeDialog();
       if (context.mounted) {
-        showAppSnackBar(context, 'Export failed: $e');
+        showErrorSnackBar(context, "Export failed", e);
       }
     }
   }

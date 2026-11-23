@@ -510,7 +510,7 @@ class _AddMedicationSheetState extends ConsumerState<AddMedicationSheet> {
       }
     } catch (e) {
       if (mounted) {
-        showAppSnackBar(context, 'Error: $e');
+        showErrorSnackBar(context, "Couldn't save the treatment", e);
       }
     }
   }

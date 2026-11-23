@@ -6,6 +6,7 @@ import '../../models/flock.dart';
 import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
+import '../../widgets/error_state.dart';
 
 class FlockFormScreen extends ConsumerStatefulWidget {
   final String? flockId;
@@ -220,20 +221,10 @@ class _FlockFormScreenState extends ConsumerState<FlockFormScreen> {
       ),
       error: (error, stack) => Scaffold(
         appBar: AppBar(title: const Text('Edit Flock')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error loading flock: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => context.pop(),
-                child: const Text('Go Back'),
-              ),
-            ],
-          ),
+        body: ErrorState(
+          message: "Couldn't load this flock",
+          error: error,
+          onRetry: () => ref.invalidate(flockByIdProvider(widget.flockId!)),
         ),
       ),
       data: (flock) {
@@ -322,11 +313,7 @@ class _FlockFormScreenState extends ConsumerState<FlockFormScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showAppSnackBar(
-          context,
-          'Error: $e',
-          backgroundColor: Theme.of(context).colorScheme.error,
-        );
+        showErrorSnackBar(context, "Couldn't save the flock", e);
       }
     } finally {
       if (mounted) {

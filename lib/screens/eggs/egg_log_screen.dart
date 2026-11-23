@@ -13,6 +13,7 @@ import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
+import '../../widgets/error_state.dart';
 
 class EggLogScreen extends ConsumerStatefulWidget {
   /// If editing, pass the existing EggLog
@@ -106,7 +107,11 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
             // Flock selector
             flocksAsync.when(
               loading: () => const LinearProgressIndicator(),
-              error: (error, stack) => Text('Error: $error'),
+              error: (error, stack) => ErrorState.compact(
+                message: "Couldn't load flocks",
+                error: error,
+                onRetry: () => ref.invalidate(flocksProvider),
+              ),
               data: (flocks) {
                 if (flocks.isEmpty) {
                   return Card(
@@ -360,11 +365,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showAppSnackBar(
-          context,
-          'Error: $e',
-          backgroundColor: Theme.of(context).colorScheme.error,
-        );
+        showErrorSnackBar(context, "Couldn't save the entry", e);
       }
     } finally {
       if (mounted) {
@@ -408,11 +409,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
         }
       } catch (e) {
         if (mounted) {
-          showAppSnackBar(
-            context,
-            'Error: $e',
-            backgroundColor: Theme.of(context).colorScheme.error,
-          );
+          showErrorSnackBar(context, "Couldn't delete the entry", e);
           setState(() => _isLoading = false);
         }
       }

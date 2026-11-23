@@ -18,6 +18,7 @@ import '../../utils/snackbar_utils.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 import '../settings/settings_screen.dart' show showRetailPriceDialog;
+import '../../widgets/error_state.dart';
 
 /// Filter options combining expense categories + income.
 enum _ListFilter {
@@ -956,7 +957,10 @@ class _LineItemList extends StatelessWidget {
     if (expensesAsync.hasError) {
       return Padding(
         padding: const EdgeInsets.all(32),
-        child: Center(child: Text('Error: ${expensesAsync.error}')),
+        child: ErrorState(
+          message: "Couldn't load transactions",
+          error: expensesAsync.error,
+        ),
       );
     }
 
