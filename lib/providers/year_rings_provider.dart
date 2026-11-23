@@ -37,3 +37,24 @@ final yearRingsProvider =
   );
   return builder.build(mode: query.mode, year: query.year);
 });
+
+/// One hen's years as rings, for her Eggs tab (#1). Uses her flock's logs to
+/// know which days were logged, so her non-laying days count as zeros.
+final henYearRingsProvider =
+    FutureProvider.family<YearRingsData, String>((ref, birdId) async {
+  final logs = await ref.watch(eggLogsProvider.future);
+  final birds = await ref.watch(birdsProvider.future);
+  // All flocks' events: the Stats flock filter shouldn't hide her history.
+  final events = await ref.watch(allBirdStatusEventsProvider.future);
+  final latitude = await ref.watch(userLatitudeProvider.future);
+
+  final bird = birds.where((b) => b.id == birdId).firstOrNull;
+  final flockId = bird?.flockId;
+  return YearRingsBuilder(
+    logs: logs.where((l) => l.flockId == flockId).toList(),
+    birds: birds.where((b) => b.id == birdId).toList(),
+    events: events.where((e) => e.birdId == birdId).toList(),
+    today: DateTime.now(),
+    latitude: latitude,
+  ).buildForHen(birdId);
+});

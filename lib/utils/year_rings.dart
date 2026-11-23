@@ -351,9 +351,47 @@ class YearRingsBuilder {
   YearRingsData build({RingMode? mode, int? year}) {
     final y = year ?? today.year;
     final m = mode ?? autoMode(y);
-    final attribution = _attribution(y);
     final rings = m == RingMode.years ? _yearRings() : _henRings(y);
+    return _finish(m, y, rings, alwaysLayRate: m == RingMode.hens);
+  }
 
+  /// One hen's years (#1): a ring per year she was in the flock, coloured by
+  /// her own lay rate. The flock's logs decide which days were logged, so a
+  /// day she didn't lay counts as a zero rather than a gap.
+  YearRingsData buildForHen(String birdId) {
+    final hen = _hens.where((b) => b.id == birdId).firstOrNull;
+    if (hen == null) return _finish(RingMode.years, today.year, const []);
+    final spans = _spans[hen.id]!;
+    bool inScope(int n) => spans.any((s) => s.contains(n));
+    final years = [
+      for (final y in availableYears)
+        if (_weeksOf(y).expand((w) => w).any((n) => n <= _todayN && inScope(n))) y,
+    ];
+    final shown = years.length > kMaxYearRings
+        ? years.sublist(years.length - kMaxYearRings)
+        : years;
+    final rings = [
+      for (final y in shown)
+        _series(
+          id: '$y',
+          label: '$y',
+          bird: hen,
+          weeks: _weeksOf(y),
+          inScope: inScope,
+          eggsOn: (n) => _eggsByBirdDay[hen.id]?[n] ?? 0,
+          hensOn: (_) => 1,
+        ),
+    ];
+    return _finish(RingMode.years, today.year, rings, alwaysLayRate: true);
+  }
+
+  YearRingsData _finish(
+    RingMode m,
+    int y,
+    List<RingSeries> rings, {
+    bool alwaysLayRate = false,
+  }) {
+    final attribution = _attribution(y);
     var maxHens = 0.0, maxEpd = 0.0;
     var countedDays = 0, daysWithHeadcount = 0;
     for (final r in rings) {
@@ -366,9 +404,9 @@ class YearRingsBuilder {
         }
       }
     }
-    // Hens mode always knows its headcount (one hen). Years mode needs birds
+    // A single hen always knows its headcount (one). Flock totals need birds
     // entered for most of the logged days, otherwise lay rate would be noise.
-    final scale = m == RingMode.hens ||
+    final scale = alwaysLayRate ||
             (countedDays > 0 && daysWithHeadcount / countedDays >= 0.8)
         ? RingColorScale.layRate
         : RingColorScale.eggsPerDay;

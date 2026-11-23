@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 
 import '../../../models/bird.dart';
 import '../../../models/egg_log.dart';
+import '../../../models/enums.dart';
 import '../../../providers/egg_provider.dart';
 import '../../../widgets/error_state.dart';
+import 'hen_years_card.dart';
 
 /// Eggs tab showing egg log history for a bird
 class BirdEggsTab extends ConsumerWidget {
@@ -58,11 +60,15 @@ class BirdEggsTab extends ConsumerWidget {
         final sortedLogs = List<EggLog>.from(logs)
           ..sort((a, b) => b.date.compareTo(a.date));
 
+        final showYears = bird.sex == BirdSex.female;
+        final offset = showYears ? 1 : 0;
+
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: sortedLogs.length,
+          itemCount: sortedLogs.length + offset,
           itemBuilder: (context, index) {
-            final log = sortedLogs[index];
+            if (showYears && index == 0) return HenYearsCard(bird: bird);
+            final log = sortedLogs[index - offset];
             return Card(
               child: ListTile(
                 leading: CircleAvatar(

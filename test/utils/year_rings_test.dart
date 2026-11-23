@@ -213,4 +213,25 @@ void main() {
       expect(ring.blocks[50].state, RingBlockState.empty);
     });
   });
+
+  group('one hen\'s years', () {
+    test('her quiet days count as zeros when the flock logged them', () {
+      final birds = [_hen('a', acquired: DateTime(2025, 6, 1))];
+      final logs = [
+        for (var d = DateTime(2026, 1, 1);
+            d.isBefore(DateTime(2026, 1, 29));
+            d = d.add(const Duration(days: 1))) ...[
+          _log(d, 1, birdId: 'other'),
+          if (d.day.isEven) _log(d, 1, birdId: 'a'),
+        ],
+      ];
+      final data = _builder(logs: logs, birds: birds).buildForHen('a');
+
+      expect(data.rings.map((r) => r.label), ['2026']);
+      expect(data.colorScale, RingColorScale.layRate);
+      final w1 = data.rings.single.blocks[1]; // Jan 8–14
+      expect(w1.knownDays, 7);
+      expect(w1.eggs, 4); // laid on the 8th, 10th, 12th and 14th
+    });
+  });
 }
