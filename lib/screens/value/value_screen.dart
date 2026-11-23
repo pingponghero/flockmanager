@@ -87,6 +87,14 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Value'),
+        actions: [
+          // Recipients live with sales and gifts (#59)
+          IconButton(
+            icon: const Icon(Icons.people_outline),
+            tooltip: 'Recipients',
+            onPressed: () => context.go('/settings/recipients'),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
