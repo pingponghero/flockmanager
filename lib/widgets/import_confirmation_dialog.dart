@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/import_result.dart';
+import 'hen_icon.dart';
 
 /// Dialog to show warning before importing data.
 class ImportWarningDialog extends StatelessWidget {
@@ -123,12 +124,12 @@ class ImportConfirmationDialog extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             _CountItem(
-              icon: Icons.grid_view,
+              icon: const Icon(Icons.grid_view),
               label: 'flocks',
               count: preview.flocksCount,
             ),
             _CountItem(
-              icon: Icons.pets,
+              icon: const HenIcon(),
               label: 'birds',
               count: preview.birdsCount,
               suffix: preview.photosCount > 0
@@ -137,31 +138,31 @@ class ImportConfirmationDialog extends StatelessWidget {
             ),
             if (preview.eggLogsCount > 0)
               _CountItem(
-                icon: Icons.egg,
+                icon: const Icon(Icons.egg),
                 label: 'egg logs',
                 count: preview.eggLogsCount,
               ),
             if (preview.expensesCount > 0)
               _CountItem(
-                icon: Icons.attach_money,
+                icon: const Icon(Icons.attach_money),
                 label: 'expenses',
                 count: preview.expensesCount,
               ),
             if (preview.incomeCount > 0)
               _CountItem(
-                icon: Icons.trending_up,
+                icon: const Icon(Icons.trending_up),
                 label: 'income records',
                 count: preview.incomeCount,
               ),
             if (preview.medicationLogsCount > 0)
               _CountItem(
-                icon: Icons.medication,
+                icon: const Icon(Icons.medication),
                 label: 'medication logs',
                 count: preview.medicationLogsCount,
               ),
             if (preview.healthNotesCount > 0)
               _CountItem(
-                icon: Icons.medical_services,
+                icon: const Icon(Icons.medical_services),
                 label: 'health notes',
                 count: preview.healthNotesCount,
               ),
@@ -183,7 +184,7 @@ class ImportConfirmationDialog extends StatelessWidget {
 }
 
 class _CountItem extends StatelessWidget {
-  final IconData icon;
+  final Widget icon;
   final String label;
   final int count;
   final String? suffix;
@@ -201,10 +202,12 @@ class _CountItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          IconTheme(
+            data: IconThemeData(
+              size: 16,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            child: icon,
           ),
           const SizedBox(width: 8),
           Text(
