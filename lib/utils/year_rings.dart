@@ -137,6 +137,19 @@ class RingSeries {
     this.bird,
   });
 
+  /// Several rings added together, for the year table's "All" row: lay rate
+  /// is total eggs over total hen-days, not an average of yearly rates.
+  factory RingSeries.combined(String label, List<RingSeries> rings) => RingSeries(
+        id: 'all',
+        label: label,
+        blocks: [for (final r in rings) ...r.blocks],
+        eggs: rings.fold(0, (s, r) => s + r.eggs),
+        knownDays: rings.fold(0, (s, r) => s + r.knownDays),
+        henDays: rings.fold(0, (s, r) => s + r.henDays),
+        rateEggs: rings.fold(0, (s, r) => s + r.rateEggs),
+        implausibleWeeks: rings.fold(0, (s, r) => s + r.implausibleWeeks),
+      );
+
   double? get layRate => henDays > 0 ? rateEggs / henDays : null;
   double get eggsPerDay => knownDays > 0 ? eggs / knownDays : 0;
   double get averageHens {
