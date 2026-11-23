@@ -115,6 +115,12 @@ class ColorPaletteData {
 class AppTheme {
   AppTheme._();
 
+  /// Warm serif for headings and titles (#67): app bar titles and the
+  /// headline styles (names, screen and section headings, empty states).
+  /// Body text and numbers stay in the platform font: Fraunces' digits are
+  /// proportional, so counts would jiggle and tabular figures can't apply.
+  static const headingFontFamily = 'Fraunces';
+
   static ThemeData buildTheme(AppPalette palette, {Brightness brightness = Brightness.light}) {
     final isDark = brightness == Brightness.dark;
     final colors = isDark ? palette.darkColors : palette.colors;
@@ -150,8 +156,9 @@ class AppTheme {
         backgroundColor: appBarColor,
         foregroundColor: colors.text,
         titleTextStyle: TextStyle(
+          fontFamily: headingFontFamily,
           color: colors.text,
-          fontSize: 20,
+          fontSize: 22,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -274,20 +281,25 @@ class AppTheme {
       // Text theme
       textTheme: TextTheme(
         headlineLarge: TextStyle(
+          fontFamily: headingFontFamily,
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: colors.text,
         ),
         headlineMedium: TextStyle(
+          fontFamily: headingFontFamily,
           fontSize: 24,
           fontWeight: FontWeight.w600,
           color: colors.text,
         ),
         headlineSmall: TextStyle(
+          fontFamily: headingFontFamily,
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: colors.text,
         ),
+        // titleLarge stays in the platform font: it carries most numbers
+        // (stat tiles, forecasts), and Fraunces' digits are proportional.
         titleLarge: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
