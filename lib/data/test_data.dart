@@ -59,14 +59,35 @@ double _seasonalMultiplier(int dayOfYear) {
   // Sine wave centered on June 21 (day 172)
   // Ranges from ~0.4 in winter to ~1.0 in summer
   final angle = 2 * pi * (dayOfYear - 172) / 365;
-  return 0.7 + 0.3 * -cos(angle); // cos because we want peak at day 172
+  // Hens respond to lengthening days, and molt as they shorten, so at the
+  // same daylight spring runs ahead of autumn (the year view's loop, #1).
+  final springLead = -0.1 * sin(angle);
+  // cos(angle) is 1 at the summer solstice, so production peaks in June.
+  // (It used -cos, which peaked at midwinter.)
+  return (0.7 + 0.3 * cos(angle) + springLead).clamp(0.3, 1.0);
 }
+
+/// Backyard hens reach laying age (~20 weeks after hatching) on these
+/// days-ago: Henrietta, Ginger, Pepper, Olive, Hazel. Olive and Hazel are
+/// pullets that start laying partway through the year.
+const _backyardLayingFromDaysAgo = [400, 380, 340, 260, 240];
+
+/// Laying-age hens in the backyard flock [daysAgo] days ago.
+int _backyardLayingHens(int daysAgo) =>
+    _backyardLayingFromDaysAgo.where((d) => d >= daysAgo).length;
+
+/// Bantams reach laying age on these days-ago: Pebbles, Cookie.
+const _bantamLayingFromDaysAgo = [310, 240];
+
+/// Laying-age bantams [daysAgo] days ago.
+int _bantamLayingHens(int daysAgo) =>
+    _bantamLayingFromDaysAgo.where((d) => d >= daysAgo).length;
 
 /// Generate 365 days of egg production data with seasonal variation
 /// - Realistic seasonal patterns tied to daylight hours
 /// - Some distributed egg entries (one per bird)
-/// - Backyard: 5 hens -> varies 2-5 eggs/day based on season
-/// - Bantams: 2 hens -> varies 0-2 eggs/day based on season
+/// - Backyard: up to 5 hens -> eggs scale with season and laying-age hens
+/// - Bantams: 2 hens -> 0-2 eggs/day by season, never more than are laying age
 List<Map<String, dynamic>> generateEggLogs() {
   final logs = <Map<String, dynamic>>[];
 
@@ -98,14 +119,16 @@ List<Map<String, dynamic>> generateEggLogs() {
     // Pattern: 5, 4, 5, 4, 5, 3, 4 repeating (avg ~4.3) scaled by season
     final dailyPattern = [5, 4, 5, 4, 5, 3, 4];
     int baseCount = dailyPattern[day % 7];
-    int backyardCount = (baseCount * seasonal).round();
+    // Scale to the hens old enough to lay, so eggs never outnumber them.
+    final layingHens = _backyardLayingHens(day);
+    int backyardCount = (baseCount * seasonal * layingHens / 5).round();
 
     // Add some random variation
     if (_random.nextDouble() < 0.1) {
-      backyardCount = (backyardCount - 1).clamp(0, 5);
+      backyardCount = (backyardCount - 1).clamp(0, layingHens);
     }
     if (_random.nextDouble() < 0.05) {
-      backyardCount = (backyardCount + 1).clamp(0, 5);
+      backyardCount = (backyardCount + 1).clamp(0, layingHens);
     }
 
     // Every 14 days, log as distributed (one egg per bird) for demo
@@ -165,6 +188,7 @@ List<Map<String, dynamic>> generateEggLogs() {
       bantamCount = 0;
     }
 
+    bantamCount = bantamCount.clamp(0, _bantamLayingHens(day));
     if (bantamCount > 0) {
       logs.add({
         'id': _generateId(),
@@ -187,50 +211,52 @@ List<Map<String, dynamic>> generateEggLogs() {
 List<Map<String, dynamic>> generateBirdStatusEvents() {
   final events = <Map<String, dynamic>>[];
 
-  // Henrietta and Ginger added first (365 days ago)
+  // Each 'active' event is dated on the bird's acquired date, so flock-size
+  // history matches the birds' own records (#1).
+  // Henrietta and Ginger joined first (500 days ago)
   for (final birdId in [TestIds.birdHenrietta, TestIds.birdGinger]) {
     events.add({
       'id': _generateId(),
       'bird_id': birdId,
       'flock_id': TestIds.flockBackyard,
       'status': 'active',
-      'event_date': _daysAgo(365),
+      'event_date': _daysAgo(500),
       'notes': 'Initial flock member',
-      'created_at': _daysAgoFull(365),
+      'created_at': _daysAgoFull(500),
     });
   }
 
-  // Pepper added 300 days ago
+  // Pepper joined 450 days ago
   events.add({
     'id': _generateId(),
     'bird_id': TestIds.birdPepper,
     'flock_id': TestIds.flockBackyard,
     'status': 'active',
-    'event_date': _daysAgo(300),
+    'event_date': _daysAgo(450),
     'notes': 'Added from neighbor',
-    'created_at': _daysAgoFull(300),
+    'created_at': _daysAgoFull(450),
   });
 
-  // Olive added 250 days ago
+  // Olive joined 380 days ago (a pullet; lays from ~260 days ago)
   events.add({
     'id': _generateId(),
     'bird_id': TestIds.birdOlive,
     'flock_id': TestIds.flockBackyard,
     'status': 'active',
-    'event_date': _daysAgo(250),
+    'event_date': _daysAgo(380),
     'notes': 'Added from hatchery',
-    'created_at': _daysAgoFull(250),
+    'created_at': _daysAgoFull(380),
   });
 
-  // Hazel added 200 days ago
+  // Hazel joined 360 days ago (a pullet; lays from ~240 days ago)
   events.add({
     'id': _generateId(),
     'bird_id': TestIds.birdHazel,
     'flock_id': TestIds.flockBackyard,
     'status': 'active',
-    'event_date': _daysAgo(200),
+    'event_date': _daysAgo(360),
     'notes': 'Added from breeder',
-    'created_at': _daysAgoFull(200),
+    'created_at': _daysAgoFull(360),
   });
 
   // Bantam flock
@@ -239,9 +265,9 @@ List<Map<String, dynamic>> generateBirdStatusEvents() {
     'bird_id': TestIds.birdPebbles,
     'flock_id': TestIds.flockBantams,
     'status': 'active',
-    'event_date': _daysAgo(180),
+    'event_date': _daysAgo(420),
     'notes': 'Initial bantam flock',
-    'created_at': _daysAgoFull(180),
+    'created_at': _daysAgoFull(420),
   });
 
   events.add({
@@ -249,9 +275,9 @@ List<Map<String, dynamic>> generateBirdStatusEvents() {
     'bird_id': TestIds.birdCookie,
     'flock_id': TestIds.flockBantams,
     'status': 'active',
-    'event_date': _daysAgo(170),
+    'event_date': _daysAgo(350),
     'notes': 'Added from poultry show',
-    'created_at': _daysAgoFull(170),
+    'created_at': _daysAgoFull(350),
   });
 
   return events;
@@ -280,7 +306,7 @@ class TestData {
       'icon': 'egg',
       'color': '4CAF50',
       'is_archived': 0,
-      'created_at': _daysAgoFull(365),
+      'created_at': _daysAgoFull(500),
     },
     {
       'id': TestIds.flockBantams,
@@ -289,7 +315,7 @@ class TestData {
       'icon': 'pets',
       'color': 'FF9800',
       'is_archived': 0,
-      'created_at': _daysAgoFull(180),
+      'created_at': _daysAgoFull(420),
     },
   ];
 

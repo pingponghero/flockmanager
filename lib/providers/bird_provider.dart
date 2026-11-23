@@ -37,6 +37,7 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
     ref.invalidate(birdsByStatusProvider);
     ref.invalidate(birdCountsByStatusProvider);
     ref.invalidate(birdStatusEventsProvider);
+    ref.invalidate(allBirdStatusEventsProvider);
     ref.invalidate(livingBirdsProvider);
   }
 

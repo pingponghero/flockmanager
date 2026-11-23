@@ -22,6 +22,7 @@ import '../../widgets/scaffold_with_nav_bar.dart';
 import '../../widgets/stat_card.dart';
 import '../../app/status_colors.dart';
 import 'widgets/monthly_forecast_table.dart';
+import 'widgets/year_rings_card.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
@@ -162,6 +163,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                           ),
                           const SizedBox(height: 24),
                         ],
+
+                        // Year rings entry (#1)
+                        const YearRingsCard(),
+                        const SizedBox(height: 16),
 
                         // Forecast card
                         const _ForecastCard(),

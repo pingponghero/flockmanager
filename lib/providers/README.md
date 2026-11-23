@@ -40,6 +40,10 @@ SharedPreferences instead of SQLite.
   `freeloadersProvider`, `productionTrendProvider`. Aggregates egg/bird data into
   dashboard summaries with adaptive chart granularity.
 
+- **year_rings_provider.dart** — `yearRingsProvider`. Week-by-week rings for the
+  Stats year view (#1): one ring per year or per hen, built by
+  `utils/year_rings.dart` from egg logs, birds and status events.
+
 - **achievements_provider.dart** — `earnedAchievementsProvider`,
   `achievementProgressProvider`, `newlyUnlockedAchievementsProvider`. 50+
   achievements across 9 categories with incremental progress tracking.

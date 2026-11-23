@@ -17,6 +17,7 @@ import '../screens/value/value_form_screen.dart';
 import '../screens/medications/medication_screen.dart';
 import '../screens/breeds/breed_list_screen.dart';
 import '../screens/analytics/analytics_screen.dart';
+import '../screens/analytics/year_view_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/achievements_screen.dart';
 import '../screens/settings/recipients_screen.dart';
@@ -150,6 +151,13 @@ final router = GoRouter(
               path: '/analytics',
               name: 'analytics',
               builder: (context, state) => const AnalyticsScreen(),
+              routes: [
+                GoRoute(
+                  path: 'year',
+                  name: 'analytics-year',
+                  builder: (context, state) => const YearViewScreen(),
+                ),
+              ],
             ),
           ],
         ),
