@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/bird.dart';
 import '../../../models/enums.dart';
 import '../../../providers/egg_provider.dart';
+import '../../../widgets/stat_card.dart';
 
 /// Stats row showing egg counts and age for a bird
 class BirdStatsRow extends ConsumerWidget {
@@ -34,69 +35,75 @@ class BirdStatsRow extends ConsumerWidget {
       }
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _StatItem(
-            label: 'Total Eggs',
-            value: totalAsync.when(
-              loading: () => '--',
-              error: (_, __) => '--',
-              data: (count) => '$count',
-            ),
-            icon: Icons.egg,
-          ),
-          if (isActive)
-            _StatItem(
-              label: 'This Month',
-              value: logsAsync.when(
-                loading: () => '--',
-                error: (_, __) => '--',
-                data: (_) => '$thisMonthCount',
+    final (ageLabel, ageValue) = birdAgeStat(bird);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: StatCard(
+                label: 'Total Eggs',
+                value: totalAsync.when(
+                  loading: () => '--',
+                  error: (_, _) => '--',
+                  data: (count) => '$count',
+                ),
+                icon: const Icon(Icons.egg),
               ),
-              icon: Icons.calendar_month,
             ),
-          _StatItem(
-            label: 'Since',
-            value: '${bird.createdAt.year}',
-            icon: Icons.wb_sunny_outlined,
-          ),
-        ],
+            if (isActive) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: StatCard(
+                  label: 'This Month',
+                  value: logsAsync.when(
+                    loading: () => '--',
+                    error: (_, _) => '--',
+                    data: (_) => '$thisMonthCount',
+                  ),
+                  icon: const Icon(Icons.calendar_month),
+                ),
+              ),
+            ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: StatCard(
+                label: ageLabel,
+                value: ageValue,
+                icon: const Icon(Icons.cake_outlined),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _StatItem extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-
-  const _StatItem({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
-    );
+/// The third bird-detail stat (#63). It used to read "Since: <year the
+/// record was created>", which looked like a hatch year. Prefer the bird's
+/// real age, then when it joined the flock, and only then when it was added
+/// to the app — and label each honestly.
+(String, String) birdAgeStat(Bird bird, {DateTime? now}) {
+  final today = now ?? DateTime.now();
+  final hatch = bird.hatchDate;
+  if (hatch != null) {
+    final days = today.difference(hatch).inDays;
+    if (days < 7 * 16) return ('Age', '${days ~/ 7} wk');
+    final months = (today.year - hatch.year) * 12 +
+        today.month -
+        hatch.month -
+        (today.day < hatch.day ? 1 : 0);
+    if (months < 24) return ('Age', '$months mo');
+    final years = months ~/ 12;
+    final rem = months % 12;
+    return ('Age', rem == 0 ? '${years}y' : '${years}y ${rem}m');
   }
+  if (bird.acquiredDate != null) {
+    return ('With you since', '${bird.acquiredDate!.year}');
+  }
+  return ('Added', '${bird.createdAt.year}');
 }

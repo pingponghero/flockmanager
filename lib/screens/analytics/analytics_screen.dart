@@ -18,6 +18,7 @@ import '../../widgets/flock_dropdown.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/scaffold_with_nav_bar.dart';
 import '../../app/status_colors.dart';
+import '../../widgets/stat_card.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
@@ -218,18 +219,20 @@ class _SummaryStats extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: _StatCard(
+                child: StatCard(
+                  layout: StatCardLayout.inline,
                   label: 'Total Eggs',
                   value: _numberFormat.format(analytics.totalEggs),
-                  icon: Icons.egg,
+                  icon: const Icon(Icons.egg),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _StatCard(
+                child: StatCard(
+                  layout: StatCardLayout.inline,
                   label: 'Daily Avg',
                   value: analytics.dailyAverage.toStringAsFixed(1),
-                  icon: Icons.trending_up,
+                  icon: const Icon(Icons.trending_up),
                 ),
               ),
             ],
@@ -241,89 +244,30 @@ class _SummaryStats extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: _StatCard(
+                child: StatCard(
+                  layout: StatCardLayout.inline,
                   label: 'Best Day',
                   value: '${analytics.bestDayCount}',
                   subtitle: analytics.bestDayDate != null
                       ? DateFormat.yMMMd().format(analytics.bestDayDate!)
                       : null,
-                  icon: Icons.star,
+                  icon: const Icon(Icons.star),
                   iconColor: Colors.amber,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _StatCard(
+                child: StatCard(
+                  layout: StatCardLayout.inline,
                   label: 'Days Logged',
                   value: '${analytics.daysWithData}',
-                  icon: Icons.calendar_today,
+                  icon: const Icon(Icons.calendar_today),
                 ),
               ),
             ],
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String? subtitle;
-  final IconData icon;
-  final Color? iconColor;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    this.subtitle,
-    required this.icon,
-    this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: iconColor ?? Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                  Text(
-                    value,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  if (subtitle != null)
-                    Text(
-                      subtitle!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

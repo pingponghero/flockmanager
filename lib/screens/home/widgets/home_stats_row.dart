@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../providers/analytics_provider.dart';
 import '../../../providers/bird_provider.dart';
 import '../../../providers/egg_provider.dart';
+import '../../../widgets/stat_card.dart';
 
 /// Row of stat cards showing weekly/monthly eggs and active birds
 class HomeStatsRow extends ConsumerWidget {
@@ -21,7 +22,7 @@ class HomeStatsRow extends ConsumerWidget {
     return Row(
       children: [
         Expanded(
-          child: _StatCard(
+          child: StatCard(
             label: 'This Week',
             value: weekAsync.when(
               loading: () => '--',
@@ -41,7 +42,7 @@ class HomeStatsRow extends ConsumerWidget {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: _StatCard(
+          child: StatCard(
             label: 'This Month',
             value: monthAsync.when(
               loading: () => '--',
@@ -61,7 +62,7 @@ class HomeStatsRow extends ConsumerWidget {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: _StatCard(
+          child: StatCard(
             label: 'Active Birds',
             value: birdsAsync.when(
               loading: () => '--',
@@ -78,55 +79,6 @@ class HomeStatsRow extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final Widget icon;
-  final VoidCallback? onTap;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Quiet, borderless tiles so the Today hero leads the screen (#68)
-    return Material(
-      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              icon,
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
