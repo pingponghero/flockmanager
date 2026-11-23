@@ -246,7 +246,10 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: colors.text.withValues(alpha: 0.08),
         selectedColor: colors.primary.withValues(alpha: isDark ? 0.3 : 0.2),
-        labelStyle: const TextStyle(fontSize: 14),
+        // Give the label a colour: a chip theme labelStyle replaces the
+        // Material default rather than merging with it, so without one the
+        // label had no colour and drew near-white on light chips (#62).
+        labelStyle: TextStyle(fontSize: 14, color: colors.text),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
