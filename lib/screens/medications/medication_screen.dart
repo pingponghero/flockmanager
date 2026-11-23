@@ -8,10 +8,10 @@ import '../../providers/medication_provider.dart';
 import '../../providers/notification_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../utils/snackbar_utils.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 import 'widgets/add_medication_sheet.dart';
 import 'widgets/legal_status_badge.dart';
-import '../../utils/snackbar_utils.dart';
 
 class MedicationScreen extends ConsumerStatefulWidget {
   /// Tab to open on: 0 = Active, 1 = History, 2 = Reference.
