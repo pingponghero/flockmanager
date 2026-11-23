@@ -275,6 +275,9 @@ class ImportService {
             }
           }
         }
+        // Older backups date each bird's first event when she was entered,
+        // not when she joined (#88).
+        await DatabaseHelper.backdateJoinedEvents(txn);
         _reportProgress(0.95);
       });
 

@@ -16,7 +16,7 @@ class DatabaseHelper {
   static Database? _database;
 
   static const String _databaseName = 'flock_manager.db';
-  static const int _databaseVersion = 7;
+  static const int _databaseVersion = 8;
 
   /// Get the database instance, initializing if needed.
   Future<Database> get database async {
@@ -213,6 +213,48 @@ class DatabaseHelper {
               where: 'id = ?', whereArgs: [bird['id']]);
         }
       }
+    }
+
+    // Migration to version 8: a bird's first 'active' event was dated when
+    // she was entered in the app, not when she joined the flock, so eggs
+    // logged before that were divided by too few hens (#88). Move it back
+    // to her acquired date when that's earlier and still before her next
+    // status change.
+    if (oldVersion < 8 && newVersion >= 8) {
+      await backdateJoinedEvents(db);
+    }
+  }
+
+  /// Moves each bird's first 'active' event back to her acquired date when
+  /// that's earlier (#88). Moving earlier keeps it before any later status
+  /// change. Used by the v8 migration and after an import, since older
+  /// backups carry events dated when birds were entered.
+  static Future<void> backdateJoinedEvents(DatabaseExecutor db) async {
+    final birds = await db.query(
+      'birds',
+      columns: ['id', 'acquired_date'],
+      where: 'acquired_date IS NOT NULL',
+    );
+    for (final bird in birds) {
+      final acquired = DateTime.tryParse(bird['acquired_date'] as String);
+      if (acquired == null || acquired.isAfter(DateTime.now())) continue;
+      final events = await db.query(
+        'bird_status_events',
+        columns: ['id', 'status', 'event_date'],
+        where: 'bird_id = ?',
+        whereArgs: [bird['id']],
+        orderBy: 'event_date ASC',
+        limit: 1,
+      );
+      if (events.isEmpty || events.first['status'] != 'active') continue;
+      final first = DateTime.parse(events.first['event_date'] as String);
+      if (!acquired.isBefore(first)) continue;
+      await db.update(
+        'bird_status_events',
+        {'event_date': acquired.toIso8601String()},
+        where: 'id = ?',
+        whereArgs: [events.first['id']],
+      );
     }
   }
 

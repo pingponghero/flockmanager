@@ -47,13 +47,14 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
 
     await repository.insertBird(bird);
 
-    // Create 'active' event for the new bird
+    // Create 'active' event for the new bird, dated when she joined the
+    // flock rather than when she was typed in (#88).
     await eventRepository.insertEvent(
       BirdStatusEvent.create(
         birdId: bird.id,
         flockId: bird.flockId,
         status: 'active',
-        eventDate: bird.createdAt,
+        eventDate: bird.joinedDate,
       ),
     );
 
@@ -65,10 +66,27 @@ class BirdsNotifier extends AsyncNotifier<List<Bird>> {
   /// Update an existing bird
   Future<void> updateBird(Bird bird) async {
     final repository = ref.read(birdRepositoryProvider);
+    final previous = await repository.getBirdById(bird.id);
     await repository.updateBird(bird);
+    if (previous != null && previous.acquiredDate != bird.acquiredDate) {
+      await _moveJoinedEvent(bird);
+    }
     ref.invalidateSelf();
     ref.invalidate(birdByIdProvider(bird.id));
     _invalidateBirdProviders();
+  }
+
+  /// Keep a bird's first 'active' event on her joined date when her acquired
+  /// date is edited (#88). Only moves it while it stays before her next
+  /// status change, so history can't be reordered.
+  Future<void> _moveJoinedEvent(Bird bird) async {
+    final eventRepository = ref.read(birdStatusEventRepositoryProvider);
+    final events = await eventRepository.getEventsByBird(bird.id)
+      ..sort((a, b) => a.eventDate.compareTo(b.eventDate));
+    if (events.isEmpty || events.first.status != 'active') return;
+    final joined = bird.joinedDate;
+    if (events.length > 1 && !joined.isBefore(events[1].eventDate)) return;
+    await eventRepository.updateEventDate(events.first.id, joined);
   }
 
   /// Update a bird's status. Returns the event ID if one was created.
