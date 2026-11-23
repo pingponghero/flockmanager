@@ -14,6 +14,17 @@ class BirdStatusEventRepository {
     await db.insert('bird_status_events', event.toMap());
   }
 
+  /// Move an event to a new date (e.g. a bird's acquired date changed).
+  Future<void> updateEventDate(String id, DateTime eventDate) async {
+    final db = await _db.database;
+    await db.update(
+      'bird_status_events',
+      {'event_date': eventDate.toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   /// Delete an event by ID.
   Future<void> deleteEvent(String id) async {
     final db = await _db.database;

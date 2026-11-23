@@ -144,6 +144,15 @@ abstract class Bird with _$Bird {
   /// Check if this bird is a rooster
   bool get isRooster => sex == BirdSex.male;
 
+  /// When she joined the flock, for flock-size history (#88): her acquired
+  /// date when it's set and not in the future, otherwise when she was
+  /// entered in the app.
+  DateTime get joinedDate {
+    final acquired = acquiredDate;
+    if (acquired != null && !acquired.isAfter(DateTime.now())) return acquired;
+    return createdAt;
+  }
+
   /// Whether this bird should appear in egg production stats and attribution
   bool get isEggProducer => status == BirdStatus.active && sex == BirdSex.female;
 

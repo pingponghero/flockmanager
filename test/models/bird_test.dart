@@ -164,4 +164,28 @@ void main() {
       expect(restored.eggColor, original.eggColor);
     });
   });
+
+  group('joinedDate (#88)', () {
+    final created = DateTime(2025, 6, 10);
+    Bird bird({DateTime? acquired}) => Bird(
+          id: 'b',
+          flockId: 'f',
+          name: 'Henrietta',
+          acquiredDate: acquired,
+          createdAt: created,
+        );
+
+    test('is the acquired date when set', () {
+      expect(bird(acquired: DateTime(2024, 3, 1)).joinedDate, DateTime(2024, 3, 1));
+    });
+
+    test('falls back to when she was entered', () {
+      expect(bird().joinedDate, created);
+    });
+
+    test('ignores an acquired date in the future', () {
+      final future = DateTime.now().add(const Duration(days: 30));
+      expect(bird(acquired: future).joinedDate, created);
+    });
+  });
 }
