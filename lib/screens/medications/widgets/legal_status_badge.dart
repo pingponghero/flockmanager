@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/medications.dart';
+import '../../../app/status_colors.dart';
 
 /// Badge showing the legal status of a medication
 class LegalStatusBadge extends StatelessWidget {
@@ -10,7 +11,7 @@ class LegalStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (color, icon) = _getStatusStyle();
+    final (color, icon) = _getStatusStyle(context);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -52,18 +53,19 @@ class LegalStatusBadge extends StatelessWidget {
     }
   }
 
-  (Color, IconData) _getStatusStyle() {
+  (Color, IconData) _getStatusStyle(BuildContext context) {
+    final status = StatusColors.of(context);
     switch (legalStatus) {
       case LegalStatus.fdaApproved:
-        return (Colors.green.shade700, Icons.check_circle_outline);
+        return (status.success.icon, Icons.check_circle_outline);
       case LegalStatus.offLabel:
-        return (Colors.blue.shade700, Icons.info_outline);
+        return (status.info.icon, Icons.info_outline);
       case LegalStatus.prescriptionRequired:
-        return (Colors.purple.shade700, Icons.medical_services_outlined);
+        return (status.special.icon, Icons.medical_services_outlined);
       case LegalStatus.bannedInUs:
-        return (Colors.red.shade700, Icons.block);
+        return (status.danger.icon, Icons.block);
       case LegalStatus.notForFoodAnimals:
-        return (Colors.red.shade700, Icons.dangerous_outlined);
+        return (status.danger.icon, Icons.dangerous_outlined);
     }
   }
 }

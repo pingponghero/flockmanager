@@ -15,9 +15,11 @@ import '../../providers/recipient_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
+import '../../widgets/choice_chip_row.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 import '../settings/settings_screen.dart' show showRetailPriceDialog;
+import '../../widgets/error_state.dart';
 
 /// Filter options combining expense categories + income.
 enum _ListFilter {
@@ -86,7 +88,15 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Egg Value'),
+        title: const Text('Value'),
+        actions: [
+          // Recipients live with sales and gifts (#59)
+          IconButton(
+            icon: const Icon(Icons.people_outline),
+            tooltip: 'Recipients',
+            onPressed: () => context.go('/settings/recipients'),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -117,50 +127,42 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
             ),
           ),
 
-          // Period + Mode toggle
+          // Mode toggle + period chips (#62)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Flexible(
-                  flex: 2,
-                  child: DropdownMenu<FinanceDateRange>(
-                    initialSelection: selectedRange,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Period'),
-                    dropdownMenuEntries: FinanceDateRange.values
-                        .map((range) => DropdownMenuEntry(
-                              value: range,
-                              label: range.displayName,
-                            ))
-                        .toList(),
-                    onSelected: (value) {
-                      if (value != null) {
-                        ref
-                            .read(financeDateRangeProvider.notifier)
-                            .setRange(value);
-                      }
-                    },
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                    value: false,
+                    label: Text('Egg value'),
+                    icon: Icon(Icons.egg_outlined),
+                    tooltip: 'What your eggs are worth against store prices',
                   ),
-                ),
-                const SizedBox(width: 12),
-                DropdownMenu<bool>(
-                  initialSelection: cashFlowMode,
-                  requestFocusOnTap: false,
-                  label: const Text('Mode'),
-                  dropdownMenuEntries: const [
-                    DropdownMenuEntry(value: false, label: 'Value'),
-                    DropdownMenuEntry(value: true, label: 'Cash'),
-                  ],
-                  onSelected: (value) {
-                    if (value != null) {
-                      ref.read(valueScreenModeProvider.notifier).setMode(value);
-                    }
-                  },
-                ),
-              ],
+                  ButtonSegment(
+                    value: true,
+                    label: Text('Cash flow'),
+                    icon: Icon(Icons.payments_outlined),
+                    tooltip: 'Money actually spent and received',
+                  ),
+                ],
+                selected: {cashFlowMode},
+                showSelectedIcon: false,
+                onSelectionChanged: (selection) => ref
+                    .read(valueScreenModeProvider.notifier)
+                    .setMode(selection.first),
+              ),
             ),
           ),
+          ChoiceChipRow<FinanceDateRange>(
+            values: FinanceDateRange.values,
+            selected: selectedRange,
+            labelOf: (range) => range.shortLabel,
+            onSelected: (range) =>
+                ref.read(financeDateRangeProvider.notifier).setRange(range),
+          ),
+          const SizedBox(height: 8),
 
           // Mode-dependent hero + secondary cards
           if (cashFlowMode) ...[
@@ -383,10 +385,10 @@ class _EggValueCard extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               );
 
-          return GestureDetector(
-            onTap: () => _showEggValueBreakdown(context, ref, summary),
-            child: Card(
-              clipBehavior: Clip.antiAlias,
+          return Card(
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => _showEggValueBreakdown(context, ref, summary),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -629,10 +631,10 @@ class _CashFlowHeroCard extends ConsumerWidget {
           final cashFlow = summary.cashFlow;
           final cashFlowPrefix = cashFlow >= 0 ? '+' : '';
 
-          return GestureDetector(
-            onTap: () => _showCashFlowBreakdown(context, summary, cs),
-            child: Card(
-              clipBehavior: Clip.antiAlias,
+          return Card(
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => _showCashFlowBreakdown(context, summary, cs),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -956,7 +958,10 @@ class _LineItemList extends StatelessWidget {
     if (expensesAsync.hasError) {
       return Padding(
         padding: const EdgeInsets.all(32),
-        child: Center(child: Text('Error: ${expensesAsync.error}')),
+        child: ErrorState(
+          message: "Couldn't load transactions",
+          error: expensesAsync.error,
+        ),
       );
     }
 
@@ -1036,29 +1041,18 @@ class _ExpenseCard extends ConsumerWidget {
           padding: const EdgeInsets.only(right: 16),
           child: const Icon(Icons.delete, color: Colors.white),
         ),
-        confirmDismiss: (_) async {
-          return await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Delete Expense'),
-              content:
-                  const Text('Are you sure you want to delete this expense?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
-          );
-        },
         onDismissed: (_) {
-          ref.read(expensesProvider.notifier).deleteExpense(expense.id);
-          showAppSnackBar(context, 'Expense deleted');
+          // Delete straight away and offer Undo instead of asking first
+          // (#65). Capture the notifier: this card is gone by the time
+          // Undo is tapped, so its ref can't be used then.
+          final expenses = ref.read(expensesProvider.notifier);
+          expenses.deleteExpense(expense.id);
+          showAppSnackBar(
+            context,
+            'Expense deleted',
+            actionLabel: 'Undo',
+            onAction: () => expenses.addExpense(expense),
+          );
         },
         child: ListTile(
           leading: CircleAvatar(
@@ -1456,30 +1450,16 @@ class _IncomeCard extends ConsumerWidget {
           padding: const EdgeInsets.only(right: 16),
           child: const Icon(Icons.delete, color: Colors.white),
         ),
-        confirmDismiss: (_) async {
-          return await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text(isGift ? 'Delete Gift' : 'Delete Income'),
-              content: Text(isGift
-                  ? 'Are you sure you want to delete this gift record?'
-                  : 'Are you sure you want to delete this income record?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
-          );
-        },
         onDismissed: (_) {
-          ref.read(incomeProvider.notifier).deleteIncome(income.id);
-          showAppSnackBar(context, isGift ? 'Gift deleted' : 'Income deleted');
+          // Delete with Undo rather than a confirmation dialog (#65)
+          final incomeNotifier = ref.read(incomeProvider.notifier);
+          incomeNotifier.deleteIncome(income.id);
+          showAppSnackBar(
+            context,
+            isGift ? 'Gift deleted' : 'Income deleted',
+            actionLabel: 'Undo',
+            onAction: () => incomeNotifier.addIncome(income),
+          );
         },
         child: ListTile(
           leading: CircleAvatar(

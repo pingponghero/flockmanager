@@ -16,6 +16,12 @@ import 'services/photo_storage.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Bundled fonts must show their licence on the Licenses page (#67)
+  LicenseRegistry.addLicense(() async* {
+    final ofl = await rootBundle.loadString('assets/fonts/Fraunces-OFL.txt');
+    yield LicenseEntryWithLineBreaks(['Fraunces'], ofl);
+  });
+
   // Lock to portrait mode
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

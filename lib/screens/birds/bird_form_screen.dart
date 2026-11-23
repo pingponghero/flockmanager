@@ -17,6 +17,7 @@ import '../../utils/snackbar_utils.dart';
 import '../../providers/flock_provider.dart';
 import '../../services/photo_storage.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
+import '../../widgets/error_state.dart';
 
 class BirdFormScreen extends ConsumerStatefulWidget {
   final String? birdId;
@@ -145,23 +146,28 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Sex dropdown
-            DropdownMenu<BirdSex>(
-              initialSelection: _selectedSex,
-              expandedInsets: EdgeInsets.zero,
-              label: const Text('Sex'),
-              dropdownMenuEntries: BirdSex.values
-                  .map((sex) => DropdownMenuEntry(
-                        value: sex,
-                        label: sex.displayName,
-                      ))
-                  .toList(),
-              onSelected: (value) {
-                if (value != null) {
-                  setState(() => _selectedSex = value);
-                  _generateDefaultName();
-                }
-              },
+            // Sex (#62)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Sex', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<BirdSex>(
+                  segments: [
+                    for (final sex in BirdSex.values)
+                      ButtonSegment(value: sex, label: Text(sex.displayName)),
+                  ],
+                  selected: {_selectedSex},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) {
+                    setState(() => _selectedSex = selection.first);
+                    _generateDefaultName();
+                  },
+                ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -263,20 +269,10 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
       ),
       error: (error, stack) => Scaffold(
         appBar: AppBar(title: const Text('Edit Bird')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error loading bird: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => context.pop(),
-                child: const Text('Go Back'),
-              ),
-            ],
-          ),
+        body: ErrorState(
+          message: "Couldn't load this bird",
+          error: error,
+          onRetry: () => ref.invalidate(birdByIdProvider(widget.birdId!)),
         ),
       ),
       data: (bird) {
@@ -414,11 +410,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
       setState(() => _photoPath = storedName);
     } catch (e) {
       if (mounted) {
-        showAppSnackBar(
-          context,
-          'Error selecting photo: $e',
-          backgroundColor: Theme.of(context).colorScheme.error,
-        );
+        showErrorSnackBar(context, "Couldn't use that photo", e);
       }
     }
   }
@@ -511,11 +503,7 @@ class _BirdFormScreenState extends ConsumerState<BirdFormScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showAppSnackBar(
-          context,
-          'Error: $e',
-          backgroundColor: Theme.of(context).colorScheme.error,
-        );
+        showErrorSnackBar(context, "Couldn't save the bird", e);
       }
     } finally {
       if (mounted) {
@@ -633,7 +621,11 @@ class _FlockDropdown extends ConsumerWidget {
 
     return flocksAsync.when(
       loading: () => const LinearProgressIndicator(),
-      error: (error, stack) => Text('Error loading flocks: $error'),
+      error: (error, stack) => ErrorState.compact(
+        message: "Couldn't load flocks",
+        error: error,
+        onRetry: () => ref.invalidate(flocksProvider),
+      ),
       data: (flocks) {
         if (flocks.isEmpty) {
           return Card(

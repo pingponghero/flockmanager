@@ -93,3 +93,16 @@ flutter:
   # App assets
   assets:
     - assets/icons/
+    - assets/fonts/Fraunces-OFL.txt
+
+  # Heading typeface (#67). Static 600/700 instances of Fraunces (SIL OFL
+  # 1.1, see assets/fonts/Fraunces-OFL.txt) cut from the variable font at
+  # opsz 48, SOFT 50, WONK 0. Used for headings only: its digits are
+  # proportional, so numbers stay in the system font with tabular figures.
+  fonts:
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/Fraunces-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Fraunces-Bold.ttf
+          weight: 700

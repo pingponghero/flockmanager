@@ -35,6 +35,7 @@ import '../../utils/edge_insets.dart';
 import '../../utils/share_utils.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/import_confirmation_dialog.dart';
+import '../../app/status_colors.dart';
 
 const _supportEmail = 'flockmanager.app@gmail.com';
 
@@ -168,8 +169,8 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.emoji_events),
-              title: const Text('Badges'),
-              subtitle: const Text('View your achievements'),
+              title: const Text('All achievements'),
+              subtitle: const Text('See what you\'ve unlocked and what\'s next'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/settings/achievements'),
             ),
@@ -281,27 +282,37 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DropdownMenu<ThemeMode>(
-                    initialSelection: currentThemeMode,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Theme Mode'),
-                    leadingIcon: Icon(
-                      currentThemeMode == ThemeMode.light
-                          ? Icons.light_mode
-                          : currentThemeMode == ThemeMode.dark
-                              ? Icons.dark_mode
-                              : Icons.settings_brightness,
+                  Text(
+                    'Theme',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<ThemeMode>(
+                      segments: const [
+                        ButtonSegment(
+                          value: ThemeMode.system,
+                          label: Text('System'),
+                          icon: Icon(Icons.settings_brightness),
+                        ),
+                        ButtonSegment(
+                          value: ThemeMode.light,
+                          label: Text('Light'),
+                          icon: Icon(Icons.light_mode),
+                        ),
+                        ButtonSegment(
+                          value: ThemeMode.dark,
+                          label: Text('Dark'),
+                          icon: Icon(Icons.dark_mode),
+                        ),
+                      ],
+                      selected: {currentThemeMode},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (selection) => ref
+                          .read(themeModeProvider.notifier)
+                          .setThemeMode(selection.first),
                     ),
-                    dropdownMenuEntries: const [
-                      DropdownMenuEntry(value: ThemeMode.system, label: 'System'),
-                      DropdownMenuEntry(value: ThemeMode.light, label: 'Light'),
-                      DropdownMenuEntry(value: ThemeMode.dark, label: 'Dark'),
-                    ],
-                    onSelected: (value) {
-                      if (value != null) {
-                        ref.read(themeModeProvider.notifier).setThemeMode(value);
-                      }
-                    },
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -372,7 +383,7 @@ class SettingsScreen extends ConsumerWidget {
                   ListTile(
                     leading: Icon(
                       Icons.verified,
-                      color: Colors.green.shade600,
+                      color: StatusColors.of(context).success.icon,
                     ),
                     title: const Text('Lifetime Access'),
                     subtitle: const Text('Thank you for your support!'),
@@ -567,7 +578,7 @@ class SettingsScreen extends ConsumerWidget {
     } catch (e) {
       closeDialog();
       if (context.mounted) {
-        showAppSnackBar(context, 'Export failed: $e');
+        showErrorSnackBar(context, "Export failed", e);
       }
     }
   }

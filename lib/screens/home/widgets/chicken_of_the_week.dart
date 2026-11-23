@@ -6,6 +6,7 @@ import '../../../models/bird.dart';
 import '../../../providers/bird_provider.dart';
 import '../../../providers/egg_provider.dart';
 import '../../../services/photo_storage.dart';
+import '../../../app/status_colors.dart';
 
 /// Swipable gallery of all living birds in the flock.
 class FlockSpotlight extends ConsumerStatefulWidget {
@@ -71,7 +72,7 @@ class _FlockSpotlightState extends ConsumerState<FlockSpotlight> {
           child: Column(
             children: [
               SizedBox(
-                height: 120,
+                height: 184,
                 child: !showDots
                     ? _BirdCard(bird: sorted.first)
                     : PageView.builder(
@@ -105,7 +106,8 @@ class _FlockSpotlightState extends ConsumerState<FlockSpotlight> {
   }
 }
 
-/// Single bird card used in the spotlight page view.
+/// Single bird card used in the spotlight page view: a full-bleed photo with
+/// the bird's name over a gradient, like the bird detail header (#68).
 class _BirdCard extends ConsumerWidget {
   final Bird bird;
 
@@ -115,93 +117,124 @@ class _BirdCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final eggCount =
         ref.watch(totalEggCountByBirdProvider(bird.id)).value ?? 0;
-    final detailStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        );
+    final theme = Theme.of(context);
+    final subtitle = [
+      if (bird.breed != null && bird.breed!.isNotEmpty) bird.breed!,
+      if (eggCount > 0) '$eggCount egg${eggCount == 1 ? '' : 's'}',
+    ].join(' · ');
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.go('/birds/${bird.id}'),
-        child: Row(
-          children: [
-            // Photo strip
-            SizedBox(
-              width: 120,
-              child: bird.photoFile != null
-                  ? Image.file(
-                      bird.photoFile!,
-                      fit: BoxFit.cover,
-                      height: double.infinity,
-                      width: double.infinity,
-                      errorBuilder: (_, __, ___) => _PlaceholderPhoto(),
-                    )
-                  : _PlaceholderPhoto(),
-            ),
-            // Info
-            Expanded(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    final photo = bird.photoFile;
+    final hasPhoto = photo != null;
+    // Over a photo: white text on a dark scrim. Without one: a soft tint
+    // with theme text, since a scrim over a pastel turns muddy.
+    final nameColor = hasPhoto ? Colors.white : theme.colorScheme.onSurface;
+    final detailColor =
+        hasPhoto ? Colors.white70 : theme.colorScheme.onSurfaceVariant;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Material(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => context.go('/birds/${bird.id}'),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (hasPhoto) ...[
+                Image.file(
+                  photo,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                ),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: [0.45, 1],
+                      colors: [Colors.transparent, Color(0xB3000000)],
+                    ),
+                  ),
+                ),
+              ] else
+                Positioned(
+                  right: 16,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Image.asset(
+                      'assets/icons/cute_hen.png',
+                      width: 96,
+                      height: 96,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.35),
+                    ),
+                  ),
+                ),
+              Positioned(
+                left: 12,
+                top: 12,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: hasPhoto
+                        ? Colors.black.withValues(alpha: 0.35)
+                        : theme.colorScheme.surface.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 14,
+                        color: hasPhoto
+                            ? Colors.amber.shade200
+                            : StatusColors.of(context).warning.icon,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Flock Spotlight',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: nameColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 16,
+                right: hasPhoto ? 16 : 128,
+                bottom: 14,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Flock Spotlight',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelMedium
-                          ?.copyWith(
-                            color: Colors.amber.shade700,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
                       bird.name,
-                      style:
-                          Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: nameColor,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    if (bird.breed != null)
-                      Text(bird.breed!, style: detailStyle),
-                    if (bird.notes != null && bird.notes!.isNotEmpty)
+                    if (subtitle.isNotEmpty)
                       Text(
-                        bird.notes!,
-                        style: detailStyle,
+                        subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                      ),
-                    if (eggCount > 0)
-                      Text(
-                        '$eggCount egg${eggCount == 1 ? '' : 's'}',
-                        style: detailStyle,
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(color: detailColor),
                       ),
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Placeholder bird photo when no image is available.
-class _PlaceholderPhoto extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Center(
-        child: Image.asset(
-          'assets/icons/cute_hen.png',
-          width: 48,
-          height: 48,
-          color: Theme.of(context).colorScheme.onPrimaryContainer,
+            ],
+          ),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../providers/egg_provider.dart';
+import '../../../utils/motion.dart';
 
 /// Card showing a spark line chart of the last 7 days of eggs
 class SparkLineCard extends ConsumerWidget {
@@ -66,7 +67,13 @@ class SparkLineCard extends ConsumerWidget {
                       .reduce((a, b) => a > b ? a : b);
                   final maxHeight = maxCount == 0 ? 1 : maxCount;
 
-                  return Row(
+                  // Bars grow up from the baseline on first show (#69)
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: motionDuration(
+                        context, const Duration(milliseconds: 500)),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, grow, _) => Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: days.map((entry) {
@@ -97,7 +104,7 @@ class SparkLineCard extends ConsumerWidget {
                                 ),
                               const SizedBox(height: 2),
                               Container(
-                                height: height.clamp(4.0, 48.0),
+                                height: 4 + (height.clamp(4.0, 48.0) - 4) * grow,
                                 decoration: BoxDecoration(
                                   color: entry.isProjected
                                       ? Theme.of(context)
@@ -127,6 +134,7 @@ class SparkLineCard extends ConsumerWidget {
                         ),
                       );
                     }).toList(),
+                  ),
                   );
                 },
               ),

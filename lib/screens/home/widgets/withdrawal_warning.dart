@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../providers/medication_provider.dart';
+import '../../../app/status_colors.dart';
+import '../../../widgets/tappable_tile.dart';
 
 /// Warning banner when medication withdrawal periods are active
 class WithdrawalWarning extends ConsumerWidget {
@@ -16,7 +18,7 @@ class WithdrawalWarning extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (withdrawals) {
-        if (withdrawals.isEmpty) return const SizedBox(height: 8);
+        if (withdrawals.isEmpty) return const SizedBox.shrink();
 
         // Find the soonest withdrawal end
         int? minDays;
@@ -29,42 +31,38 @@ class WithdrawalWarning extends ConsumerWidget {
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: GestureDetector(
+          child: TappableTile(
             onTap: () => context.go('/settings/medications'),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.amber.shade700),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Egg Withdrawal Active',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.amber.shade900,
-                          ),
+            padding: const EdgeInsets.all(12),
+            color: StatusColors.of(context).warning.container,
+            borderColor: StatusColors.of(context).warning.border,
+            radius: 12,
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: StatusColors.of(context).warning.icon),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Egg Withdrawal Active',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: StatusColors.of(context).warning.onContainer,
                         ),
-                        Text(
-                          minDays != null && minDays > 0
-                              ? '$minDays days remaining'
-                              : 'Ends today',
-                          style: TextStyle(color: Colors.amber.shade800, fontSize: 12),
-                        ),
-                      ],
-                    ),
+                      ),
+                      Text(
+                        minDays != null && minDays > 0
+                            ? '$minDays days remaining'
+                            : 'Ends today',
+                        style: TextStyle(color: StatusColors.of(context).warning.onContainerMuted, fontSize: 12),
+                      ),
+                    ],
                   ),
-                  Icon(Icons.chevron_right, color: Colors.amber.shade700),
-                ],
-              ),
+                ),
+                Icon(Icons.chevron_right, color: StatusColors.of(context).warning.icon),
+              ],
             ),
           ),
         );

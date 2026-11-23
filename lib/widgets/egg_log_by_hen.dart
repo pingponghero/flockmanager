@@ -13,6 +13,7 @@ import '../providers/flock_provider.dart';
 import '../services/photo_storage.dart';
 import '../utils/snackbar_utils.dart';
 import 'achievement_celebration_dialog.dart';
+import 'error_state.dart';
 
 /// Per-hen egg logging UI.
 /// Shows a list of active hens with +/− counters to attribute eggs individually.
@@ -217,11 +218,7 @@ class _EggLogByHenContentState extends ConsumerState<EggLogByHenContent> {
       }
     } catch (e) {
       if (mounted) {
-        showAppSnackBar(
-          context,
-          'Error: $e',
-          backgroundColor: Theme.of(context).colorScheme.error,
-        );
+        showErrorSnackBar(context, "Couldn't save your eggs", e);
         setState(() => _isSaving = false);
       }
     }
@@ -248,7 +245,11 @@ class _SingleFlockHenList extends ConsumerWidget {
 
     return birdsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => ErrorState(
+        message: "Couldn't load your hens",
+        error: e,
+        onRetry: () => ref.invalidate(activeBirdsByFlockProvider(flockId)),
+      ),
       data: (birds) {
         final hens = birds.where((b) => b.sex != BirdSex.male).toList()
           ..sort((a, b) => a.name.compareTo(b.name));
@@ -295,7 +296,11 @@ class _AllFlocksHenList extends ConsumerWidget {
 
     return hensAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      error: (e, _) => ErrorState(
+        message: "Couldn't load your hens",
+        error: e,
+        onRetry: () => ref.invalidate(allActiveHensProvider),
+      ),
       data: (hens) {
         if (hens.isEmpty) {
           return const Padding(

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/achievements_provider.dart';
 import '../providers/egg_provider.dart' show currencySymbolProvider;
 import '../providers/review_prompt_provider.dart';
+import '../app/status_colors.dart';
 
 /// A celebration dialog shown when a user unlocks a new achievement.
 class AchievementCelebrationDialog extends StatefulWidget {
@@ -165,21 +166,21 @@ class _AchievementCelebrationDialogState
                 children: [
                   Icon(
                     Icons.auto_awesome,
-                    color: Colors.amber.shade600,
+                    color: StatusColors.of(context).warning.icon,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'Achievement Unlocked!',
                     style: theme.textTheme.titleSmall?.copyWith(
-                      color: Colors.amber.shade700,
+                      color: StatusColors.of(context).warning.icon,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Icon(
                     Icons.auto_awesome,
-                    color: Colors.amber.shade600,
+                    color: StatusColors.of(context).warning.icon,
                     size: 20,
                   ),
                 ],

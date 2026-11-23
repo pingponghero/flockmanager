@@ -100,25 +100,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: ListView(
           padding: pagePadding(context),
           children: [
-            // Date header
+            // Order follows importance (#68): date, anything that needs
+            // attention, then the Today hero, then the flock and the details.
+            // Widgets that can hide themselves own their 16px bottom gap.
             const GreetingHeader(),
 
             // Trial expired banner (below date)
             const TrialBanner(),
             const SizedBox(height: 16),
 
-            // Flock Spotlight (swipable bird gallery)
-            const FlockSpotlight(),
+            // Withdrawal warning: eggs shouldn't be eaten, so it comes first
+            const WithdrawalWarning(),
 
             // Birthday callouts
             const BirthdayCallouts(),
 
-            // Withdrawal warning banner
-            const WithdrawalWarning(),
-
-            // Today's eggs with comparison
+            // Hero: today's eggs
             TodayEggCard(selectedFlockId: selectedFlockId),
             const SizedBox(height: 16),
+
+            // Flock Spotlight (swipable bird gallery)
+            const FlockSpotlight(),
 
             // Spark line (last 7 days)
             const SparkLineCard(),
@@ -130,7 +132,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             // Monthly savings vs store
             const MonthlySavingsCard(),
-            const SizedBox(height: 24),
 
             // Latest achievement
             const LatestAchievement(),

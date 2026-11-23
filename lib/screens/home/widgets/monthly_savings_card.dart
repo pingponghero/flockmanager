@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../providers/egg_provider.dart' show currencySymbolProvider;
 import '../../../providers/egg_value_provider.dart';
+import '../../../widgets/tappable_tile.dart';
 
 class MonthlySavingsCard extends ConsumerWidget {
   const MonthlySavingsCard({super.key});
@@ -21,24 +22,16 @@ class MonthlySavingsCard extends ConsumerWidget {
 
         final primaryColor = Theme.of(context).colorScheme.primary;
 
-        return GestureDetector(
-          onTap: () => context.go('/expenses'),
-          child: Container(
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: TappableTile(
+            onTap: () => context.go('/expenses'),
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: primaryColor.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: primaryColor.withValues(alpha: 0.2),
-              ),
-            ),
+            color: primaryColor.withValues(alpha: 0.08),
+            radius: 12,
             child: Row(
               children: [
-                Icon(
-                  Icons.egg,
-                  color: primaryColor,
-                  size: 22,
-                ),
+                Icon(Icons.egg, color: primaryColor, size: 22),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text.rich(
@@ -48,11 +41,11 @@ class MonthlySavingsCard extends ConsumerWidget {
                         TextSpan(
                           text:
                               '${ref.watch(currencySymbolProvider)}${netCostPerDozen.toStringAsFixed(2)}/dz',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: primaryColor,
-                                  ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: primaryColor,
+                              ),
                         ),
                       ],
                     ),

@@ -12,6 +12,7 @@ import '../../providers/flock_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/achievements_provider.dart';
 import '../../utils/snackbar_utils.dart';
+import '../../widgets/hen_icon.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -114,7 +115,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       setState(() => _isCreatingFlock = false);
       if (mounted) {
-        showAppSnackBar(context, 'Error creating flock: $e');
+        showErrorSnackBar(context, "Couldn't create the flock", e);
       }
     }
   }
@@ -152,7 +153,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       setState(() => _isCreatingBird = false);
       if (mounted) {
-        showAppSnackBar(context, 'Error adding bird: $e');
+        showErrorSnackBar(context, "Couldn't add the bird", e);
       }
     }
   }
@@ -418,19 +419,19 @@ class _FeaturesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final features = [
       _FeatureCard(
-        icon: Icons.egg,
+        icon: const Icon(Icons.egg),
         title: 'Log eggs in 2 taps',
         description: 'Quick-log from the home screen. Track by flock, bird, size, and quality.',
         color: Colors.amber,
       ),
       _FeatureCard(
-        icon: Icons.pets,
+        icon: const HenIcon(),
         title: 'Track every bird',
         description: 'Bird profiles with photos, breeds, health notes, and egg production stats.',
         color: Colors.green,
       ),
       _FeatureCard(
-        icon: Icons.attach_money,
+        icon: const Icon(Icons.attach_money),
         title: 'Know your costs',
         description: 'Track expenses and income. See your cost per egg and profit/loss.',
         color: Colors.blue,
@@ -470,7 +471,7 @@ class _FeaturesPage extends StatelessWidget {
 }
 
 class _FeatureCard extends StatelessWidget {
-  final IconData icon;
+  final Widget icon;
   final String title;
   final String description;
   final Color color;
@@ -498,7 +499,10 @@ class _FeatureCard extends StatelessWidget {
                 color: color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 40, color: color),
+              child: IconTheme(
+                data: IconThemeData(size: 40, color: color),
+                child: icon,
+              ),
             ),
             const SizedBox(height: 24),
             Text(

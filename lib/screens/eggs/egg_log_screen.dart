@@ -13,6 +13,7 @@ import '../../providers/flock_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/achievement_celebration_dialog.dart';
+import '../../widgets/error_state.dart';
 
 class EggLogScreen extends ConsumerStatefulWidget {
   /// If editing, pass the existing EggLog
@@ -106,7 +107,11 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
             // Flock selector
             flocksAsync.when(
               loading: () => const LinearProgressIndicator(),
-              error: (error, stack) => Text('Error: $error'),
+              error: (error, stack) => ErrorState.compact(
+                message: "Couldn't load flocks",
+                error: error,
+                onRetry: () => ref.invalidate(flocksProvider),
+              ),
               data: (flocks) {
                 if (flocks.isEmpty) {
                   return Card(
@@ -233,17 +238,27 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Size dropdown
-            DropdownMenu<EggSize>(
-              initialSelection: _selectedSize,
-              label: const Text('Size'),
-              expandedInsets: EdgeInsets.zero,
-              onSelected: (value) {
-                if (value != null) setState(() => _selectedSize = value);
-              },
-              dropdownMenuEntries: EggSize.values
-                  .map((s) => DropdownMenuEntry(value: s, label: s.displayName))
-                  .toList(),
+            // Size (#62)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Size', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<EggSize>(
+                    segments: [
+                      for (final size in EggSize.values)
+                        ButtonSegment(value: size, label: Text(size.displayName)),
+                    ],
+                    selected: {?_selectedSize},
+                    emptySelectionAllowed: true,
+                    showSelectedIcon: false,
+                    onSelectionChanged: (selection) =>
+                        setState(() => _selectedSize = selection.firstOrNull),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -360,11 +375,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showAppSnackBar(
-          context,
-          'Error: $e',
-          backgroundColor: Theme.of(context).colorScheme.error,
-        );
+        showErrorSnackBar(context, "Couldn't save the entry", e);
       }
     } finally {
       if (mounted) {
@@ -408,11 +419,7 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
         }
       } catch (e) {
         if (mounted) {
-          showAppSnackBar(
-            context,
-            'Error: $e',
-            backgroundColor: Theme.of(context).colorScheme.error,
-          );
+          showErrorSnackBar(context, "Couldn't delete the entry", e);
           setState(() => _isLoading = false);
         }
       }

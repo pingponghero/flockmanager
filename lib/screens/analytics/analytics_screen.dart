@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/egg_log.dart';
+import '../../widgets/error_state.dart';
 import '../../providers/analytics_provider.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
@@ -14,9 +15,13 @@ import '../../providers/forecast_provider.dart';
 import '../../services/photo_storage.dart';
 import '../../utils/daylight_calculator.dart';
 import '../../providers/flock_provider.dart';
+import '../../widgets/choice_chip_row.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/scaffold_with_nav_bar.dart';
+import '../../widgets/stat_card.dart';
+import '../../app/status_colors.dart';
+import 'widgets/monthly_forecast_table.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
@@ -56,7 +61,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Egg Stats'),
+        title: const Text('Stats'),
       ),
       body: Column(
         children: [
@@ -65,9 +70,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Column(
               children: [
-                // Flock filter (hidden if only 1 flock)
+                // Flock filter
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: FlockDropdown(
                     selectedFlockId: selectedFlockId,
                     onChanged: (value) {
@@ -75,25 +80,16 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                     },
                   ),
                 ),
-                // Period selector
-                DropdownMenu<AnalyticsPeriod>(
-                  initialSelection: selectedPeriod,
-                  expandedInsets: EdgeInsets.zero,
-                  label: const Text('Period'),
-                  dropdownMenuEntries: AnalyticsPeriod.values
-                      .map((period) => DropdownMenuEntry(
-                            value: period,
-                            label: period.displayName,
-                          ))
-                      .toList(),
-                  onSelected: (value) {
-                    if (value != null) {
-                      ref.read(analyticsPeriodProvider.notifier).setPeriod(value);
-                    }
-                  },
-                ),
               ],
             ),
+          ),
+          // Period selector (#62)
+          ChoiceChipRow<AnalyticsPeriod>(
+            values: AnalyticsPeriod.values,
+            selected: selectedPeriod,
+            labelOf: (period) => period.shortLabel,
+            onSelected: (period) =>
+                ref.read(analyticsPeriodProvider.notifier).setPeriod(period),
           ),
           const SizedBox(height: 8),
           // Loading indicator (shows while refreshing, doesn't disrupt scroll)
@@ -113,18 +109,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                 builder: (context) {
                   // Show error state
                   if (analyticsAsync.hasError && !analyticsAsync.hasValue) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(48),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                            const SizedBox(height: 16),
-                            Text('Error: ${analyticsAsync.error}'),
-                          ],
-                        ),
-                      ),
+                    return ErrorState(
+                      message: "Couldn't load your stats",
+                      error: analyticsAsync.error,
+                      onRetry: () => ref.invalidate(analyticsProvider),
                     );
                   }
 
@@ -217,18 +205,20 @@ class _SummaryStats extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: _StatCard(
+                child: StatCard(
+                  layout: StatCardLayout.inline,
                   label: 'Total Eggs',
                   value: _numberFormat.format(analytics.totalEggs),
-                  icon: Icons.egg,
+                  icon: const Icon(Icons.egg),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _StatCard(
+                child: StatCard(
+                  layout: StatCardLayout.inline,
                   label: 'Daily Avg',
                   value: analytics.dailyAverage.toStringAsFixed(1),
-                  icon: Icons.trending_up,
+                  icon: const Icon(Icons.trending_up),
                 ),
               ),
             ],
@@ -240,89 +230,30 @@ class _SummaryStats extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: _StatCard(
+                child: StatCard(
+                  layout: StatCardLayout.inline,
                   label: 'Best Day',
                   value: '${analytics.bestDayCount}',
                   subtitle: analytics.bestDayDate != null
                       ? DateFormat.yMMMd().format(analytics.bestDayDate!)
                       : null,
-                  icon: Icons.star,
+                  icon: const Icon(Icons.star),
                   iconColor: Colors.amber,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _StatCard(
+                child: StatCard(
+                  layout: StatCardLayout.inline,
                   label: 'Days Logged',
                   value: '${analytics.daysWithData}',
-                  icon: Icons.calendar_today,
+                  icon: const Icon(Icons.calendar_today),
                 ),
               ),
             ],
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String? subtitle;
-  final IconData icon;
-  final Color? iconColor;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    this.subtitle,
-    required this.icon,
-    this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: iconColor ?? Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                  Text(
-                    value,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  if (subtitle != null)
-                    Text(
-                      subtitle!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -838,10 +769,12 @@ class _CollapsibleRecentActivity extends ConsumerWidget {
           ),
           initiallyExpanded: false,
           children: [
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text('Error: $error'),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: ErrorState.compact(
+                message: "Couldn't load recent activity",
+                error: error,
+                onRetry: () => ref.invalidate(recentEggLogsProvider),
               ),
             ),
           ],
@@ -1014,10 +947,11 @@ class _ForecastCard extends ConsumerWidget {
             ),
         };
 
-        return GestureDetector(
-          onTap: () => _showForecastDetails(context, forecast, year, period),
-          child: Card(
-            color: Colors.amber.withValues(alpha: 0.1),
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          color: Colors.amber.withValues(alpha: 0.1),
+          child: InkWell(
+            onTap: () => _showForecastDetails(context, forecast, year, period),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -1026,7 +960,7 @@ class _ForecastCard extends ConsumerWidget {
                     children: [
                       Icon(
                         Icons.auto_graph,
-                        color: Colors.amber[800],
+                        color: StatusColors.of(context).warning.onContainerMuted,
                         size: 32,
                       ),
                       const SizedBox(width: 16),
@@ -1044,7 +978,7 @@ class _ForecastCard extends ConsumerWidget {
                                   .textTheme
                                   .titleLarge
                                   ?.copyWith(
-                                    color: Colors.amber[800],
+                                    color: StatusColors.of(context).warning.onContainerMuted,
                                     fontWeight: FontWeight.bold,
                                   ),
                             ),
@@ -1064,7 +998,7 @@ class _ForecastCard extends ConsumerWidget {
                       ),
                       Icon(
                         Icons.info_outline,
-                        color: Colors.amber[800],
+                        color: StatusColors.of(context).warning.onContainerMuted,
                         size: 20,
                       ),
                     ],
@@ -1202,112 +1136,13 @@ class _ForecastCard extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
 
-              // Header row
-              Row(
-                children: [
-                  const SizedBox(width: 48, child: Text('Month', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                  const Expanded(child: Text('Eggs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                  const SizedBox(width: 60, child: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                  const SizedBox(width: 48, child: Text('Light', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                  const SizedBox(width: 56, child: Text('Source', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                ],
-              ),
-              const Divider(),
-
-              ...forecast.monthlyForecasts.map((m) {
-                final isPast = m.month < now.month;
-                final isCurrent = m.month == now.month;
-                final eggs = isPast ? m.actualEggs : m.forecastEggs;
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 48,
-                        child: Text(
-                          monthNames[m.month - 1],
-                          style: TextStyle(
-                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          '$eggs',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 60,
-                        child: Text(
-                          m.perHenRate > 0 ? m.perHenRate.toStringAsFixed(2) : '-',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 48,
-                        child: Text(
-                          '${m.daylightHours.toStringAsFixed(1)}h',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 56,
-                        child: Text(
-                          isPast
-                              ? 'actual'
-                              : isCurrent
-                                  ? 'partial'
-                                  : 'forecast',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontStyle: isPast ? FontStyle.normal : FontStyle.italic,
-                            color: isPast
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.amber[800],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-
-              const SizedBox(height: 16),
-              // Total row
-              const Divider(),
-              Row(
-                children: [
-                  const SizedBox(
-                    width: 48,
-                    child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '${NumberFormat('#,###').format(forecast.projectedYear)}',
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                  ),
-                  const SizedBox(width: 60),
-                  const SizedBox(width: 48),
-                  const SizedBox(width: 56),
-                ],
+              // Columns size to their content (Eggs takes the slack) and use
+              // theme text styles, so the table copes with larger accessibility
+              // text instead of clipping fixed 48–60px columns (#70).
+              MonthlyForecastTable(
+                forecast: forecast,
+                monthNames: monthNames,
+                currentMonth: now.month,
               ),
             ],
           ],
@@ -1440,3 +1275,4 @@ class _MonthlyForecastBars extends StatelessWidget {
     );
   }
 }
+

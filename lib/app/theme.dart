@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'status_colors.dart';
+
 /// Available color palettes for the app
 enum AppPalette {
   barnRed,
@@ -113,6 +115,12 @@ class ColorPaletteData {
 class AppTheme {
   AppTheme._();
 
+  /// Warm serif for headings and titles (#67): app bar titles and the
+  /// headline styles (names, screen and section headings, empty states).
+  /// Body text and numbers stay in the platform font: Fraunces' digits are
+  /// proportional, so counts would jiggle and tabular figures can't apply.
+  static const headingFontFamily = 'Fraunces';
+
   static ThemeData buildTheme(AppPalette palette, {Brightness brightness = Brightness.light}) {
     final isDark = brightness == Brightness.dark;
     final colors = isDark ? palette.darkColors : palette.colors;
@@ -124,6 +132,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
+
+      extensions: [StatusColors.forBrightness(brightness)],
 
       // Color scheme
       colorScheme: ColorScheme.fromSeed(
@@ -146,8 +156,9 @@ class AppTheme {
         backgroundColor: appBarColor,
         foregroundColor: colors.text,
         titleTextStyle: TextStyle(
+          fontFamily: headingFontFamily,
           color: colors.text,
-          fontSize: 20,
+          fontSize: 22,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -235,7 +246,10 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: colors.text.withValues(alpha: 0.08),
         selectedColor: colors.primary.withValues(alpha: isDark ? 0.3 : 0.2),
-        labelStyle: const TextStyle(fontSize: 14),
+        // Give the label a colour: a chip theme labelStyle replaces the
+        // Material default rather than merging with it, so without one the
+        // label had no colour and drew near-white on light chips (#62).
+        labelStyle: TextStyle(fontSize: 14, color: colors.text),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
@@ -270,20 +284,25 @@ class AppTheme {
       // Text theme
       textTheme: TextTheme(
         headlineLarge: TextStyle(
+          fontFamily: headingFontFamily,
           fontSize: 32,
           fontWeight: FontWeight.bold,
           color: colors.text,
         ),
         headlineMedium: TextStyle(
+          fontFamily: headingFontFamily,
           fontSize: 24,
           fontWeight: FontWeight.w600,
           color: colors.text,
         ),
         headlineSmall: TextStyle(
+          fontFamily: headingFontFamily,
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: colors.text,
         ),
+        // titleLarge stays in the platform font: it carries most numbers
+        // (stat tiles, forecasts), and Fraunces' digits are proportional.
         titleLarge: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,

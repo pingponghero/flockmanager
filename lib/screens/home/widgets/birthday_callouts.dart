@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../providers/bird_provider.dart';
+import '../../../app/status_colors.dart';
+import '../../../widgets/tappable_tile.dart';
 
 /// Displays upcoming bird birthdays
 class BirthdayCallouts extends ConsumerWidget {
@@ -31,40 +33,34 @@ class BirthdayCallouts extends ConsumerWidget {
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: GestureDetector(
+                child: TappableTile(
                   onTap: () => context.go('/birds/${b.bird.id}'),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isToday ? Colors.pink.shade50 : Colors.purple.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isToday ? Colors.pink.shade200 : Colors.purple.shade200,
+                  padding: const EdgeInsets.all(12),
+                  color: isToday ? StatusColors.of(context).celebration.container : StatusColors.of(context).special.container,
+                  borderColor: isToday ? StatusColors.of(context).celebration.border : StatusColors.of(context).special.border,
+                  radius: 12,
+                  child: Row(
+                    children: [
+                      Icon(
+                        isToday ? Icons.cake : Icons.event,
+                        color: isToday ? StatusColors.of(context).celebration.icon : StatusColors.of(context).special.icon,
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isToday ? Icons.cake : Icons.event,
-                          color: isToday ? Colors.pink.shade600 : Colors.purple.shade600,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            message,
-                            style: TextStyle(
-                              color: isToday ? Colors.pink.shade900 : Colors.purple.shade900,
-                              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                            ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          message,
+                          style: TextStyle(
+                            color: isToday ? StatusColors.of(context).celebration.onContainer : StatusColors.of(context).special.onContainer,
+                            fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
-                        if (isToday)
-                          const Text(
-                            '🎂',
-                            style: TextStyle(fontSize: 20),
-                          ),
-                      ],
-                    ),
+                      ),
+                      if (isToday)
+                        const Text(
+                          '🎂',
+                          style: TextStyle(fontSize: 20),
+                        ),
+                    ],
                   ),
                 ),
               );

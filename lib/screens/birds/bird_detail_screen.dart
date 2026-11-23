@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/bird.dart';
+import '../../widgets/error_state.dart';
 import '../../models/enums.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/egg_provider.dart';
@@ -14,6 +16,7 @@ import 'widgets/bird_header.dart';
 import 'widgets/bird_health_tab.dart';
 import 'widgets/bird_info_tab.dart';
 import 'widgets/bird_stats_row.dart';
+import '../../app/status_colors.dart';
 
 class BirdDetailScreen extends ConsumerWidget {
   final String birdId;
@@ -31,20 +34,10 @@ class BirdDetailScreen extends ConsumerWidget {
       ),
       error: (error, stack) => Scaffold(
         appBar: AppBar(),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error loading bird: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => context.pop(),
-                child: const Text('Go Back'),
-              ),
-            ],
-          ),
+        body: ErrorState(
+          message: "Couldn't load this bird",
+          error: error,
+          onRetry: () => ref.invalidate(birdByIdProvider(birdId)),
         ),
       ),
       data: (bird) {
@@ -91,6 +84,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       // Trigger rebuild when tab changes (for FAB visibility)
@@ -102,8 +96,32 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  static const _headerHeight = 350.0;
+
+  /// Outer scroll position, used to tell when the photo header has collapsed.
+  final _scrollController = ScrollController();
+
+  /// True once the photo header has faded out. FlexibleSpaceBar fades the
+  /// photo away as the bar collapses, exposing the theme's app bar colour
+  /// (white in light mode), so the white icons and status bar styling that
+  /// suit the photo must switch back to the theme's colours.
+  bool _headerCollapsed = false;
+
+  void _onScroll() {
+    final topPadding = MediaQuery.paddingOf(context).top;
+    // FlexibleSpaceBar starts fading once less than one toolbar height of
+    // header remains; flip at the midpoint of that fade.
+    final threshold =
+        _headerHeight - kToolbarHeight - topPadding - kToolbarHeight / 2;
+    final collapsed = _scrollController.offset > threshold;
+    if (collapsed != _headerCollapsed) {
+      setState(() => _headerCollapsed = collapsed);
+    }
   }
 
   Bird get bird => widget.bird;
@@ -114,12 +132,26 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
 
     return Scaffold(
       body: NestedScrollView(
+          controller: _scrollController,
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               SliverAppBar(
-                expandedHeight: 350,
+                expandedHeight: _headerHeight,
                 pinned: true,
-                foregroundColor: Colors.white,
+                // Over the photo: white icons + light status bar. Collapsed:
+                // null falls back to the theme so icons stay legible.
+                foregroundColor: _headerCollapsed ? null : Colors.white,
+                systemOverlayStyle:
+                    _headerCollapsed ? null : SystemUiOverlayStyle.light,
+                title: AnimatedOpacity(
+                  opacity: _headerCollapsed ? 1 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Text(
+                    bird.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.edit),
@@ -369,11 +401,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    showAppSnackBar(
-                      context,
-                      'Error: $e',
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                    );
+                    showErrorSnackBar(context, "Couldn't update the bird's status", e);
                   }
                 }
               },
@@ -431,11 +459,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    showAppSnackBar(
-                      context,
-                      'Error: $e',
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                    );
+                    showErrorSnackBar(context, "Couldn't reactivate the bird", e);
                   }
                 }
               },
@@ -479,13 +503,13 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
+                  color: StatusColors.of(context).warning.container,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber.shade200),
+                  border: Border.all(color: StatusColors.of(context).warning.border),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning_amber, color: Colors.amber.shade700),
+                    Icon(Icons.warning_amber, color: StatusColors.of(context).warning.icon),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -495,7 +519,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                             'Records will be kept',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.amber.shade900,
+                              color: StatusColors.of(context).warning.onContainer,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -508,7 +532,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                             ' will be preserved but unlinked from this bird.',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.amber.shade900,
+                              color: StatusColors.of(context).warning.onContainer,
                             ),
                           ),
                         ],
@@ -561,11 +585,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                 }
               } catch (e) {
                 if (context.mounted) {
-                  showAppSnackBar(
-                    context,
-                    'Error deleting bird: $e',
-                    backgroundColor: Theme.of(context).colorScheme.error,
-                  );
+                  showErrorSnackBar(context, "Couldn't delete the bird", e);
                 }
               }
             },
