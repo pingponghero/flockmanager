@@ -55,3 +55,7 @@ android/key.properties
 
 # Xcode build artifacts
 ios/build/
+
+# Real customer exports used for local testing only. Never commit these:
+# they're personal data. Tests that use them skip when they're absent.
+/test/fixtures/private/

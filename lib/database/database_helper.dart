@@ -225,36 +225,89 @@ class DatabaseHelper {
     }
   }
 
-  /// Moves each bird's first 'active' event back to her acquired date when
-  /// that's earlier (#88). Moving earlier keeps it before any later status
-  /// change. Used by the v8 migration and after an import, since older
-  /// backups carry events dated when birds were entered.
+  /// Repairs each bird's status history so it starts when she joined the
+  /// flock (#88). Used by the v8 migration and after every import, since
+  /// older versions wrote these events wrongly:
+  ///
+  /// - The first 'active' event was dated when she was entered in the app,
+  ///   not when she joined: it moves back to her joined date (her acquired
+  ///   date, else when she was entered).
+  /// - Older imports wrote an 'active' event for every bird at import time,
+  ///   after real deaths and sales: `[deceased 2022, active 2026]`. If she
+  ///   isn't active now, such a late 'active' event moves back to her joined
+  ///   date, or is dropped when she already has one.
+  /// - A history that starts with a death or sale gets the 'active' event it
+  ///   is missing, at her joined date.
+  ///
+  /// A hen who really came back (active now) keeps her later events.
   static Future<void> backdateJoinedEvents(DatabaseExecutor db) async {
     final birds = await db.query(
       'birds',
-      columns: ['id', 'acquired_date'],
-      where: 'acquired_date IS NOT NULL',
+      columns: ['id', 'flock_id', 'status', 'acquired_date', 'created_at'],
     );
+    final now = DateTime.now();
     for (final bird in birds) {
-      final acquired = DateTime.tryParse(bird['acquired_date'] as String);
-      if (acquired == null || acquired.isAfter(DateTime.now())) continue;
+      final acquired = DateTime.tryParse(bird['acquired_date'] as String? ?? '');
+      final created = DateTime.tryParse(bird['created_at'] as String? ?? '');
+      final joined = acquired != null && !acquired.isAfter(now) ? acquired : created;
+      if (joined == null) continue;
+
       final events = await db.query(
         'bird_status_events',
         columns: ['id', 'status', 'event_date'],
         where: 'bird_id = ?',
         whereArgs: [bird['id']],
         orderBy: 'event_date ASC',
-        limit: 1,
       );
-      if (events.isEmpty || events.first['status'] != 'active') continue;
-      final first = DateTime.parse(events.first['event_date'] as String);
-      if (!acquired.isBefore(first)) continue;
-      await db.update(
-        'bird_status_events',
-        {'event_date': acquired.toIso8601String()},
-        where: 'id = ?',
-        whereArgs: [events.first['id']],
-      );
+      if (events.isEmpty) continue;
+      DateTime dateOf(Map<String, Object?> e) => DateTime.parse(e['event_date'] as String);
+      Future<void> moveTo(Map<String, Object?> e, DateTime date) => db.update(
+            'bird_status_events',
+            {'event_date': date.toIso8601String()},
+            where: 'id = ?',
+            whereArgs: [e['id']],
+          );
+
+      final firstChange = events.indexWhere((e) => e['status'] != 'active');
+      final hasEarlyActive = firstChange != 0; // an 'active' before any change
+
+      if (bird['status'] != 'active' && firstChange >= 0) {
+        final lastChange = events.lastIndexWhere((e) => e['status'] != 'active');
+        final late = events.sublist(lastChange + 1); // all 'active'
+        if (late.isNotEmpty) {
+          if (!hasEarlyActive && joined.isBefore(dateOf(events[firstChange]))) {
+            // [deceased 2022, active 2026] → [active <joined>, deceased 2022]
+            await moveTo(late.first, joined);
+            for (final e in late.skip(1)) {
+              await db.delete('bird_status_events', where: 'id = ?', whereArgs: [e['id']]);
+            }
+            continue;
+          }
+          for (final e in late) {
+            await db.delete('bird_status_events', where: 'id = ?', whereArgs: [e['id']]);
+          }
+        }
+      }
+
+      if (!hasEarlyActive) {
+        // Starts with a death or sale: she was active before it.
+        if (joined.isBefore(dateOf(events.first))) {
+          await db.insert('bird_status_events', {
+            'id': const Uuid().v4(),
+            'bird_id': bird['id'],
+            'flock_id': bird['flock_id'],
+            'status': 'active',
+            'event_date': joined.toIso8601String(),
+            'notes': null,
+            'created_at': now.toIso8601String(),
+          });
+        }
+        continue;
+      }
+
+      if (joined.isBefore(dateOf(events.first))) {
+        await moveTo(events.first, joined);
+      }
     }
   }
 
