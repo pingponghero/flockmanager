@@ -25,7 +25,18 @@ class LightLayingLoop {
     required this.points,
     required this.sameLight,
   });
+
+  double get shortestDay => points.map((p) => p.daylight).reduce((a, b) => a < b ? a : b);
+  double get longestDay => points.map((p) => p.daylight).reduce((a, b) => a > b ? a : b);
+
+  /// Near the equator day length barely changes, every week sits at the same
+  /// daylight, and the "loop" collapses into a vertical smear.
+  bool get hasDaylightSwing => longestDay - shortestDay >= kLoopMinDaylightSwing;
 }
+
+/// Hours between the shortest and longest week below which there's no loop
+/// worth drawing (roughly within 7° of the equator).
+const kLoopMinDaylightSwing = 1.0;
 
 /// Weeks need at least this many counted days to be plotted.
 const kLoopMinDaysPerWeek = 4;

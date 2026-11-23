@@ -23,8 +23,9 @@ class LightLayingLoopCard extends StatelessWidget {
     required this.isCurrentYear,
   });
 
-  String _month(int week) =>
-      DateFormat.MMMM().format(DateTime(year).add(Duration(days: week * 7 + 3)));
+  String _month(int week) => DateFormat.MMMM().format(
+    DateTime(year).add(Duration(days: week * 7 + 3)),
+  );
 
   String? get _insight {
     final pair = loop.sameLight;
@@ -45,7 +46,9 @@ class LightLayingLoopCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
     final insight = _insight;
 
     return Card(
@@ -60,8 +63,16 @@ class LightLayingLoopCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Light and laying', style: theme.textTheme.titleMedium),
-                      Text('${loop.label} \u00b7 one dot per week', style: muted),
+                      Text(
+                        'Light and laying',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      Text(
+                        loop.hasDaylightSwing
+                            ? '${loop.label} \u00b7 one dot per week'
+                            : loop.label,
+                        style: muted,
+                      ),
                     ],
                   ),
                 ),
@@ -73,28 +84,44 @@ class LightLayingLoopCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Semantics(
-              label: 'Weekly lay rate plotted against daylight hours for ${loop.label}. '
-                  '${insight ?? ''}',
-              child: AspectRatio(
-                aspectRatio: 1.15,
-                child: CustomPaint(
-                  painter: _LoopPainter(
-                    loop: loop,
-                    isCurrentYear: isCurrentYear,
-                    scheme: theme.colorScheme,
-                    textStyle: theme.textTheme.bodySmall ?? const TextStyle(),
-                    monthLetter: (w) => _month(w)[0],
-                    monthOf: (w) => DateTime(year).add(Duration(days: w * 7 + 3)).month,
+            if (!loop.hasDaylightSwing)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'Day length here barely changes through the year '
+                  '(${loop.shortestDay.toStringAsFixed(1)}\u2013${loop.longestDay.toStringAsFixed(1)} h), '
+                  'so there\u2019s no light-and-laying loop. Laying follows other '
+                  'things, like heat, rain and molt.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              )
+            else ...[
+              Semantics(
+                label:
+                    'Weekly lay rate plotted against daylight hours for ${loop.label}. '
+                    '${insight ?? ''}',
+                child: AspectRatio(
+                  aspectRatio: 1.15,
+                  child: CustomPaint(
+                    painter: _LoopPainter(
+                      loop: loop,
+                      isCurrentYear: isCurrentYear,
+                      scheme: theme.colorScheme,
+                      textStyle: theme.textTheme.bodySmall ?? const TextStyle(),
+                      monthLetter: (w) => _month(w)[0],
+                      monthOf: (w) =>
+                          DateTime(year).add(Duration(days: w * 7 + 3)).month,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              insight ?? 'Spring and autumn are compared once the year has both.',
-              style: insight != null ? theme.textTheme.bodyMedium : muted,
-            ),
+              const SizedBox(height: 8),
+              Text(
+                insight ??
+                    'Spring and autumn are compared once the year has both.',
+                style: insight != null ? theme.textTheme.bodyMedium : muted,
+              ),
+            ],
           ],
         ),
       ),
@@ -122,31 +149,57 @@ class _LoopPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const left = 34.0, bottom = 22.0, top = 6.0, right = 8.0;
-    final plot = Rect.fromLTRB(left, top, size.width - right, size.height - bottom);
+    final plot = Rect.fromLTRB(
+      left,
+      top,
+      size.width - right,
+      size.height - bottom,
+    );
     final pts = loop.points;
 
     final xLo = pts.map((p) => p.daylight).reduce(math.min).floorToDouble();
-    final xHi = math.max(xLo + 1, pts.map((p) => p.daylight).reduce(math.max).ceilToDouble());
-    final yHi = math.max(0.9, (pts.map((p) => p.layRate).reduce(math.max) * 10).ceil() / 10);
+    final xHi = math.max(
+      xLo + 1,
+      pts.map((p) => p.daylight).reduce(math.max).ceilToDouble(),
+    );
+    final yHi = math.max(
+      0.9,
+      (pts.map((p) => p.layRate).reduce(math.max) * 10).ceil() / 10,
+    );
     Offset at(LoopPoint p) => Offset(
-          plot.left + (p.daylight - xLo) / (xHi - xLo) * plot.width,
-          plot.bottom - (p.layRate / yHi).clamp(0.0, 1.0) * plot.height,
-        );
+      plot.left + (p.daylight - xLo) / (xHi - xLo) * plot.width,
+      plot.bottom - (p.layRate / yHi).clamp(0.0, 1.0) * plot.height,
+    );
 
     // Grid and axis labels.
     final grid = Paint()
       ..color = scheme.outlineVariant.withValues(alpha: 0.5)
       ..strokeWidth = 1;
-    final label = textStyle.copyWith(fontSize: 10, color: scheme.onSurfaceVariant);
+    final label = textStyle.copyWith(
+      fontSize: 10,
+      color: scheme.onSurfaceVariant,
+    );
     for (var h = xLo; h <= xHi; h++) {
       final x = plot.left + (h - xLo) / (xHi - xLo) * plot.width;
       canvas.drawLine(Offset(x, plot.top), Offset(x, plot.bottom), grid);
-      _text(canvas, '${h.round()}h', Offset(x, plot.bottom + 4), label, center: true);
+      _text(
+        canvas,
+        '${h.round()}h',
+        Offset(x, plot.bottom + 4),
+        label,
+        center: true,
+      );
     }
     for (var r = 0.0; r <= yHi + 0.001; r += 0.25) {
       final y = plot.bottom - r / yHi * plot.height;
       canvas.drawLine(Offset(plot.left, y), Offset(plot.right, y), grid);
-      _text(canvas, '${(r * 100).round()}%', Offset(plot.left - 4, y - 6), label, alignRight: true);
+      _text(
+        canvas,
+        '${(r * 100).round()}%',
+        Offset(plot.left - 4, y - 6),
+        label,
+        alignRight: true,
+      );
     }
 
     final offsets = pts.map(at).toList();
@@ -187,7 +240,13 @@ class _LoopPainter extends CustomPainter {
       );
     }
 
-    // Month starts, labelled outward from the loop's middle.
+    // A small dot for every week, so "one dot per week" is what you see.
+    final weekDot = Paint()..color = color.withValues(alpha: 0.7);
+    for (final o in offsets) {
+      canvas.drawCircle(o, 2.2, weekDot);
+    }
+
+    // Month starts: larger hollow dots, labelled outward from the middle.
     final mid = offsets.reduce((a, b) => a + b) / offsets.length.toDouble();
     final dot = Paint()..color = scheme.surface;
     final ring = Paint()
@@ -210,13 +269,21 @@ class _LoopPainter extends CustomPainter {
       final spot = Rect.fromCenter(center: p + dir * 12, width: 12, height: 14);
       if (placed.any((r) => r.overlaps(spot))) continue;
       placed.add(spot);
-      _text(canvas, m, p + dir * 12 - const Offset(0, 6),
-          label.copyWith(fontWeight: FontWeight.w600, color: scheme.onSurface),
-          center: true);
+      _text(
+        canvas,
+        m,
+        p + dir * 12 - const Offset(0, 6),
+        label.copyWith(fontWeight: FontWeight.w600, color: scheme.onSurface),
+        center: true,
+      );
     }
 
     if (isCurrentYear) {
-      canvas.drawCircle(offsets.last, 5.5, Paint()..color = YearRingsChart.todayColor);
+      canvas.drawCircle(
+        offsets.last,
+        5.5,
+        Paint()..color = YearRingsChart.todayColor,
+      );
       canvas.drawCircle(
         offsets.last,
         5.5,
@@ -240,8 +307,14 @@ class _LoopPainter extends CustomPainter {
     return path;
   }
 
-  void _text(Canvas canvas, String s, Offset at, TextStyle style,
-      {bool center = false, bool alignRight = false}) {
+  void _text(
+    Canvas canvas,
+    String s,
+    Offset at,
+    TextStyle style, {
+    bool center = false,
+    bool alignRight = false,
+  }) {
     final tp = TextPainter(
       text: TextSpan(text: s, style: style),
       textDirection: TextDirection.ltr,
@@ -252,5 +325,7 @@ class _LoopPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_LoopPainter old) =>
-      old.loop != loop || old.scheme != scheme || old.isCurrentYear != isCurrentYear;
+      old.loop != loop ||
+      old.scheme != scheme ||
+      old.isCurrentYear != isCurrentYear;
 }

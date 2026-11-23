@@ -172,11 +172,12 @@ class _YearRingsPainter extends CustomPainter {
   void _paintDaylight(Canvas canvas) {
     final hours = data.weeklyDaylight;
     if (hours.isEmpty) return;
-    final lo = hours.reduce(math.min), hi = hours.reduce(math.max);
     final base = scheme.surfaceContainerHighest;
     final paint = Paint()..style = PaintingStyle.fill;
     for (var w = 0; w < hours.length; w++) {
-      final t = hi > lo ? (hours[w] - lo) / (hi - lo) : 0.5;
+      // One scale everywhere (8 h pale → 16 h full gold), so the tropics'
+      // steady 12 h reads as steady, not as a full seasonal sweep.
+      final t = ((hours[w] - 8) / 8).clamp(0.0, 1.0);
       paint.color = Color.lerp(base, YearRingsChart.daylightColor, 0.15 + 0.75 * t)!;
       _sector(canvas, paint, _weekDegrees(w), _weekDegrees(w + 1) + 0.05,
           geometry.bandInner, geometry.bandOuter);

@@ -69,4 +69,13 @@ void main() {
     expect(pair.falling.week, inInclusiveRange(8, 16));
     expect(pair.rising.layRate, greaterThan(pair.falling.layRate));
   });
+
+  test('at the equator there is no daylight swing to draw a loop from', () {
+    final data = _year(until: DateTime(2026, 12, 31), latitude: 0);
+    final loop = buildLightLayingLoop(data.rings.single, data.weeklyDaylight)!;
+    expect(loop.hasDaylightSwing, isFalse);
+    expect(loop.sameLight, isNull);
+    final temperate = _year(until: DateTime(2026, 12, 31));
+    expect(buildLightLayingLoop(temperate.rings.single, temperate.weeklyDaylight)!.hasDaylightSwing, isTrue);
+  });
 }

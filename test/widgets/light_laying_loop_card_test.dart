@@ -31,6 +31,20 @@ void main() {
     expect(find.textContaining('in September'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('near the equator it explains instead of drawing a smear', (tester) async {
+    final loop = LightLayingLoop(
+      label: '2026',
+      points: [for (var w = 0; w < 52; w++) LoopPoint(w, 12.05 + 0.05 * _cos(w), 0.5 + 0.2 * _sin(w))],
+      sameLight: null,
+    );
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(body: LightLayingLoopCard(loop: loop, year: 2026, isCurrentYear: true)),
+    ));
+    expect(find.textContaining('barely changes'), findsOneWidget);
+    expect(find.textContaining('one dot per week'), findsNothing);
+    expect(find.byType(AspectRatio), findsNothing); // no chart
+  });
 }
 
 // A smooth year: daylight peaks mid-year, laying leads it slightly.
