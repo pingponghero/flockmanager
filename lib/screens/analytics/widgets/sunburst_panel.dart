@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../providers/theme_provider.dart';
 import '../../../providers/year_rings_provider.dart';
 import '../../../utils/year_rings.dart';
 import '../../../widgets/chart_center_text.dart';
 import '../../../widgets/sunburst_chart.dart';
-import '../../../widgets/year_rings_chart.dart';
 import 'year_info_sheets.dart';
 
 /// The "Days" view of the year screen (#1): the sunburst with a hand you
@@ -25,6 +25,8 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(yearDaysProvider(widget.year));
+    // Follows the user's chosen app palette.
+    final palette = SunburstPalette.forApp(ref.watch(themeProvider));
     final value = async.value;
     if (value == null) {
       return const AspectRatio(
@@ -43,13 +45,13 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
         .fold<int>(0, (s, d) => s + d.eggs);
     final theme = Theme.of(context);
     final muted = theme.textTheme.bodySmall?.copyWith(
-      color: SunburstChart.nightMuted,
+      color: palette.muted,
     );
 
     final (badge, badgeFill) = switch (point.state) {
       _ when point.dayOfYear == todayDoy => (
         'Today',
-        YearRingsChart.todayColor,
+        palette.hand,
       ),
       RingBlockState.future => ('Forecast', null),
       RingBlockState.logged => ('Logged', const Color(0xFF3A3027)),
@@ -73,7 +75,7 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       decoration: BoxDecoration(
-        color: SunburstChart.night,
+        color: palette.background,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -88,6 +90,7 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
                 days: days,
                 selectedDay: day,
                 southernHemisphere: value.latitude < 0,
+                palette: palette,
                 centerValue: formatCenterCount(total),
                 centerLabel: todayDoy != null ? 'eggs so far' : 'eggs',
               ),
@@ -99,17 +102,17 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
             alignment: WrapAlignment.center,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _key(SunburstChart.sun.withValues(alpha: 0.6), 'Daylight', muted),
-              _key(SunburstChart.egg, 'Eggs laid', muted),
+              _key(palette.daylightOuter, 'Daylight', muted),
+              _key(palette.egg, 'Eggs laid', muted),
               _key(
-                SunburstChart.egg.withValues(alpha: 0.32),
+                palette.egg.withValues(alpha: 0.32),
                 'Forecast',
                 muted,
               ),
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.info_outline,
-                  color: SunburstChart.nightMuted,
+                  color: palette.muted,
                 ),
                 tooltip: 'Reading the sunburst',
                 visualDensity: VisualDensity.compact,
@@ -139,7 +142,7 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
                           Text(
                             DateFormat.MMMd().format(point.date),
                             style: theme.textTheme.titleMedium?.copyWith(
-                              color: SunburstChart.nightText,
+                              color: palette.text,
                             ),
                           ),
                           Container(
@@ -150,16 +153,16 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
                             decoration: BoxDecoration(
                               color: badgeFill,
                               border: badgeFill == null
-                                  ? Border.all(color: SunburstChart.nightMuted)
+                                  ? Border.all(color: palette.muted)
                                   : null,
                               borderRadius: BorderRadius.circular(9),
                             ),
                             child: Text(
                               badge,
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: badgeFill == YearRingsChart.todayColor
-                                    ? SunburstChart.night
-                                    : SunburstChart.nightMuted,
+                                color: badgeFill == palette.hand
+                                    ? palette.background
+                                    : palette.muted,
                               ),
                             ),
                           ),
@@ -179,7 +182,7 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
                       Text(
                         eggsText,
                         style: theme.textTheme.titleLarge?.copyWith(
-                          color: SunburstChart.nightText,
+                          color: palette.text,
                           fontWeight: FontWeight.w700,
                           fontFeatures: const [FontFeature.tabularFigures()],
                         ),
@@ -196,8 +199,8 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
             min: 1,
             max: days.length.toDouble(),
             divisions: days.length - 1,
-            activeColor: YearRingsChart.todayColor,
-            inactiveColor: SunburstChart.nightMuted.withValues(alpha: 0.3),
+            activeColor: palette.hand,
+            inactiveColor: palette.muted.withValues(alpha: 0.3),
             semanticFormatterCallback: (v) =>
                 DateFormat.MMMd().format(days[v.round() - 1].date),
             label: DateFormat.MMMd().format(point.date),
