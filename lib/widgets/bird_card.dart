@@ -12,12 +12,7 @@ class BirdCard extends StatelessWidget {
   final VoidCallback? onTap;
   final int? eggCount;
 
-  const BirdCard({
-    super.key,
-    required this.bird,
-    this.onTap,
-    this.eggCount,
-  });
+  const BirdCard({super.key, required this.bird, this.onTap, this.eggCount});
 
   @override
   Widget build(BuildContext context) {
@@ -27,82 +22,81 @@ class BirdCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
-      child: Opacity(
-        opacity: bird.status == BirdStatus.active ? 1.0 : 0.6,
-        child: SizedBox(
-          height: 116,
-          child: Row(
-            children: [
-              // Photo strip — left ~38% of card
-              SizedBox(
-                width: 120,
-                child: hasPhoto
-                    ? GestureDetector(
-                        onTap: onTap,
-                        child: Image.file(
+      // One ink surface for the whole card (#66); the add-photo placeholder
+      // nests its own InkWell so it ripples and routes separately.
+      child: InkWell(
+        onTap: onTap,
+        child: Opacity(
+          opacity: bird.status == BirdStatus.active ? 1.0 : 0.6,
+          child: SizedBox(
+            height: 116,
+            child: Row(
+              children: [
+                // Photo strip — left ~38% of card
+                SizedBox(
+                  width: 120,
+                  child: hasPhoto
+                      ? Image.file(
                           photoFile,
                           fit: BoxFit.cover,
                           height: double.infinity,
                           width: double.infinity,
-                        ),
-                      )
-                    : GestureDetector(
-                        onTap: () => context.push(
-                          '/birds/${bird.id}/edit?openPhoto=true',
-                        ),
-                        child: Container(
-                          color: _eggTintColor(bird.eggColor) ??
-                              Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.1),
-                          child: Stack(
-                            children: [
-                              Center(
-                                child: Image.asset(
-                                  'assets/icons/cute_hen.png',
-                                  width: 64,
-                                  height: 64,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withValues(alpha: 0.4),
-                                ),
-                              ),
-                              Positioned(
-                                right: 6,
-                                bottom: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .primary
-                                        .withValues(alpha: 0.15),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.add_a_photo,
-                                    size: 14,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .primary
-                                        .withValues(alpha: 0.6),
+                        )
+                      : InkWell(
+                          onTap: () => context.push(
+                            '/birds/${bird.id}/edit?openPhoto=true',
+                          ),
+                          child: Container(
+                            color:
+                                _eggTintColor(bird.eggColor) ??
+                                Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.1),
+                            child: Stack(
+                              children: [
+                                Center(
+                                  child: Image.asset(
+                                    'assets/icons/cute_hen.png',
+                                    width: 64,
+                                    height: 64,
+                                    color: Theme.of(context).colorScheme.primary
+                                        .withValues(alpha: 0.4),
                                   ),
                                 ),
-                              ),
-                            ],
+                                Positioned(
+                                  right: 6,
+                                  bottom: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withValues(alpha: 0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.add_a_photo,
+                                      size: 14,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-              ),
-              // Text content — right ~62%
-              Expanded(
-                child: InkWell(
-                  onTap: onTap,
+                ),
+                // Text content — right ~62%
+                Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -131,16 +125,14 @@ class BirdCard extends StatelessWidget {
                               Icon(
                                 Icons.calendar_today,
                                 size: 14,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.color,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.color,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 _formatAge(bird.ageInWeeks!),
-                                style:
-                                    Theme.of(context).textTheme.bodySmall,
+                                style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ],
                             if (bird.ageInWeeks != null && eggCount != null)
@@ -149,16 +141,14 @@ class BirdCard extends StatelessWidget {
                               Icon(
                                 Icons.egg,
                                 size: 14,
-                                color: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.color,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.color,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '$eggCount eggs',
-                                style:
-                                    Theme.of(context).textTheme.bodySmall,
+                                style: Theme.of(context).textTheme.bodySmall,
                               ),
                             ],
                           ],
@@ -175,9 +165,7 @@ class BirdCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Text(
                               bird.status.displayName,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: bird.status.iconColor),
                             ),
                           ],
@@ -186,15 +174,12 @@ class BirdCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
-              GestureDetector(
-                onTap: onTap,
-                child: const Padding(
+                const Padding(
                   padding: EdgeInsets.only(right: 8),
                   child: Icon(Icons.chevron_right),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -202,11 +187,9 @@ class BirdCard extends StatelessWidget {
   }
 
   static final _eggColorMap = {
-    for (final e in EggColor.values)
-      e.name.toLowerCase(): e,
+    for (final e in EggColor.values) e.name.toLowerCase(): e,
     // Also map display names (e.g. "Dark Brown" -> darkBrown)
-    for (final b in breeds)
-      b.eggColorDisplay.toLowerCase(): b.eggColor,
+    for (final b in breeds) b.eggColorDisplay.toLowerCase(): b.eggColor,
   };
 
   static Color? _eggTintColor(String? eggColor) {
@@ -239,4 +222,3 @@ class BirdCard extends StatelessWidget {
     return '$years ${years == 1 ? 'yr' : 'yrs'}, $remainingWeeks wks';
   }
 }
-

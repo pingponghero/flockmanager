@@ -383,10 +383,10 @@ class _EggValueCard extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               );
 
-          return GestureDetector(
-            onTap: () => _showEggValueBreakdown(context, ref, summary),
-            child: Card(
-              clipBehavior: Clip.antiAlias,
+          return Card(
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => _showEggValueBreakdown(context, ref, summary),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -629,10 +629,10 @@ class _CashFlowHeroCard extends ConsumerWidget {
           final cashFlow = summary.cashFlow;
           final cashFlowPrefix = cashFlow >= 0 ? '+' : '';
 
-          return GestureDetector(
-            onTap: () => _showCashFlowBreakdown(context, summary, cs),
-            child: Card(
-              clipBehavior: Clip.antiAlias,
+          return Card(
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => _showCashFlowBreakdown(context, summary, cs),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
