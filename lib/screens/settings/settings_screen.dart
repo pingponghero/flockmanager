@@ -169,8 +169,8 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             child: ListTile(
               leading: const Icon(Icons.emoji_events),
-              title: const Text('Badges'),
-              subtitle: const Text('View your achievements'),
+              title: const Text('All achievements'),
+              subtitle: const Text('See what you\'ve unlocked and what\'s next'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/settings/achievements'),
             ),
