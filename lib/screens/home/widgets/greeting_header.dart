@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../providers/egg_provider.dart';
+import '../../../app/status_colors.dart';
 
 /// Header showing the current date and streak badge
 class GreetingHeader extends ConsumerWidget {
@@ -34,7 +35,7 @@ class GreetingHeader extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
+                  color: StatusColors.of(context).caution.container,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -47,7 +48,7 @@ class GreetingHeader extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Colors.orange.shade700,
+                        color: StatusColors.of(context).caution.icon,
                       ),
                     ),
                   ],
@@ -83,8 +84,8 @@ class GreetingHeader extends ConsumerWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      Colors.orange.shade100,
-                      Colors.orange.shade50.withValues(alpha: 0),
+                      StatusColors.of(context).caution.strongContainer,
+                      StatusColors.of(context).caution.container.withValues(alpha: 0),
                     ],
                   ),
                 ),
@@ -99,7 +100,7 @@ class GreetingHeader extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.orange.shade700,
+                  color: StatusColors.of(context).caution.icon,
                 ),
               ),
               const SizedBox(height: 4),
@@ -109,7 +110,7 @@ class GreetingHeader extends ConsumerWidget {
                 'Days in a row you\'ve logged your flock',
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey.shade600,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 16),
@@ -126,7 +127,7 @@ class GreetingHeader extends ConsumerWidget {
                     return Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
+                        color: StatusColors.of(context).caution.container,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
@@ -149,7 +150,7 @@ class GreetingHeader extends ConsumerWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
-                    color: Colors.grey.shade700,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     height: 1.4,
                   ),
                 ),
@@ -160,7 +161,7 @@ class GreetingHeader extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Colors.orange.shade600,
+                  color: StatusColors.of(context).caution.icon,
                 ),
               ),
               const SizedBox(height: 8),
@@ -197,7 +198,7 @@ class _StatRow extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 14,
-            color: Colors.grey.shade700,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         Text(

@@ -35,6 +35,7 @@ import '../../utils/edge_insets.dart';
 import '../../utils/share_utils.dart';
 import '../../utils/snackbar_utils.dart';
 import '../../widgets/import_confirmation_dialog.dart';
+import '../../app/status_colors.dart';
 
 const _supportEmail = 'flockmanager.app@gmail.com';
 
@@ -372,7 +373,7 @@ class SettingsScreen extends ConsumerWidget {
                   ListTile(
                     leading: Icon(
                       Icons.verified,
-                      color: Colors.green.shade600,
+                      color: StatusColors.of(context).success.icon,
                     ),
                     title: const Text('Lifetime Access'),
                     subtitle: const Text('Thank you for your support!'),

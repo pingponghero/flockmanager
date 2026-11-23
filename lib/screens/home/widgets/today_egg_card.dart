@@ -6,6 +6,7 @@ import '../../../providers/egg_provider.dart';
 import '../../../providers/trial_provider.dart';
 import '../../../widgets/egg_quick_log.dart';
 import '../../../widgets/trial_banner.dart' show showTrialExpiredDialog;
+import '../../../app/status_colors.dart';
 
 /// Card showing today's egg count with weekly average comparison
 class TodayEggCard extends ConsumerWidget {
@@ -79,14 +80,14 @@ class TodayEggCard extends ConsumerWidget {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: StatusColors.of(context).neutral.container,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         'avg ${avg.toStringAsFixed(1)}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade700,
+                          color: StatusColors.of(context).neutral.icon,
                         ),
                       ),
                     );
@@ -98,16 +99,17 @@ class TodayEggCard extends ConsumerWidget {
                   final isSignificantlyUp = percentDiff >= 0.25;
                   final isSignificantlyDown = percentDiff <= -0.25;
 
-                  final color = isSignificantlyUp
-                      ? Colors.green
+                  final status = StatusColors.of(context);
+                  final tone = isSignificantlyUp
+                      ? status.success
                       : isSignificantlyDown
-                          ? Colors.red
-                          : Colors.grey;
+                          ? status.danger
+                          : status.neutral;
 
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: color.shade50,
+                      color: tone.container,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -120,14 +122,14 @@ class TodayEggCard extends ConsumerWidget {
                                   ? Icons.arrow_downward
                                   : Icons.remove,
                           size: 16,
-                          color: color.shade700,
+                          color: tone.icon,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'avg ${avg.toStringAsFixed(1)}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: color.shade700,
+                            color: tone.icon,
                           ),
                         ),
                       ],

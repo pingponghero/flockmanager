@@ -6,6 +6,7 @@ import '../../../models/bird.dart';
 import '../../../providers/bird_provider.dart';
 import '../../../providers/egg_provider.dart';
 import '../../../services/photo_storage.dart';
+import '../../../app/status_colors.dart';
 
 /// Swipable gallery of all living birds in the flock.
 class FlockSpotlight extends ConsumerStatefulWidget {
@@ -153,7 +154,7 @@ class _BirdCard extends ConsumerWidget {
                           .textTheme
                           .labelMedium
                           ?.copyWith(
-                            color: Colors.amber.shade700,
+                            color: StatusColors.of(context).warning.icon,
                             fontWeight: FontWeight.bold,
                           ),
                     ),

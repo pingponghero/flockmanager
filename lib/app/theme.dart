@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'status_colors.dart';
+
 /// Available color palettes for the app
 enum AppPalette {
   barnRed,
@@ -124,6 +126,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
+
+      extensions: [StatusColors.forBrightness(brightness)],
 
       // Color scheme
       colorScheme: ColorScheme.fromSeed(

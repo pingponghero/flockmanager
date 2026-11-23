@@ -11,6 +11,7 @@ import '../../utils/edge_insets.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 import 'widgets/add_medication_sheet.dart';
 import 'widgets/legal_status_badge.dart';
+import '../../app/status_colors.dart';
 
 class MedicationScreen extends ConsumerStatefulWidget {
   /// Tab to open on: 0 = Active, 1 = History, 2 = Reference.
@@ -108,14 +109,14 @@ class _ActiveMedicationsTab extends ConsumerWidget {
             data: (withdrawals) {
               if (withdrawals.isEmpty) return const SizedBox.shrink();
               return Card(
-                color: Colors.amber.shade50,
+                color: StatusColors.of(context).warning.container,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
                       Icon(
                         Icons.warning_amber_rounded,
-                        color: Colors.amber.shade700,
+                        color: StatusColors.of(context).warning.icon,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -126,12 +127,12 @@ class _ActiveMedicationsTab extends ConsumerWidget {
                               'Withdrawal Period Active',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.amber.shade900,
+                                color: StatusColors.of(context).warning.onContainer,
                               ),
                             ),
                             Text(
                               '${withdrawals.length} medication(s) require egg withdrawal',
-                              style: TextStyle(color: Colors.amber.shade800),
+                              style: TextStyle(color: StatusColors.of(context).warning.onContainerMuted),
                             ),
                           ],
                         ),
@@ -235,7 +236,7 @@ class _MedicationCard extends ConsumerWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.amber.shade100,
+                        color: StatusColors.of(context).warning.strongContainer,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -244,7 +245,7 @@ class _MedicationCard extends ConsumerWidget {
                           Icon(
                             Icons.egg_outlined,
                             size: 14,
-                            color: Colors.amber.shade800,
+                            color: StatusColors.of(context).warning.onContainerMuted,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -252,7 +253,7 @@ class _MedicationCard extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Colors.amber.shade800,
+                              color: StatusColors.of(context).warning.onContainerMuted,
                             ),
                           ),
                         ],
@@ -409,19 +410,19 @@ class _ReferenceTabState extends State<_ReferenceTab> {
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: StatusColors.of(context).info.container,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue.shade200),
+            border: Border.all(color: StatusColors.of(context).info.border),
           ),
           child: Row(
             children: [
-              Icon(Icons.info_outline, size: 20, color: Colors.blue.shade700),
+              Icon(Icons.info_outline, size: 20, color: StatusColors.of(context).info.icon),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   'Reference only. Always consult a veterinarian and follow product label instructions. '
                   'Withdrawal times can vary by dosage and regulations.',
-                  style: TextStyle(fontSize: 12, color: Colors.blue.shade900),
+                  style: TextStyle(fontSize: 12, color: StatusColors.of(context).info.onContainer),
                 ),
               ),
             ],
@@ -539,16 +540,16 @@ class _MedicationReferenceCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: isBanned ? Colors.red.shade50 : null,
+      color: isBanned ? StatusColors.of(context).danger.container : null,
       child: ExpansionTile(
         leading: isBanned
-            ? Icon(Icons.block, color: Colors.red.shade700, size: 20)
+            ? Icon(Icons.block, color: StatusColors.of(context).danger.icon, size: 20)
             : null,
         title: Text(
           medication.name,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: isBanned ? Colors.red.shade900 : null,
+            color: isBanned ? StatusColors.of(context).danger.onContainer : null,
           ),
         ),
         subtitle: Column(
@@ -571,16 +572,16 @@ class _MedicationReferenceCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade100,
+                      color: StatusColors.of(context).danger.strongContainer,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade300),
+                      border: Border.all(color: StatusColors.of(context).danger.border),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
                           Icons.warning,
-                          color: Colors.red.shade700,
+                          color: StatusColors.of(context).danger.icon,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -592,7 +593,7 @@ class _MedicationReferenceCard extends StatelessWidget {
                                     ? 'BANNED for use in poultry in the United States.'
                                     : 'Not permitted for use in food-producing animals.'),
                             style: TextStyle(
-                              color: Colors.red.shade900,
+                              color: StatusColors.of(context).danger.onContainer,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -693,7 +694,7 @@ class _MedicationReferenceCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
+                      color: StatusColors.of(context).warning.container,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Row(
@@ -702,7 +703,7 @@ class _MedicationReferenceCard extends StatelessWidget {
                         Icon(
                           Icons.info_outline,
                           size: 16,
-                          color: Colors.amber.shade800,
+                          color: StatusColors.of(context).warning.onContainerMuted,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -710,7 +711,7 @@ class _MedicationReferenceCard extends StatelessWidget {
                             medication.withdrawalNote!,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.amber.shade900,
+                              color: StatusColors.of(context).warning.onContainer,
                             ),
                           ),
                         ),
@@ -746,14 +747,14 @@ class _MedicationReferenceCard extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.red.shade100,
+          color: StatusColors.of(context).danger.strongContainer,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           'BANNED',
           style: TextStyle(
             fontSize: 10,
-            color: Colors.red.shade800,
+            color: StatusColors.of(context).danger.onContainerMuted,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -764,14 +765,14 @@ class _MedicationReferenceCard extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.orange.shade100,
+          color: StatusColors.of(context).caution.strongContainer,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           '?',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.orange.shade800,
+            color: StatusColors.of(context).caution.onContainerMuted,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -782,14 +783,14 @@ class _MedicationReferenceCard extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.amber.shade100,
+          color: StatusColors.of(context).warning.strongContainer,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           '${medication.withdrawalDaysEgg}d',
           style: TextStyle(
             fontSize: 12,
-            color: Colors.amber.shade800,
+            color: StatusColors.of(context).warning.onContainerMuted,
             fontWeight: FontWeight.bold,
           ),
         ),

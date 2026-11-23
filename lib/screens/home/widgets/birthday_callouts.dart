@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../providers/bird_provider.dart';
+import '../../../app/status_colors.dart';
 
 /// Displays upcoming bird birthdays
 class BirthdayCallouts extends ConsumerWidget {
@@ -36,24 +37,24 @@ class BirthdayCallouts extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isToday ? Colors.pink.shade50 : Colors.purple.shade50,
+                      color: isToday ? StatusColors.of(context).celebration.container : StatusColors.of(context).special.container,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isToday ? Colors.pink.shade200 : Colors.purple.shade200,
+                        color: isToday ? StatusColors.of(context).celebration.border : StatusColors.of(context).special.border,
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           isToday ? Icons.cake : Icons.event,
-                          color: isToday ? Colors.pink.shade600 : Colors.purple.shade600,
+                          color: isToday ? StatusColors.of(context).celebration.icon : StatusColors.of(context).special.icon,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             message,
                             style: TextStyle(
-                              color: isToday ? Colors.pink.shade900 : Colors.purple.shade900,
+                              color: isToday ? StatusColors.of(context).celebration.onContainer : StatusColors.of(context).special.onContainer,
                               fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                             ),
                           ),

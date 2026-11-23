@@ -17,6 +17,7 @@ import '../../providers/flock_provider.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/scaffold_with_nav_bar.dart';
+import '../../app/status_colors.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
@@ -1026,7 +1027,7 @@ class _ForecastCard extends ConsumerWidget {
                     children: [
                       Icon(
                         Icons.auto_graph,
-                        color: Colors.amber[800],
+                        color: StatusColors.of(context).warning.onContainerMuted,
                         size: 32,
                       ),
                       const SizedBox(width: 16),
@@ -1044,7 +1045,7 @@ class _ForecastCard extends ConsumerWidget {
                                   .textTheme
                                   .titleLarge
                                   ?.copyWith(
-                                    color: Colors.amber[800],
+                                    color: StatusColors.of(context).warning.onContainerMuted,
                                     fontWeight: FontWeight.bold,
                                   ),
                             ),
@@ -1064,7 +1065,7 @@ class _ForecastCard extends ConsumerWidget {
                       ),
                       Icon(
                         Icons.info_outline,
-                        color: Colors.amber[800],
+                        color: StatusColors.of(context).warning.onContainerMuted,
                         size: 20,
                       ),
                     ],
@@ -1279,7 +1280,7 @@ class _ForecastCard extends ConsumerWidget {
                             fontStyle: isPast ? FontStyle.normal : FontStyle.italic,
                             color: isPast
                                 ? Theme.of(context).colorScheme.primary
-                                : Colors.amber[800],
+                                : StatusColors.of(context).warning.onContainerMuted,
                           ),
                         ),
                       ),

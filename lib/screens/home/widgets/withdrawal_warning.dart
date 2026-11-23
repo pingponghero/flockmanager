@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../providers/medication_provider.dart';
+import '../../../app/status_colors.dart';
 
 /// Warning banner when medication withdrawal periods are active
 class WithdrawalWarning extends ConsumerWidget {
@@ -34,13 +35,13 @@ class WithdrawalWarning extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.amber.shade50,
+                color: StatusColors.of(context).warning.container,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.shade200),
+                border: Border.all(color: StatusColors.of(context).warning.border),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.amber.shade700),
+                  Icon(Icons.warning_amber_rounded, color: StatusColors.of(context).warning.icon),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -50,19 +51,19 @@ class WithdrawalWarning extends ConsumerWidget {
                           'Egg Withdrawal Active',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.amber.shade900,
+                            color: StatusColors.of(context).warning.onContainer,
                           ),
                         ),
                         Text(
                           minDays != null && minDays > 0
                               ? '$minDays days remaining'
                               : 'Ends today',
-                          style: TextStyle(color: Colors.amber.shade800, fontSize: 12),
+                          style: TextStyle(color: StatusColors.of(context).warning.onContainerMuted, fontSize: 12),
                         ),
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: Colors.amber.shade700),
+                  Icon(Icons.chevron_right, color: StatusColors.of(context).warning.icon),
                 ],
               ),
             ),

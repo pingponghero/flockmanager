@@ -15,6 +15,7 @@ import 'widgets/bird_header.dart';
 import 'widgets/bird_health_tab.dart';
 import 'widgets/bird_info_tab.dart';
 import 'widgets/bird_stats_row.dart';
+import '../../app/status_colors.dart';
 
 class BirdDetailScreen extends ConsumerWidget {
   final String birdId;
@@ -519,13 +520,13 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
+                  color: StatusColors.of(context).warning.container,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.amber.shade200),
+                  border: Border.all(color: StatusColors.of(context).warning.border),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning_amber, color: Colors.amber.shade700),
+                    Icon(Icons.warning_amber, color: StatusColors.of(context).warning.icon),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -535,7 +536,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                             'Records will be kept',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.amber.shade900,
+                              color: StatusColors.of(context).warning.onContainer,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -548,7 +549,7 @@ class _BirdDetailContentState extends ConsumerState<_BirdDetailContent>
                             ' will be preserved but unlinked from this bird.',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.amber.shade900,
+                              color: StatusColors.of(context).warning.onContainer,
                             ),
                           ),
                         ],
