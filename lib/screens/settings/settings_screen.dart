@@ -746,9 +746,9 @@ class SettingsScreen extends ConsumerWidget {
         title: const Text('Load Test Data?'),
         content: const Text(
           'This will DELETE all existing data and replace it with sample data.\n\n'
-          '• 3 flocks\n'
-          '• 12 birds\n'
-          '• 35 days of egg logs\n'
+          '• 2 flocks\n'
+          '• 7 birds\n'
+          '• A year of egg logs\n'
           '• Expenses & income\n'
           '• Medication records\n\n'
           'This cannot be undone!',
