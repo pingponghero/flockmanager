@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.7.0 (+31) — 2026-11-23
+## 2.7.0 (+32) — 2026-11-23
 
 "Your year" on Stats: a year of eggs as rings, a day-by-day sunburst and a
 light-and-laying loop; a UX and style polish pass across the app; and a fix
@@ -24,6 +24,9 @@ for bird histories that made flock sizes and lay rates wrong (#1, #55–#70,
     barely changes.
   - Each hen's Eggs tab shows her own year rings.
   - The reasoning and sums sit in bottom sheets (ⓘ), not on screen.
+  - The sunburst's daylight glows from cream to a warm colour, on a
+    background matched to your chosen palette (Barn Red, Sage &
+    Terracotta, Egg-Inspired).
   - Short gaps in logging count as zero eggs; 7+ days with nothing logged
     are left blank and kept out of rates.
 - **Fraunces headings** (#67) — a warm serif for titles and headings;
