@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../app/theme.dart';
 import '../utils/year_rings.dart';
 import 'chart_center_text.dart';
-import 'year_rings_chart.dart';
 
 /// The sunburst (#1): one ray per day of the year on a night-sky disc.
 ///
@@ -28,13 +28,12 @@ class SunburstChart extends StatelessWidget {
     this.southernHemisphere = false,
     this.centerValue,
     this.centerLabel,
+    this.palette = SunburstPalette.eggInspired,
   });
 
-  static const night = Color(0xFF221C16);
-  static const nightText = Color(0xFFF6EBD3);
-  static const nightMuted = Color(0xFFCDBFA6);
-  static const sun = Color(0xFFE9C46A);
-  static const egg = Color(0xFFFFF1CF);
+  /// Colours for the chart and the panel around it.
+  final SunburstPalette palette;
+
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +49,7 @@ class SunburstChart extends StatelessWidget {
           centerValue: centerValue,
           centerLabel: centerLabel,
           textStyle: textStyle,
+          palette: palette,
         ),
       );
     });
@@ -71,7 +71,10 @@ class _SunburstPainter extends CustomPainter {
     required this.centerValue,
     required this.centerLabel,
     required this.textStyle,
+    required this.palette,
   });
+
+  final SunburstPalette palette;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -123,9 +126,16 @@ class _SunburstPainter extends CustomPainter {
     final anyAhead = coming.isNotEmpty;
     past.close();
     ahead.close();
-    canvas.drawPath(past, Paint()..color = SunburstChart.sun.withValues(alpha: 0.42));
+    Paint daylight(double alpha) => Paint()
+      ..shader = RadialGradient(
+        colors: [
+          palette.daylightInner.withValues(alpha: alpha),
+          palette.daylightOuter.withValues(alpha: alpha),
+        ],
+      ).createShader(Rect.fromCircle(center: c, radius: rMax));
+    canvas.drawPath(past, daylight(palette.daylightAlpha));
     if (anyAhead) {
-      canvas.drawPath(ahead, Paint()..color = SunburstChart.sun.withValues(alpha: 0.16));
+      canvas.drawPath(ahead, daylight(palette.aheadAlpha));
     }
 
     final eggs = Paint()..strokeWidth = math.max(0.8, width * 0.55);
@@ -135,7 +145,7 @@ class _SunburstPainter extends CustomPainter {
 
       final count = d.state == RingBlockState.logged ? d.eggs.toDouble() : (ahead ? d.expected : null);
       if (count != null && count > 0.05) {
-        eggs.color = SunburstChart.egg.withValues(alpha: ahead ? 0.32 : 1);
+        eggs.color = palette.egg.withValues(alpha: ahead ? 0.32 : 1);
         canvas.drawLine(c + u * rIn, c + u * (rIn + count * eggScale), eggs);
       }
     }
@@ -144,7 +154,7 @@ class _SunburstPainter extends CustomPainter {
     final hand = dir(selectedDay);
     final tip = c + hand * (radius * 0.86);
     final handPaint = Paint()
-      ..color = YearRingsChart.todayColor
+      ..color = palette.hand
       ..strokeWidth = 1.6;
     canvas.drawLine(c, tip, handPaint);
     canvas.drawCircle(tip, math.max(3, radius * 0.022), handPaint);
@@ -154,7 +164,7 @@ class _SunburstPainter extends CustomPainter {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final monthStyle = textStyle.copyWith(
       fontSize: (radius * 0.055).clamp(8.0, 12.0),
-      color: SunburstChart.nightMuted,
+      color: palette.muted,
     );
     for (var m = 0; m < 12; m++) {
       final p = c + dir(dayOfYear(DateTime(year, m + 1, 15))) * (radius * 0.94);
@@ -162,17 +172,17 @@ class _SunburstPainter extends CustomPainter {
     }
 
     // Centre.
-    canvas.drawCircle(c, rIn - 1, Paint()..color = SunburstChart.night);
+    canvas.drawCircle(c, rIn - 1, Paint()..color = palette.background);
     if (centerValue != null) {
       final valueStyle = textStyle.copyWith(
         fontSize: (rIn * 0.42).clamp(10.0, 20.0),
         fontWeight: FontWeight.w700,
-        color: SunburstChart.nightText,
+        color: palette.text,
         fontFeatures: const [FontFeature.tabularFigures()],
       );
       final labelStyle = textStyle.copyWith(
         fontSize: (rIn * 0.2).clamp(7.0, 11.0),
-        color: SunburstChart.nightMuted,
+        color: palette.muted,
       );
       // Shrinks to fit the dark disc, so long totals don't spill onto the rays.
       final value = fitCenterText(centerValue!, valueStyle, maxWidth: rIn * 1.7);
@@ -198,5 +208,85 @@ class _SunburstPainter extends CustomPainter {
       old.days != days ||
       old.selectedDay != selectedDay ||
       old.anchorDay != anchorDay ||
-      old.centerValue != centerValue;
+      old.centerValue != centerValue ||
+      old.palette != palette;
+}
+
+/// Colours for the sunburst (#1). Daylight is painted as a radial gradient
+/// from [daylightInner] at the centre to [daylightOuter] at the rim.
+class SunburstPalette {
+  final String name;
+  final Color background;
+  final Color daylightInner;
+  final Color daylightOuter;
+
+  /// Opacity of daylight for days gone, and for days ahead.
+  final double daylightAlpha;
+  final double aheadAlpha;
+  final Color egg;
+  final Color hand;
+  final Color text;
+  final Color muted;
+
+  const SunburstPalette({
+    required this.name,
+    required this.background,
+    required this.daylightInner,
+    required this.daylightOuter,
+    this.daylightAlpha = 0.42,
+    this.aheadAlpha = 0.16,
+    required this.egg,
+    this.hand = const Color(0xFFE0603A),
+    required this.text,
+    required this.muted,
+  });
+
+  /// Barn Red: a deep barn-red night, daylight glowing to the palette's gold.
+  static const barnRed = SunburstPalette(
+    name: 'Barn Red',
+    background: Color(0xFF3A1A1B),
+    daylightInner: Color(0xFFFFE9A8),
+    daylightOuter: Color(0xFFE8A83E),
+    daylightAlpha: 0.9,
+    aheadAlpha: 0.3,
+    egg: Color(0xFFFFF8EC),
+    hand: Color(0xFFFF7F6A),
+    text: Color(0xFFFFF3E6),
+    muted: Color(0xFFE6C9C4),
+  );
+
+  /// Sage & Terracotta: a deep sage night, daylight glowing to terracotta.
+  static const sage = SunburstPalette(
+    name: 'Sage & Terracotta',
+    background: Color(0xFF1E2A22),
+    daylightInner: Color(0xFFFFEBB8),
+    daylightOuter: Color(0xFFE08A5F),
+    daylightAlpha: 0.9,
+    aheadAlpha: 0.3,
+    egg: Color(0xFFFFFFFF),
+    hand: Color(0xFFFFD166),
+    text: Color(0xFFF3F7F1),
+    muted: Color(0xFFC7D6C9),
+  );
+
+  /// Egg-Inspired: a deep teal night, daylight glowing to yolk yellow.
+  static const eggInspired = SunburstPalette(
+    name: 'Egg-Inspired',
+    background: Color(0xFF10302C),
+    daylightInner: Color(0xFFFFF2B8),
+    daylightOuter: Color(0xFFF2B544),
+    daylightAlpha: 0.9,
+    aheadAlpha: 0.3,
+    egg: Color(0xFFFFFFFF),
+    hand: Color(0xFFFF7F6A),
+    text: Color(0xFFF2FBF9),
+    muted: Color(0xFFBFD9D4),
+  );
+
+  /// The sunburst palette that goes with the user's chosen app palette.
+  static SunburstPalette forApp(AppPalette palette) => switch (palette) {
+        AppPalette.barnRed => barnRed,
+        AppPalette.sage => sage,
+        AppPalette.eggInspired => eggInspired,
+      };
 }
