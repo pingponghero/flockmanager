@@ -346,6 +346,8 @@ class _EggValueCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: eggValueAsync.when(
+        // Keep the last figures while a new period loads, or the cards flash.
+        skipLoadingOnReload: true,
         loading: () => Card(
           clipBehavior: Clip.antiAlias,
           child: Padding(
@@ -472,6 +474,7 @@ class _MetricCards extends ConsumerWidget {
     final cs = ref.watch(currencySymbolProvider);
 
     return eggValueAsync.when(
+      skipLoadingOnReload: true,
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (summary) {
@@ -514,8 +517,10 @@ class _MetricCards extends ConsumerWidget {
                                           : 'N/A',
                                   style: Theme.of(context)
                                       .textTheme
-                                      .headlineSmall
+                                      .titleLarge
                                       ?.copyWith(
+                                        // Platform font, as for Egg Value: Fraunces is for headings (#67).
+                                        fontSize: 20,
                                         fontWeight: FontWeight.bold,
                                         color: primaryColor,
                                       ),
@@ -560,8 +565,9 @@ class _MetricCards extends ConsumerWidget {
                             '${isPositive ? '+' : '-'}${_fmt(summary.netSavings.abs(), cs)}',
                             style: Theme.of(context)
                                 .textTheme
-                                .headlineSmall
+                                .titleLarge
                                 ?.copyWith(
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   color: primaryColor,
                                 ),
@@ -594,6 +600,7 @@ class _CashFlowHeroCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: eggValueAsync.when(
+        skipLoadingOnReload: true,
         loading: () => Card(
           clipBehavior: Clip.antiAlias,
           child: Padding(
@@ -680,6 +687,7 @@ class _CashFlowMetricCards extends ConsumerWidget {
     final cs = ref.watch(currencySymbolProvider);
 
     return eggValueAsync.when(
+      skipLoadingOnReload: true,
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (summary) {
@@ -710,8 +718,9 @@ class _CashFlowMetricCards extends ConsumerWidget {
                           _fmt(summary.totalIncome, cs),
                           style: Theme.of(context)
                               .textTheme
-                              .headlineSmall
+                              .titleLarge
                               ?.copyWith(
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: primaryColor,
                               ),
@@ -739,8 +748,9 @@ class _CashFlowMetricCards extends ConsumerWidget {
                           _fmt(summary.totalExpenses, cs),
                           style: Theme.of(context)
                               .textTheme
-                              .headlineSmall
+                              .titleLarge
                               ?.copyWith(
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: primaryColor,
                               ),
@@ -776,6 +786,7 @@ class _CategoryBreakdown extends ConsumerWidget {
     final cs = ref.watch(currencySymbolProvider);
 
     return categoryAsync.when(
+      skipLoadingOnReload: true,
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (categories) {
