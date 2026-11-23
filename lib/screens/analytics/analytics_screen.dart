@@ -1003,10 +1003,11 @@ class _ForecastCard extends ConsumerWidget {
             ),
         };
 
-        return GestureDetector(
-          onTap: () => _showForecastDetails(context, forecast, year, period),
-          child: Card(
-            color: Colors.amber.withValues(alpha: 0.1),
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          color: Colors.amber.withValues(alpha: 0.1),
+          child: InkWell(
+            onTap: () => _showForecastDetails(context, forecast, year, period),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(

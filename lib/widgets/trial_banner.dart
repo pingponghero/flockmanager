@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/trial_provider.dart';
 import '../services/iap_service.dart';
 import '../utils/snackbar_utils.dart';
+import 'tappable_tile.dart';
 
 /// Banner displayed during trial period or when trial expires.
 class TrialBanner extends ConsumerWidget {
@@ -53,12 +54,13 @@ class _TrialActiveBanner extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return GestureDetector(
-      onTap: () => context.go('/settings'),
-      child: Container(
-        width: double.infinity,
+    return SizedBox(
+      width: double.infinity,
+      child: TappableTile(
+        onTap: () => context.go('/settings'),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         color: Theme.of(context).colorScheme.primaryContainer,
+        radius: 0,
         child: Row(
           children: [
             Icon(

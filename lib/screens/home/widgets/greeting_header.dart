@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../providers/egg_provider.dart';
 import '../../../app/status_colors.dart';
+import '../../../widgets/tappable_tile.dart';
 
 /// Header showing the current date and streak badge
 class GreetingHeader extends ConsumerWidget {
@@ -30,29 +31,25 @@ class GreetingHeader extends ConsumerWidget {
           error: (_, __) => const SizedBox.shrink(),
           data: (streak) {
             if (streak < 2) return const SizedBox.shrink();
-            return GestureDetector(
+            return TappableTile(
               onTap: () => _showStreakInfo(context, ref, streak),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: StatusColors.of(context).caution.container,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🔥', style: TextStyle(fontSize: 14)),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$streak day${streak == 1 ? '' : 's'}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: StatusColors.of(context).caution.icon,
-                      ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              color: StatusColors.of(context).caution.container,
+              radius: 12,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🔥', style: TextStyle(fontSize: 14)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$streak day${streak == 1 ? '' : 's'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: StatusColors.of(context).caution.icon,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
           },
