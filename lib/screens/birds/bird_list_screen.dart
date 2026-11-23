@@ -48,7 +48,7 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
         actions: [
           // Flock history
           IconButton(
-            icon: const Icon(Icons.calendar_month),
+            icon: const Icon(Icons.history),
             tooltip: 'Flock History',
             onPressed: () => context.push('/birds/events'),
           ),
