@@ -17,8 +17,8 @@ import '../../providers/flock_provider.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/scaffold_with_nav_bar.dart';
-import '../../app/status_colors.dart';
 import '../../widgets/stat_card.dart';
+import '../../app/status_colors.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
