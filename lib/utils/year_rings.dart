@@ -172,6 +172,37 @@ class YearRingsData {
   bool get canShowHens => attributedShare > 0;
 }
 
+/// One day of the sunburst view (#1).
+class DayPoint {
+  final DateTime date;
+  final int dayOfYear;
+  final double daylight;
+  final RingBlockState state;
+
+  /// Eggs logged (zero on a short unlogged gap). Meaningful when [state] is
+  /// [RingBlockState.logged].
+  final int eggs;
+
+  /// Expected eggs for a future day, when there's enough history to guess.
+  final double? expected;
+
+  /// Laying-age hens that day.
+  final int hens;
+
+  const DayPoint({
+    required this.date,
+    required this.dayOfYear,
+    required this.daylight,
+    required this.state,
+    this.eggs = 0,
+    this.expected,
+    this.hens = 0,
+  });
+}
+
+/// Days of history behind the forecast baseline.
+const kForecastBaselineDays = 28;
+
 // ==================== Day arithmetic ====================
 
 /// Days since 1970-01-01 for the calendar date of [d] (DST-safe).
@@ -342,6 +373,57 @@ class YearRingsBuilder {
       weeks[_weekOf(_dateOf(n))].add(n);
     }
     return weeks;
+  }
+
+  /// Every day of [year] for the sunburst: daylight, eggs, and for days
+  /// still ahead an expected count. The forecast uses the same day last year
+  /// when it was logged, otherwise the last four weeks' average scaled by
+  /// daylight (dampened, since laying doesn't track light one-for-one).
+  List<DayPoint> buildDays(int year) {
+    final start = dayNumber(DateTime.utc(year));
+    final end = dayNumber(DateTime.utc(year + 1));
+
+    double? baseline, baselineLight;
+    var sum = 0, days = 0;
+    var light = 0.0;
+    for (var n = _todayN; n > _todayN - 365 && days < kForecastBaselineDays; n--) {
+      if (_dayState(n) != RingBlockState.logged) continue;
+      sum += _eggsByDay[n] ?? 0;
+      light += DaylightCalculator.calculateDaylightHours(dayOfYear(_dateOf(n)), latitude);
+      days++;
+    }
+    if (days >= 7) {
+      baseline = sum / days;
+      baselineLight = light / days;
+    }
+
+    return [
+      for (var n = start; n < end; n++)
+        () {
+          final date = _dateOf(n);
+          final doy = n - start + 1;
+          final daylight = DaylightCalculator.calculateDaylightHours(doy, latitude);
+          final state = _dayState(n);
+          double? expected;
+          if (state == RingBlockState.future) {
+            final lastYear = dayNumber(DateTime.utc(year - 1, date.month, date.day));
+            if (_dayState(lastYear) == RingBlockState.logged) {
+              expected = (_eggsByDay[lastYear] ?? 0).toDouble();
+            } else if (baseline != null && baselineLight! > 0) {
+              expected = baseline * math.pow(daylight / baselineLight, 0.6);
+            }
+          }
+          return DayPoint(
+            date: DateTime(date.year, date.month, date.day),
+            dayOfYear: doy,
+            daylight: daylight,
+            state: state,
+            eggs: state == RingBlockState.logged ? (_eggsByDay[n] ?? 0) : 0,
+            expected: expected,
+            hens: _headcount(n),
+          );
+        }(),
+    ];
   }
 
   /// Picks hens mode when most of the year's eggs were logged to hens.

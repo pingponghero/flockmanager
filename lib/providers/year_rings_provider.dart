@@ -12,19 +12,15 @@ import 'forecast_provider.dart';
 /// means the current year.
 typedef YearRingsQuery = ({RingMode? mode, int? year});
 
-/// Year rings for the selected flock (#1).
-///
-/// Built from the same sources as the rest of the app, so it refreshes when
-/// eggs, birds or the latitude setting change.
-final yearRingsProvider =
-    FutureProvider.family<YearRingsData, YearRingsQuery>((ref, query) async {
+/// A builder over the selected flock's logs, birds and status events.
+Future<YearRingsBuilder> _selectedFlockBuilder(Ref ref) async {
   final selectedFlockId = ref.watch(selectedFlockIdProvider);
   final logs = await ref.watch(eggLogsProvider.future);
   final birds = await ref.watch(birdsProvider.future);
   final events = await ref.watch(birdStatusEventsProvider.future);
   final latitude = await ref.watch(userLatitudeProvider.future);
 
-  final builder = YearRingsBuilder(
+  return YearRingsBuilder(
     logs: selectedFlockId == null
         ? logs
         : logs.where((l) => l.flockId == selectedFlockId).toList(),
@@ -35,7 +31,23 @@ final yearRingsProvider =
     today: DateTime.now(),
     latitude: latitude,
   );
+}
+
+/// Year rings for the selected flock (#1).
+///
+/// Built from the same sources as the rest of the app, so it refreshes when
+/// eggs, birds or the latitude setting change.
+final yearRingsProvider =
+    FutureProvider.family<YearRingsData, YearRingsQuery>((ref, query) async {
+  final builder = await _selectedFlockBuilder(ref);
   return builder.build(mode: query.mode, year: query.year);
+});
+
+/// Every day of [year] for the sunburst (#1), for the selected flock.
+final yearDaysProvider = FutureProvider.family<
+    ({List<DayPoint> days, int latitude}), int>((ref, year) async {
+  final builder = await _selectedFlockBuilder(ref);
+  return (days: builder.buildDays(year), latitude: builder.latitude);
 });
 
 /// One hen's years as rings, for her Eggs tab (#1). Uses her flock's logs to

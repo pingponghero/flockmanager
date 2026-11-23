@@ -10,10 +10,11 @@ import '../../widgets/choice_chip_row.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/year_rings_chart.dart';
 import 'widgets/light_laying_loop_card.dart';
+import 'widgets/sunburst_panel.dart';
 
-/// Full-screen year view (#1): the year rings chart with a switch between
-/// one ring per year and one ring per hen, and a detail card for the ring
-/// you tap.
+/// Full-screen year view (#1): rings by year or by hen, or the day-by-day
+/// sunburst, with a detail card for the ring you tap and the
+/// light-and-laying loop underneath.
 class YearViewScreen extends ConsumerStatefulWidget {
   const YearViewScreen({super.key});
 
@@ -21,15 +22,19 @@ class YearViewScreen extends ConsumerStatefulWidget {
   ConsumerState<YearViewScreen> createState() => _YearViewScreenState();
 }
 
+/// What the year screen is showing. Years and hens are ring charts; days is
+/// the sunburst.
+enum _View { years, hens, days }
+
 class _YearViewScreenState extends ConsumerState<YearViewScreen> {
   /// Null until the user picks: the data chooses a sensible default.
-  RingMode? _mode;
+  _View? _view;
   int _year = DateTime.now().year;
   int? _selected;
   bool _selectionTouched = false;
 
-  void _setMode(RingMode mode) => setState(() {
-        _mode = mode;
+  void _setView(_View view) => setState(() {
+        _view = view;
         _selected = null;
         _selectionTouched = false;
       });
@@ -40,9 +45,15 @@ class _YearViewScreenState extends ConsumerState<YearViewScreen> {
         _selectionTouched = false;
       });
 
+  RingMode? get _ringMode => switch (_view) {
+        null => null,
+        _View.hens => RingMode.hens,
+        _View.years || _View.days => RingMode.years,
+      };
+
   @override
   Widget build(BuildContext context) {
-    final async = ref.watch(yearRingsProvider((mode: _mode, year: _year)));
+    final async = ref.watch(yearRingsProvider((mode: _ringMode, year: _year)));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Your year')),
@@ -55,64 +66,82 @@ class _YearViewScreenState extends ConsumerState<YearViewScreen> {
         ),
         data: (data) {
           if (data.isEmpty) return const _EmptyYear();
+          final view = _view ?? (data.mode == RingMode.hens ? _View.hens : _View.years);
+          final views = [
+            _View.years,
+            if (data.canShowHens || data.mode == RingMode.hens) _View.hens,
+            _View.days,
+          ];
           // Years mode opens on the current year; hens mode on no one.
           final selected = _selectionTouched
               ? _selected
               : (data.mode == RingMode.years ? data.rings.length - 1 : null);
+
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24).withSystemNavigation(context),
             children: [
-              if (data.canShowHens || data.mode == RingMode.hens)
-                ChoiceChipRow<RingMode>(
-                  padding: EdgeInsets.zero,
-                  values: RingMode.values,
-                  selected: data.mode,
-                  labelOf: (m) => m == RingMode.years ? 'Years' : 'Hens',
-                  onSelected: _setMode,
-                ),
-              if (data.mode == RingMode.hens && data.availableYears.length > 1) ...[
+              ChoiceChipRow<_View>(
+                padding: EdgeInsets.zero,
+                values: views,
+                selected: view,
+                labelOf: (v) => switch (v) {
+                  _View.years => 'Years',
+                  _View.hens => 'Hens',
+                  _View.days => 'Days',
+                },
+                onSelected: _setView,
+              ),
+              if (view != _View.years && data.availableYears.length > 1) ...[
                 const SizedBox(height: 8),
                 ChoiceChipRow<int>(
                   padding: EdgeInsets.zero,
                   values: data.availableYears.reversed.toList(),
-                  selected: data.year,
+                  selected: _year,
                   labelOf: (y) => '$y',
                   onSelected: _setYear,
                 ),
               ],
               const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 1,
-                        child: YearRingsChart(
-                          data: data,
-                          selected: selected,
-                          centerValue: NumberFormat.decimalPattern()
-                              .format(data.rings.fold<int>(0, (s, r) => s + r.eggs)),
-                          centerLabel: data.mode == RingMode.years
-                              ? 'eggs since ${data.rings.first.label}'
-                              : 'eggs in ${data.year}',
-                          onRingTap: (i) => setState(() {
-                            _selectionTouched = true;
-                            _selected = _selected == i && selected == i ? null : i;
-                          }),
+              if (view == _View.days) ...[
+                SunburstPanel(year: _year),
+                ..._loopFor(
+                  data,
+                  data.rings.indexWhere((r) => r.id == '$_year'),
+                ),
+              ] else ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 1,
+                          child: YearRingsChart(
+                            data: data,
+                            selected: selected,
+                            centerValue: NumberFormat.decimalPattern()
+                                .format(data.rings.fold<int>(0, (s, r) => s + r.eggs)),
+                            centerLabel: data.mode == RingMode.years
+                                ? 'eggs since ${data.rings.first.label}'
+                                : 'eggs in ${data.year}',
+                            onRingTap: (i) => setState(() {
+                              _selectionTouched = true;
+                              _selected = _selected == i && selected == i ? null : i;
+                            }),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      _Legend(data: data),
-                    ],
+                        const SizedBox(height: 8),
+                        _Legend(data: data),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              if (selected != null && selected < data.rings.length) ...[
-                const SizedBox(height: 12),
-                _RingDetail(data: data, ring: data.rings[selected]),
+                if (selected != null && selected < data.rings.length) ...[
+                  const SizedBox(height: 12),
+                  _RingDetail(data: data, ring: data.rings[selected]),
+                ],
+                if (data.mode == RingMode.years) ..._loopFor(data, selected),
               ],
-              if (data.mode == RingMode.years) ..._loopFor(data, selected),
               const SizedBox(height: 12),
               _Notes(data: data),
             ],
@@ -126,6 +155,7 @@ class _YearViewScreenState extends ConsumerState<YearViewScreen> {
 /// The light-and-laying card for the selected year (or the latest one).
 List<Widget> _loopFor(YearRingsData data, int? selected) {
   final i = selected ?? data.rings.length - 1;
+  // indexWhere returns -1 when the year has no ring; the range check covers it.
   if (i < 0 || i >= data.rings.length) return const [];
   final ring = data.rings[i];
   final loop = buildLightLayingLoop(ring, data.weeklyDaylight);

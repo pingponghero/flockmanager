@@ -234,4 +234,38 @@ void main() {
       expect(w1.eggs, 4); // laid on the 8th, 10th, 12th and 14th
     });
   });
+
+  group('days (sunburst)', () {
+    test('one point per day with logged, unknown and future states', () {
+      final logs = [
+        for (var d = DateTime(2026, 10, 1);
+            !d.isAfter(DateTime(2026, 11, 22));
+            d = d.add(const Duration(days: 1)))
+          if (d.day != 15) _log(d, 3),
+      ];
+      final days = _builder(logs: logs).buildDays(2026);
+
+      expect(days.length, 365);
+      expect(days.first.state, RingBlockState.empty);
+      final oct15 = days[dayOfYear(DateTime(2026, 10, 15)) - 1];
+      expect(oct15.state, RingBlockState.logged); // one-day gap counts as zero
+      expect(oct15.eggs, 0);
+      final dec1 = days[dayOfYear(DateTime(2026, 12, 1)) - 1];
+      expect(dec1.state, RingBlockState.future);
+      // Shorter days than the baseline weeks, so a little under 3 a day.
+      expect(dec1.expected, inInclusiveRange(2.0, 3.0));
+    });
+
+    test('the forecast prefers the same day last year', () {
+      final logs = [
+        _log(DateTime(2025, 12, 1), 9),
+        for (var d = DateTime(2026, 11, 1);
+            !d.isAfter(DateTime(2026, 11, 22));
+            d = d.add(const Duration(days: 1)))
+          _log(d, 2),
+      ];
+      final days = _builder(logs: logs).buildDays(2026);
+      expect(days[dayOfYear(DateTime(2026, 12, 1)) - 1].expected, 9);
+    });
+  });
 }
