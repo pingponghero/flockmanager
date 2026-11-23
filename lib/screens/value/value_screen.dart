@@ -86,7 +86,7 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Egg Value'),
+        title: const Text('Value'),
       ),
       body: RefreshIndicator(
         onRefresh: () async {

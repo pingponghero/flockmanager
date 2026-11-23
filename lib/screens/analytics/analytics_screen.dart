@@ -56,7 +56,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Egg Stats'),
+        title: const Text('Stats'),
       ),
       body: Column(
         children: [
