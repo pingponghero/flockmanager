@@ -1,3 +1,4 @@
+import 'package:flock_manager/models/bird.dart';
 import 'package:flock_manager/models/egg_log.dart';
 import 'package:flock_manager/utils/year_rings.dart';
 import 'package:flock_manager/widgets/year_rings_chart.dart';
@@ -56,4 +57,45 @@ void main() {
     await tester.tapAt(center + const Offset(radius * 0.36, 0));
     expect(tapped, 0);
   });
+
+  for (final count in [25, 40]) {
+    testWidgets('$count hens: draws without errors and every ring is tappable', (tester) async {
+      final birds = [
+        for (var i = 0; i < count; i++)
+          Bird(id: 'h$i', flockId: 'f', name: 'Hen $i', acquiredDate: DateTime(2025, 1, 1 + i), createdAt: DateTime(2025)),
+      ];
+      final data = YearRingsBuilder(
+        logs: [
+          for (var d = DateTime(2026, 1, 1); d.isBefore(DateTime(2026, 3, 1)); d = d.add(const Duration(days: 1)))
+            for (final b in birds) EggLog(id: '${b.id}$d', date: d, flockId: 'f', birdId: b.id, count: 1, createdAt: d),
+        ],
+        birds: birds,
+        events: const [],
+        today: DateTime(2026, 11, 22),
+        latitude: 39,
+      ).build(mode: RingMode.hens);
+      expect(data.rings.length, count);
+
+      int? tapped;
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox.square(
+              dimension: 340,
+              child: YearRingsChart(data: data, onRingTap: (i) => tapped = i),
+            ),
+          ),
+        ),
+      ));
+      expect(tester.takeException(), isNull);
+
+      const radius = 170.0, inner = radius * 0.22, outer = radius * 0.80;
+      final step = (outer - inner) / count;
+      final center = tester.getCenter(find.byType(YearRingsChart));
+      await tester.tapAt(center + Offset(inner + step * 0.5, 0));
+      expect(tapped, 0);
+      await tester.tapAt(center + Offset(outer - step * 0.5, 0));
+      expect(tapped, count - 1);
+    });
+  }
 }

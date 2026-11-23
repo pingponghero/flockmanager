@@ -224,11 +224,14 @@ class _Legend extends StatelessWidget {
             Text(rate ? '0% ' : 'Fewer ', style: style),
             for (final t in const [0.0, 0.25, 0.5, 0.75, 1.0])
               swatch(YearRingsChart.blockColor(scheme, t)),
-            Text(
-              rate
-                  ? ' ${(kFullLayRate * 100).round()}% lay rate'
-                  : ' more eggs a day',
-              style: style,
+            // Flexible so large text wraps instead of overflowing.
+            Flexible(
+              child: Text(
+                rate
+                    ? ' ${(kFullLayRate * 100).round()}% lay rate'
+                    : ' more eggs a day',
+                style: style,
+              ),
             ),
           ],
         ),
@@ -247,14 +250,14 @@ class _Legend extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            Text(' Ahead', style: style),
+            Flexible(child: Text(' Ahead', style: style)),
           ],
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(width: 12, height: 2, color: YearRingsChart.todayColor),
-            Text(' Today', style: style),
+            Flexible(child: Text(' Today', style: style)),
           ],
         ),
         Row(
@@ -265,7 +268,7 @@ class _Legend extends StatelessWidget {
               height: 4,
               color: YearRingsChart.daylightColor.withValues(alpha: 0.8),
             ),
-            Text(' Daylight', style: style),
+            Flexible(child: Text(' Daylight', style: style)),
           ],
         ),
       ],

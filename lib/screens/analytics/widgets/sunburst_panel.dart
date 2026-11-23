@@ -42,25 +42,30 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
         .where((d) => d.state == RingBlockState.logged)
         .fold<int>(0, (s, d) => s + d.eggs);
     final theme = Theme.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(color: SunburstChart.nightMuted);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: SunburstChart.nightMuted,
+    );
 
     final (badge, badgeFill) = switch (point.state) {
-      _ when point.dayOfYear == todayDoy => ('Today', YearRingsChart.todayColor),
+      _ when point.dayOfYear == todayDoy => (
+        'Today',
+        YearRingsChart.todayColor,
+      ),
       RingBlockState.future => ('Forecast', null),
       RingBlockState.logged => ('Logged', const Color(0xFF3A3027)),
       _ => ('Not logged', null),
     };
     final (eggsText, eggsSub) = switch (point.state) {
       RingBlockState.logged => (
-          '${point.eggs}',
-          point.hens > 0
-              ? '${point.eggs == 1 ? 'egg' : 'eggs'} from ${point.hens} hens'
-              : (point.eggs == 1 ? 'egg' : 'eggs'),
-        ),
+        '${point.eggs}',
+        point.hens > 0
+            ? '${point.eggs == 1 ? 'egg' : 'eggs'} from ${point.hens} hens'
+            : (point.eggs == 1 ? 'egg' : 'eggs'),
+      ),
       RingBlockState.future when point.expected != null => (
-          '~${point.expected!.toStringAsFixed(1)}',
-          'eggs expected',
-        ),
+        '~${point.expected!.toStringAsFixed(1)}',
+        'eggs expected',
+      ),
       _ when point.dayOfYear == todayDoy => ('–', 'not logged yet'),
       _ => ('–', 'not logged'),
     };
@@ -74,7 +79,8 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
       child: Column(
         children: [
           Semantics(
-            label: 'Sunburst of ${widget.year}: one ray per day, longest day at the top. '
+            label:
+                'Sunburst of ${widget.year}: one ray per day, longest day at the top. '
                 'Gold rays are daylight, cream rays are eggs. ${fmt.format(total)} eggs logged.',
             child: AspectRatio(
               aspectRatio: 1,
@@ -95,9 +101,16 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
             children: [
               _key(SunburstChart.sun.withValues(alpha: 0.6), 'Daylight', muted),
               _key(SunburstChart.egg, 'Eggs laid', muted),
-              _key(SunburstChart.egg.withValues(alpha: 0.32), 'Forecast', muted),
+              _key(
+                SunburstChart.egg.withValues(alpha: 0.32),
+                'Forecast',
+                muted,
+              ),
               IconButton(
-                icon: const Icon(Icons.info_outline, color: SunburstChart.nightMuted),
+                icon: const Icon(
+                  Icons.info_outline,
+                  color: SunburstChart.nightMuted,
+                ),
                 tooltip: 'Reading the sunburst',
                 visualDensity: VisualDensity.compact,
                 onPressed: () => showSunburstHelp(context),
@@ -117,46 +130,63 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [
-                        Text(
-                          DateFormat.MMMd().format(point.date),
-                          style: theme.textTheme.titleMedium?.copyWith(color: SunburstChart.nightText),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: badgeFill,
-                            border: badgeFill == null ? Border.all(color: SunburstChart.nightMuted) : null,
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: Text(
-                            badge,
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: badgeFill == YearRingsChart.todayColor
-                                  ? SunburstChart.night
-                                  : SunburstChart.nightMuted,
+                      // Wrap, so the badge drops under the date at large text sizes.
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            DateFormat.MMMd().format(point.date),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: SunburstChart.nightText,
                             ),
                           ),
-                        ),
-                      ]),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: badgeFill,
+                              border: badgeFill == null
+                                  ? Border.all(color: SunburstChart.nightMuted)
+                                  : null,
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: Text(
+                              badge,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: badgeFill == YearRingsChart.todayColor
+                                    ? SunburstChart.night
+                                    : SunburstChart.nightMuted,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       Text('${_hm(point.daylight)} of daylight', style: muted),
                     ],
                   ),
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      eggsText,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: SunburstChart.nightText,
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                const SizedBox(width: 8),
+                // Capped so "eggs from 7 hens" wraps rather than squeezing
+                // the date out at large text sizes.
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        eggsText,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: SunburstChart.nightText,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
-                    ),
-                    Text(eggsSub, style: muted),
-                  ],
+                      Text(eggsSub, style: muted, textAlign: TextAlign.end),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -168,7 +198,8 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
             divisions: days.length - 1,
             activeColor: YearRingsChart.todayColor,
             inactiveColor: SunburstChart.nightMuted.withValues(alpha: 0.3),
-            semanticFormatterCallback: (v) => DateFormat.MMMd().format(days[v.round() - 1].date),
+            semanticFormatterCallback: (v) =>
+                DateFormat.MMMd().format(days[v.round() - 1].date),
             label: DateFormat.MMMd().format(point.date),
             onChanged: (v) => setState(() => _day = v.round()),
           ),
@@ -184,11 +215,11 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
   }
 
   static Widget _key(Color color, String text, TextStyle? style) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 14, height: 3, color: color),
-          const SizedBox(width: 5),
-          Text(text, style: style),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(width: 14, height: 3, color: color),
+      const SizedBox(width: 5),
+      Text(text, style: style),
+    ],
+  );
 }

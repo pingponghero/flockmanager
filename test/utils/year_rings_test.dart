@@ -320,4 +320,63 @@ void main() {
       expect(b.buildForHen('a').henRingsMeaningful, isFalse);
     });
   });
+
+  group('southern hemisphere', () {
+    test('daylight peaks in December and bottoms out in June', () {
+      final data = YearRingsBuilder(
+        logs: [_log(DateTime(2026, 4, 1), 3)],
+        birds: const [],
+        events: const [],
+        today: DateTime(2026, 11, 22),
+        latitude: -35,
+      ).build(mode: RingMode.years);
+      final hours = data.weeklyDaylight;
+      final longest = hours.indexOf(hours.reduce((a, b) => a > b ? a : b));
+      final shortest = hours.indexOf(hours.reduce((a, b) => a < b ? a : b));
+      expect(longest, anyOf(inInclusiveRange(49, 51), inInclusiveRange(0, 1)));
+      expect(shortest, inInclusiveRange(23, 26));
+    });
+  });
+
+  group('leap years and year boundaries', () {
+    test('a leap year has 366 days, and the last week absorbs the extras', () {
+      final logs = [
+        for (var d = DateTime(2024, 12, 20); d.isBefore(DateTime(2025, 1, 1)); d = d.add(const Duration(days: 1)))
+          _log(d, 2),
+      ];
+      final b = _builder(logs: logs, today: DateTime(2025, 3, 1));
+      final days = b.buildDays(2024);
+      expect(days.length, 366);
+      expect(days.last.date, DateTime(2024, 12, 31));
+      expect(days.last.dayOfYear, 366);
+      // Week 51 covers Dec 23–31 in a leap year: 9 days, all logged.
+      final ring = b.build(mode: RingMode.years).rings.first;
+      expect(ring.blocks[51].knownDays, 9);
+      expect(ring.blocks[51].eggs, 18);
+    });
+
+    test('a long gap across New Year is blank on both sides', () {
+      final logs = [_log(DateTime(2025, 12, 20), 3), _log(DateTime(2026, 1, 10), 3)];
+      final rings = _builder(logs: logs, today: DateTime(2026, 2, 1)).build(mode: RingMode.years).rings;
+      // Dec 21 – Jan 9 is 20 unlogged days: unknown in both years.
+      expect(rings.first.blocks[50].state, RingBlockState.logged); // Dec 17–23 has Dec 20
+      expect(rings.first.blocks[51].state, RingBlockState.unknown); // Dec 24–31
+      expect(rings.last.blocks[0].state, RingBlockState.unknown);
+      expect(rings.last.blocks[1].state, RingBlockState.logged); // Jan 8–14 includes Jan 10
+    });
+
+    test('forecasting Feb 29 from a year without one does not fail', () {
+      // 2027 has no Feb 29; "same day last year" falls back to Mar 1.
+      final logs = [
+        _log(DateTime(2027, 3, 1), 7),
+        for (var d = DateTime(2028, 1, 1); d.isBefore(DateTime(2028, 2, 1)); d = d.add(const Duration(days: 1)))
+          _log(d, 2),
+      ];
+      final days = _builder(logs: logs, today: DateTime(2028, 1, 31)).buildDays(2028);
+      final feb29 = days[dayOfYear(DateTime(2028, 2, 29)) - 1];
+      expect(feb29.date, DateTime(2028, 2, 29));
+      expect(feb29.state, RingBlockState.future);
+      expect(feb29.expected, isNotNull);
+    });
+  });
 }

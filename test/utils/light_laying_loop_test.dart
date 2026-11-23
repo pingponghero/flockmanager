@@ -58,4 +58,15 @@ void main() {
     final loop = buildLightLayingLoop(data.rings.single, data.weeklyDaylight)!;
     expect(loop.sameLight, isNull);
   });
+
+  test('southern hemisphere: spring is September, autumn is March', () {
+    // At 35°S days lengthen from June to December, so the "rising" week at
+    // equinox daylight is in September and the "falling" one in March.
+    final data = _year(until: DateTime(2026, 12, 31), latitude: -35);
+    final loop = buildLightLayingLoop(data.rings.single, data.weeklyDaylight)!;
+    final pair = loop.sameLight!;
+    expect(pair.rising.week, inInclusiveRange(34, 42));
+    expect(pair.falling.week, inInclusiveRange(8, 16));
+    expect(pair.rising.layRate, greaterThan(pair.falling.layRate));
+  });
 }
