@@ -238,17 +238,27 @@ class _EggLogScreenState extends ConsumerState<EggLogScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Size dropdown
-            DropdownMenu<EggSize>(
-              initialSelection: _selectedSize,
-              label: const Text('Size'),
-              expandedInsets: EdgeInsets.zero,
-              onSelected: (value) {
-                if (value != null) setState(() => _selectedSize = value);
-              },
-              dropdownMenuEntries: EggSize.values
-                  .map((s) => DropdownMenuEntry(value: s, label: s.displayName))
-                  .toList(),
+            // Size (#62)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Size', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<EggSize>(
+                    segments: [
+                      for (final size in EggSize.values)
+                        ButtonSegment(value: size, label: Text(size.displayName)),
+                    ],
+                    selected: {?_selectedSize},
+                    emptySelectionAllowed: true,
+                    showSelectedIcon: false,
+                    onSelectionChanged: (selection) =>
+                        setState(() => _selectedSize = selection.firstOrNull),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 

@@ -26,6 +26,15 @@ enum AnalyticsPeriod {
         AnalyticsPeriod.allTime => 'All Time',
       };
 
+  /// Compact label for the period chips (#62).
+  String get shortLabel => switch (this) {
+        AnalyticsPeriod.week => '7 days',
+        AnalyticsPeriod.last30Days => '30 days',
+        AnalyticsPeriod.month => 'This month',
+        AnalyticsPeriod.year => 'This year',
+        AnalyticsPeriod.allTime => 'All time',
+      };
+
   DateRange get dateRange {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

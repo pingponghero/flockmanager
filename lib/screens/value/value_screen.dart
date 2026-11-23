@@ -15,6 +15,7 @@ import '../../providers/recipient_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/snackbar_utils.dart';
+import '../../widgets/choice_chip_row.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 import '../settings/settings_screen.dart' show showRetailPriceDialog;
@@ -118,50 +119,42 @@ class _ValueScreenState extends ConsumerState<ValueScreen> {
             ),
           ),
 
-          // Period + Mode toggle
+          // Mode toggle + period chips (#62)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                Flexible(
-                  flex: 2,
-                  child: DropdownMenu<FinanceDateRange>(
-                    initialSelection: selectedRange,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Period'),
-                    dropdownMenuEntries: FinanceDateRange.values
-                        .map((range) => DropdownMenuEntry(
-                              value: range,
-                              label: range.displayName,
-                            ))
-                        .toList(),
-                    onSelected: (value) {
-                      if (value != null) {
-                        ref
-                            .read(financeDateRangeProvider.notifier)
-                            .setRange(value);
-                      }
-                    },
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                    value: false,
+                    label: Text('Egg value'),
+                    icon: Icon(Icons.egg_outlined),
+                    tooltip: 'What your eggs are worth against store prices',
                   ),
-                ),
-                const SizedBox(width: 12),
-                DropdownMenu<bool>(
-                  initialSelection: cashFlowMode,
-                  requestFocusOnTap: false,
-                  label: const Text('Mode'),
-                  dropdownMenuEntries: const [
-                    DropdownMenuEntry(value: false, label: 'Value'),
-                    DropdownMenuEntry(value: true, label: 'Cash'),
-                  ],
-                  onSelected: (value) {
-                    if (value != null) {
-                      ref.read(valueScreenModeProvider.notifier).setMode(value);
-                    }
-                  },
-                ),
-              ],
+                  ButtonSegment(
+                    value: true,
+                    label: Text('Cash flow'),
+                    icon: Icon(Icons.payments_outlined),
+                    tooltip: 'Money actually spent and received',
+                  ),
+                ],
+                selected: {cashFlowMode},
+                showSelectedIcon: false,
+                onSelectionChanged: (selection) => ref
+                    .read(valueScreenModeProvider.notifier)
+                    .setMode(selection.first),
+              ),
             ),
           ),
+          ChoiceChipRow<FinanceDateRange>(
+            values: FinanceDateRange.values,
+            selected: selectedRange,
+            labelOf: (range) => range.shortLabel,
+            onSelected: (range) =>
+                ref.read(financeDateRangeProvider.notifier).setRange(range),
+          ),
+          const SizedBox(height: 8),
 
           // Mode-dependent hero + secondary cards
           if (cashFlowMode) ...[
