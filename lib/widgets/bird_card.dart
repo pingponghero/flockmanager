@@ -5,6 +5,7 @@ import '../data/breeds.dart';
 import '../models/bird.dart';
 import '../models/enums.dart';
 import '../services/photo_storage.dart';
+import '../utils/motion.dart';
 
 /// Reusable card widget for displaying bird information.
 class BirdCard extends StatelessWidget {
@@ -36,11 +37,14 @@ class BirdCard extends StatelessWidget {
                 SizedBox(
                   width: 120,
                   child: hasPhoto
-                      ? Image.file(
-                          photoFile,
-                          fit: BoxFit.cover,
-                          height: double.infinity,
-                          width: double.infinity,
+                      ? Hero(
+                          tag: birdPhotoHeroTag(bird.id),
+                          child: Image.file(
+                            photoFile,
+                            fit: BoxFit.cover,
+                            height: double.infinity,
+                            width: double.infinity,
+                          ),
                         )
                       : InkWell(
                           onTap: () => context.push(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../models/bird.dart';
 import '../../../models/enums.dart';
 import '../../../services/photo_storage.dart';
+import '../../../utils/motion.dart';
 
 /// Header widget displaying bird photo, name, breed, and age
 class BirdHeader extends StatelessWidget {
@@ -20,9 +21,13 @@ class BirdHeader extends StatelessWidget {
       children: [
         // Photo or fallback background
         if (hasPhoto)
-          Image.file(
-            photoFile,
-            fit: BoxFit.cover,
+          // Flies in from the bird card's photo strip (#69)
+          Hero(
+            tag: birdPhotoHeroTag(bird.id),
+            child: Image.file(
+              photoFile,
+              fit: BoxFit.cover,
+            ),
           )
         else
           Container(
