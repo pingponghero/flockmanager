@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:sqflite/sqflite.dart' show DatabaseExecutor;
 
 import 'package:uuid/uuid.dart';
 
@@ -51,6 +52,74 @@ class ImportService {
       throw ImportException('Failed to read backup file: $e');
     }
   }
+
+  /// Writes imported birds' status events: the backup's own events when it
+  /// has them, otherwise reconstructed from each bird's fields. Then moves
+  /// each first 'active' event back to the bird's acquired date, since older
+  /// backups dated it when she was entered (#88).
+  @visibleForTesting
+  static Future<void> writeBirdStatusEvents(
+    DatabaseExecutor txn,
+    List<Map<String, dynamic>> birds,
+    List<Map<String, dynamic>> events,
+  ) async {
+    // Insert bird_status_events — from CSV if available, otherwise
+    // reconstruct from bird created_at/status/status_date fields.
+    if (events.isNotEmpty) {
+      for (final event in events) {
+        await txn.insert('bird_status_events', event);
+      }
+    } else {
+      // Reconstruct: each bird gets an 'active' event at created_at,
+      // plus a status-change event if currently non-active.
+      const uuid = Uuid();
+      for (final bird in birds) {
+        final birdId = bird['id'] as String;
+        final flockId = bird['flock_id'] as String;
+        final createdAt = bird['created_at'] as String;
+        final status = bird['status'] as String? ?? 'active';
+        final statusDate = bird['status_date'] as String?;
+
+        // For non-active birds the terminal event must be the LATEST
+        // event, or the bird stays 'active' in the reconstructed
+        // timeline forever and inflates forecasts/statistics. Backups
+        // of imported historical data can have status_date before
+        // created_at, and may lack status_date entirely.
+        final terminalDate = statusDate ?? createdAt;
+        final activeBeforeTerminal = status == 'active' ||
+            DateTime.parse(terminalDate)
+                .isAfter(DateTime.parse(createdAt));
+
+        if (activeBeforeTerminal) {
+          await txn.insert('bird_status_events', {
+            'id': uuid.v4(),
+            'bird_id': birdId,
+            'flock_id': flockId,
+            'status': 'active',
+            'event_date': createdAt,
+            'notes': null,
+            'created_at': createdAt,
+          });
+        }
+
+        if (status != 'active') {
+          await txn.insert('bird_status_events', {
+            'id': uuid.v4(),
+            'bird_id': birdId,
+            'flock_id': flockId,
+            'status': status,
+            'event_date': terminalDate,
+            'notes': bird['status_notes'] as String?,
+            'created_at': terminalDate,
+          });
+        }
+      }
+    }
+    // Older backups date each bird's first event when she was entered,
+    // not when she joined (#88).
+    await DatabaseHelper.backdateJoinedEvents(txn);
+  }
+
 
   /// Import all data from a ZIP file.
   Future<ImportResult> importFromZip(File zipFile) async {
@@ -223,61 +292,7 @@ class ImportService {
           healthNotesCount++;
         }
 
-        // Insert bird_status_events — from CSV if available, otherwise
-        // reconstruct from bird created_at/status/status_date fields.
-        if (data.birdStatusEvents.isNotEmpty) {
-          for (final event in data.birdStatusEvents) {
-            await txn.insert('bird_status_events', event);
-          }
-        } else {
-          // Reconstruct: each bird gets an 'active' event at created_at,
-          // plus a status-change event if currently non-active.
-          const uuid = Uuid();
-          for (final bird in data.birds) {
-            final birdId = bird['id'] as String;
-            final flockId = bird['flock_id'] as String;
-            final createdAt = bird['created_at'] as String;
-            final status = bird['status'] as String? ?? 'active';
-            final statusDate = bird['status_date'] as String?;
-
-            // For non-active birds the terminal event must be the LATEST
-            // event, or the bird stays 'active' in the reconstructed
-            // timeline forever and inflates forecasts/statistics. Backups
-            // of imported historical data can have status_date before
-            // created_at, and may lack status_date entirely.
-            final terminalDate = statusDate ?? createdAt;
-            final activeBeforeTerminal = status == 'active' ||
-                DateTime.parse(terminalDate)
-                    .isAfter(DateTime.parse(createdAt));
-
-            if (activeBeforeTerminal) {
-              await txn.insert('bird_status_events', {
-                'id': uuid.v4(),
-                'bird_id': birdId,
-                'flock_id': flockId,
-                'status': 'active',
-                'event_date': createdAt,
-                'notes': null,
-                'created_at': createdAt,
-              });
-            }
-
-            if (status != 'active') {
-              await txn.insert('bird_status_events', {
-                'id': uuid.v4(),
-                'bird_id': birdId,
-                'flock_id': flockId,
-                'status': status,
-                'event_date': terminalDate,
-                'notes': bird['status_notes'] as String?,
-                'created_at': terminalDate,
-              });
-            }
-          }
-        }
-        // Older backups date each bird's first event when she was entered,
-        // not when she joined (#88).
-        await DatabaseHelper.backdateJoinedEvents(txn);
+        await writeBirdStatusEvents(txn, data.birds, data.birdStatusEvents);
         _reportProgress(0.95);
       });
 
