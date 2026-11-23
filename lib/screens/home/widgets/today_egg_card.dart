@@ -6,6 +6,7 @@ import '../../../providers/egg_provider.dart';
 import '../../../providers/trial_provider.dart';
 import '../../../widgets/egg_quick_log.dart';
 import '../../../widgets/trial_banner.dart' show showTrialExpiredDialog;
+import '../../../utils/motion.dart';
 
 /// Hero card for today's egg count — the visual anchor of Home (#68).
 ///
@@ -86,8 +87,17 @@ class TodayEggCard extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    todayAsync.when(
+                    // Cross-fade loading → number, then count up (#69)
+                    AnimatedSwitcher(
+                      duration: motionDuration(
+                          context, const Duration(milliseconds: 250)),
+                      layoutBuilder: (current, previous) => Stack(
+                        alignment: Alignment.centerLeft,
+                        children: [...previous, ?current],
+                      ),
+                      child: todayAsync.when(
                       loading: () => SizedBox(
+                        key: const ValueKey('loading'),
                         height: 64,
                         child: Align(
                           alignment: Alignment.centerLeft,
@@ -96,18 +106,28 @@ class TodayEggCard extends ConsumerWidget {
                       ),
                       error: (error, stack) => Text(
                         '--',
+                        key: const ValueKey('error'),
                         style: theme.textTheme.displayLarge
                             ?.copyWith(color: fg, fontWeight: FontWeight.bold),
                       ),
-                      data: (today) => Text(
-                        '$today',
-                        style: theme.textTheme.displayLarge?.copyWith(
-                          color: fg,
-                          fontWeight: FontWeight.bold,
-                          height: 1.05,
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                      data: (today) => TweenAnimationBuilder<int>(
+                        key: const ValueKey('count'),
+                        tween: IntTween(begin: 0, end: today),
+                        duration: motionDuration(
+                            context, const Duration(milliseconds: 600)),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, _) => Text(
+                          '$value',
+                          semanticsLabel: '$today',
+                          style: theme.textTheme.displayLarge?.copyWith(
+                            color: fg,
+                            fontWeight: FontWeight.bold,
+                            height: 1.05,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ),
+                    ),
                     ),
                     const SizedBox(height: 8),
                     if (todayCount == 0)
