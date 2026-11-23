@@ -53,6 +53,12 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Years'));
     await tester.pumpAndSettle();
     expect(find.byType(YearRingsChart), findsOneWidget);
+
+    // The detail lives in a bottom sheet, not on the screen.
+    await tester.tap(find.byTooltip('How this is counted'));
+    await tester.pumpAndSettle();
+    expect(find.text('How your year is counted'), findsOneWidget);
+    expect(find.text('Lay rate'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }

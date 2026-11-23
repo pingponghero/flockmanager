@@ -6,6 +6,7 @@ import '../../../providers/year_rings_provider.dart';
 import '../../../utils/year_rings.dart';
 import '../../../widgets/sunburst_chart.dart';
 import '../../../widgets/year_rings_chart.dart';
+import 'year_info_sheets.dart';
 
 /// The "Days" view of the year screen (#1): the sunburst with a hand you
 /// scrub through the year, and a readout for the day under it.
@@ -89,10 +90,17 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
           Wrap(
             spacing: 14,
             alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               _key(SunburstChart.sun.withValues(alpha: 0.6), 'Daylight', muted),
               _key(SunburstChart.egg, 'Eggs laid', muted),
               _key(SunburstChart.egg.withValues(alpha: 0.32), 'Forecast', muted),
+              IconButton(
+                icon: const Icon(Icons.info_outline, color: SunburstChart.nightMuted),
+                tooltip: 'Reading the sunburst',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => showSunburstHelp(context),
+              ),
             ],
           ),
           const SizedBox(height: 10),

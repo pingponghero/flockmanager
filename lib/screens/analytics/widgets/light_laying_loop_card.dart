@@ -5,6 +5,7 @@ import 'package:intl/intl.dart' show DateFormat;
 
 import '../../../utils/light_laying_loop.dart';
 import '../../../widgets/year_rings_chart.dart';
+import 'year_info_sheets.dart';
 
 /// "Light and laying" insight card (#1): weekly lay rate against daylight,
 /// with a plain-language comparison of spring and autumn at the same light.
@@ -53,8 +54,24 @@ class LightLayingLoopCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Light and laying', style: theme.textTheme.titleMedium),
-            Text('${loop.label} · one dot per week', style: muted),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Light and laying', style: theme.textTheme.titleMedium),
+                      Text('${loop.label} \u00b7 one dot per week', style: muted),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.info_outline),
+                  tooltip: 'Reading the loop',
+                  onPressed: () => showLoopHelp(context),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             Semantics(
               label: 'Weekly lay rate plotted against daylight hours for ${loop.label}. '
@@ -74,14 +91,9 @@ class LightLayingLoopCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            if (insight != null) ...[
-              Text(insight, style: theme.textTheme.bodyMedium),
-              const SizedBox(height: 4),
-            ],
             Text(
-              'Hens speed up as days lengthen and slow down as they shorten and '
-              'molt, so the year traces a loop. The wider it is, the harder autumn hits.',
-              style: muted,
+              insight ?? 'Spring and autumn are compared once the year has both.',
+              style: insight != null ? theme.textTheme.bodyMedium : muted,
             ),
           ],
         ),
