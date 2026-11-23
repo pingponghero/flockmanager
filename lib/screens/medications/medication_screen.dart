@@ -11,6 +11,7 @@ import '../../utils/edge_insets.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 import 'widgets/add_medication_sheet.dart';
 import 'widgets/legal_status_badge.dart';
+import '../../utils/snackbar_utils.dart';
 
 class MedicationScreen extends ConsumerStatefulWidget {
   /// Tab to open on: 0 = Active, 1 = History, 2 = Reference.
@@ -352,32 +353,24 @@ class _HistoryTab extends ConsumerWidget {
                   padding: const EdgeInsets.only(right: 16),
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
-                confirmDismiss: (_) async {
-                  return await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete Record'),
-                      content: const Text('Delete this medication record?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
                 onDismissed: (_) {
-                  ref
-                      .read(medicationsProvider.notifier)
-                      .deleteMedication(med.id);
-                  ref
-                      .read(notificationSettingsProvider.notifier)
-                      .onMedicationDeleted(med.id);
+                  // Delete with Undo rather than a confirmation dialog
+                  // (#65). Undo restores the record and its withdrawal
+                  // reminders.
+                  final medications = ref.read(medicationsProvider.notifier);
+                  final notifications =
+                      ref.read(notificationSettingsProvider.notifier);
+                  medications.deleteMedication(med.id);
+                  notifications.onMedicationDeleted(med.id);
+                  showAppSnackBar(
+                    context,
+                    '${med.medicationName} record deleted',
+                    actionLabel: 'Undo',
+                    onAction: () async {
+                      await medications.addMedication(med);
+                      await notifications.onMedicationSaved(med);
+                    },
+                  );
                 },
                 child: _MedicationCard(medication: med),
               );
