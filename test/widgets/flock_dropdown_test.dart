@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:flock_manager/models/flock.dart';
 import 'package:flock_manager/providers/flock_provider.dart';
@@ -78,6 +79,46 @@ void main() {
       await pumpDropdown(tester, []);
 
       expect(find.byType(DropdownMenu<String?>), findsNothing);
+    });
+
+    testWidgets('"Manage flocks…" opens the flock list without changing '
+        'the selection (#59)', (tester) async {
+      final changes = <String?>[];
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, _) => Scaffold(
+              body: FlockDropdown(
+                selectedFlockId: 'f1',
+                onChanged: changes.add,
+                showAllOption: false,
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/settings/flocks',
+            builder: (_, _) => const Text('flock list'),
+          ),
+        ],
+      );
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          flocksProvider.overrideWith(
+              () => _FakeFlocksNotifier([_flock('f1', 'Backyard Girls')])),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(DropdownMenu<String?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Manage flocks…').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('flock list'), findsOneWidget);
+      expect(changes, isEmpty);
     });
   });
 }

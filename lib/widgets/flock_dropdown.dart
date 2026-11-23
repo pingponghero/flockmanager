@@ -32,6 +32,10 @@ class _FlockDropdownState extends ConsumerState<FlockDropdown> {
   /// never collide with a real flock id.
   static const String _addFlockValue = '__add_flock__';
 
+  /// Sentinel for "Manage flocks…" (#59): edit or archive flocks from where
+  /// they're chosen, instead of only via Settings.
+  static const String _manageFlocksValue = '__manage_flocks__';
+
   final _controller = TextEditingController();
 
   @override
@@ -73,13 +77,20 @@ class _FlockDropdownState extends ConsumerState<FlockDropdown> {
               label: 'Add flock…',
               leadingIcon: Icon(Icons.add, size: 24),
             ),
+            const DropdownMenuEntry(
+              value: _manageFlocksValue,
+              label: 'Manage flocks…',
+              leadingIcon: Icon(Icons.tune, size: 24),
+            ),
           ],
           onSelected: (value) {
-            if (value == _addFlockValue) {
+            if (value == _addFlockValue || value == _manageFlocksValue) {
               // An action, not a selection — put the field back the way it was
-              // before handing off to the flock form.
+              // before handing off to the flock screens.
               _controller.text = _labelFor(flocks, widget.selectedFlockId);
-              context.go('/settings/flocks/new');
+              context.go(value == _addFlockValue
+                  ? '/settings/flocks/new'
+                  : '/settings/flocks');
               return;
             }
             widget.onChanged(value);
