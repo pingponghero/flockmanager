@@ -165,10 +165,10 @@ Future<void> showLoopHelp(BuildContext context) => InfoSheet.show(
       sections: const [
         InfoSection(
           icon: Icons.scatter_plot_outlined,
-          title: 'One dot per week',
-          body: 'Each dot is a week: how much daylight there was (across) and your '
-              'lay rate (up). The line joins the weeks in order, and the arrows show '
-              'which way the year is moving.',
+          title: 'Week by week',
+          body: 'The line follows the year a week at a time: how much daylight '
+              'there was (across) and your lay rate (up). Dots mark the start of '
+              'each month, and the arrows show which way the year is moving.',
         ),
         InfoSection(
           icon: Icons.autorenew,

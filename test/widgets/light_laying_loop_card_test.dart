@@ -42,7 +42,7 @@ void main() {
       home: Scaffold(body: LightLayingLoopCard(loop: loop, year: 2026, isCurrentYear: true)),
     ));
     expect(find.textContaining('barely changes'), findsOneWidget);
-    expect(find.textContaining('one dot per week'), findsNothing);
+    expect(find.textContaining('week by week'), findsNothing);
     expect(find.byType(AspectRatio), findsNothing); // no chart
   });
 }

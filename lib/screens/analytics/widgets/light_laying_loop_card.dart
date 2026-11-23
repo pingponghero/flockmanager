@@ -69,7 +69,7 @@ class LightLayingLoopCard extends StatelessWidget {
                       ),
                       Text(
                         loop.hasDaylightSwing
-                            ? '${loop.label} \u00b7 one dot per week'
+                            ? '${loop.label} \u00b7 week by week'
                             : loop.label,
                         style: muted,
                       ),
@@ -240,13 +240,7 @@ class _LoopPainter extends CustomPainter {
       );
     }
 
-    // A small dot for every week, so "one dot per week" is what you see.
-    final weekDot = Paint()..color = color.withValues(alpha: 0.7);
-    for (final o in offsets) {
-      canvas.drawCircle(o, 2.2, weekDot);
-    }
-
-    // Month starts: larger hollow dots, labelled outward from the middle.
+    // Month starts, labelled outward from the loop's middle.
     final mid = offsets.reduce((a, b) => a + b) / offsets.length.toDouble();
     final dot = Paint()..color = scheme.surface;
     final ring = Paint()
