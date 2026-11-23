@@ -8,6 +8,7 @@ import '../../models/health_note.dart';
 import '../../providers/bird_provider.dart';
 import '../../providers/medication_provider.dart';
 import '../../utils/snackbar_utils.dart';
+import '../../widgets/hen_icon.dart';
 
 /// Form screen for creating or editing a health note.
 class HealthNoteFormScreen extends ConsumerStatefulWidget {
@@ -208,7 +209,7 @@ class _HealthNoteFormScreenState extends ConsumerState<HealthNoteFormScreen> {
                   // Bird name (read-only)
                   Card(
                     child: ListTile(
-                      leading: const Icon(Icons.pets),
+                      leading: const HenIcon(),
                       title: Text(birdName),
                       subtitle: const Text('Bird'),
                     ),
