@@ -9,6 +9,7 @@ import '../../providers/flock_provider.dart';
 import '../../providers/trial_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/bird_card.dart';
+import '../../widgets/filter_menu_chip.dart';
 import '../../widgets/flock_dropdown.dart';
 import '../../widgets/trial_banner.dart' show showTrialExpiredDialog;
 import '../../widgets/error_state.dart';
@@ -80,7 +81,7 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
         children: [
           // Flock filter dropdown
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: FlockDropdown(
               selectedFlockId: selectedFlockId,
               onChanged: (value) {
@@ -88,49 +89,68 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
               },
             ),
           ),
-          // Gender and status filter dropdowns
+          // Sex / status filter chips + count (#61). The chips show the
+          // active filters (default: Female · Active) and clear with ✕.
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
               children: [
                 Expanded(
-                  child: DropdownMenu<BirdSex?>(
-                    initialSelection: _sexFilter,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Gender'),
-                    dropdownMenuEntries: [
-                      const DropdownMenuEntry(value: null, label: 'All'),
-                      ...BirdSex.values.map((sex) => DropdownMenuEntry(
-                            value: sex,
-                            label: sex.displayName,
-                          )),
-                    ],
-                    onSelected: (value) =>
-                        setState(() => _sexFilter = value),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        FilterMenuChip<BirdSex>(
+                          tooltip: 'Sex',
+                          value: _sexFilter,
+                          anyLabel: 'Any sex',
+                          options: [
+                            for (final sex in BirdSex.values)
+                              FilterMenuOption(
+                                value: sex,
+                                label: sex == BirdSex.unknown
+                                    ? 'Sex unknown'
+                                    : sex.displayName,
+                              ),
+                          ],
+                          onChanged: (value) =>
+                              setState(() => _sexFilter = value),
+                        ),
+                        const SizedBox(width: 8),
+                        FilterMenuChip<BirdStatus>(
+                          tooltip: 'Status',
+                          value: _statusFilter,
+                          anyLabel: 'Any status',
+                          options: [
+                            for (final status in BirdStatus.values)
+                              FilterMenuOption(
+                                value: status,
+                                label: status.displayName,
+                                icon: Icon(
+                                  status.icon,
+                                  size: 18,
+                                  color: status.iconColor,
+                                ),
+                              ),
+                          ],
+                          onChanged: (value) =>
+                              setState(() => _statusFilter = value),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownMenu<BirdStatus?>(
-                    initialSelection: _statusFilter,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Status'),
-                    dropdownMenuEntries: [
-                      const DropdownMenuEntry(value: null, label: 'All'),
-                      ...BirdStatus.values.map((status) => DropdownMenuEntry(
-                            value: status,
-                            label: status.displayName,
-                            leadingIcon: Icon(
-                              status.icon,
-                              size: 18,
-                              color: status.iconColor,
-                            ),
-                          )),
-                    ],
-                    onSelected: (value) =>
-                        setState(() => _statusFilter = value),
+                if (birdsAsync.value case final allBirds?) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    _countLabel(
+                      _applyFilters(allBirds, selectedFlockId).length,
+                      allBirds.length,
+                      selectedFlockId,
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -144,27 +164,7 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
                 onRetry: () => ref.invalidate(birdsProvider),
               ),
               data: (allBirds) {
-                // Apply flock filter
-                var birds = selectedFlockId == null
-                    ? allBirds
-                    : allBirds
-                        .where((b) => b.flockId == selectedFlockId)
-                        .toList();
-
-                // Apply sex filter
-                if (_sexFilter != null) {
-                  birds =
-                      birds.where((b) => b.sex == _sexFilter).toList();
-                }
-
-                // Apply status filter
-                if (_statusFilter != null) {
-                  birds =
-                      birds.where((b) => b.status == _statusFilter).toList();
-                }
-
-                // Apply sorting
-                birds = _sortBirds(birds, _sortOption);
+                final birds = _applyFilters(allBirds, selectedFlockId);
 
                 if (birds.isEmpty) {
                   return _EmptyState(
@@ -182,44 +182,22 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
                   );
                 }
 
-                final hasFilters = selectedFlockId != null || _statusFilter != null || _sexFilter != null;
-
-                return Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      child: Row(
-                        children: [
-                          Text(
-                            hasFilters
-                                ? '${birds.length} of ${allBirds.length} birds'
-                                : '${birds.length} birds',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: () {
-                          ScaffoldMessenger.of(context).clearSnackBars();
-                          return ref.read(birdsProvider.notifier).refresh();
-                        },
-                        child: ListView.builder(
-                          padding: pagePadding(context),
-                          itemCount: birds.length,
-                          itemBuilder: (context, index) {
-                            final bird = birds[index];
-                            return BirdCard(
-                              bird: bird,
-                              onTap: () => context.push('/birds/${bird.id}'),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+                return RefreshIndicator(
+                  onRefresh: () {
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    return ref.read(birdsProvider.notifier).refresh();
+                  },
+                  child: ListView.builder(
+                    padding: pagePadding(context),
+                    itemCount: birds.length,
+                    itemBuilder: (context, index) {
+                      final bird = birds[index];
+                      return BirdCard(
+                        bird: bird,
+                        onTap: () => context.push('/birds/${bird.id}'),
+                      );
+                    },
+                  ),
                 );
               },
             ),
@@ -238,6 +216,22 @@ class _BirdListScreenState extends ConsumerState<BirdListScreen> {
         },
       ),
     );
+  }
+
+  /// Applies the flock, sex and status filters, then the chosen sort.
+  List<Bird> _applyFilters(List<Bird> allBirds, String? selectedFlockId) {
+    final birds = allBirds
+        .where((b) => selectedFlockId == null || b.flockId == selectedFlockId)
+        .where((b) => _sexFilter == null || b.sex == _sexFilter)
+        .where((b) => _statusFilter == null || b.status == _statusFilter)
+        .toList();
+    return _sortBirds(birds, _sortOption);
+  }
+
+  String _countLabel(int shown, int total, String? selectedFlockId) {
+    final hasFilters =
+        selectedFlockId != null || _statusFilter != null || _sexFilter != null;
+    return hasFilters ? '$shown of $total' : '$total birds';
   }
 
   List<Bird> _sortBirds(List<Bird> birds, BirdSortOption option) {
