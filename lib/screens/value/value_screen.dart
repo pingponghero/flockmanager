@@ -1041,29 +1041,18 @@ class _ExpenseCard extends ConsumerWidget {
           padding: const EdgeInsets.only(right: 16),
           child: const Icon(Icons.delete, color: Colors.white),
         ),
-        confirmDismiss: (_) async {
-          return await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Delete Expense'),
-              content:
-                  const Text('Are you sure you want to delete this expense?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
-          );
-        },
         onDismissed: (_) {
-          ref.read(expensesProvider.notifier).deleteExpense(expense.id);
-          showAppSnackBar(context, 'Expense deleted');
+          // Delete straight away and offer Undo instead of asking first
+          // (#65). Capture the notifier: this card is gone by the time
+          // Undo is tapped, so its ref can't be used then.
+          final expenses = ref.read(expensesProvider.notifier);
+          expenses.deleteExpense(expense.id);
+          showAppSnackBar(
+            context,
+            'Expense deleted',
+            actionLabel: 'Undo',
+            onAction: () => expenses.addExpense(expense),
+          );
         },
         child: ListTile(
           leading: CircleAvatar(
@@ -1461,30 +1450,16 @@ class _IncomeCard extends ConsumerWidget {
           padding: const EdgeInsets.only(right: 16),
           child: const Icon(Icons.delete, color: Colors.white),
         ),
-        confirmDismiss: (_) async {
-          return await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text(isGift ? 'Delete Gift' : 'Delete Income'),
-              content: Text(isGift
-                  ? 'Are you sure you want to delete this gift record?'
-                  : 'Are you sure you want to delete this income record?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
-          );
-        },
         onDismissed: (_) {
-          ref.read(incomeProvider.notifier).deleteIncome(income.id);
-          showAppSnackBar(context, isGift ? 'Gift deleted' : 'Income deleted');
+          // Delete with Undo rather than a confirmation dialog (#65)
+          final incomeNotifier = ref.read(incomeProvider.notifier);
+          incomeNotifier.deleteIncome(income.id);
+          showAppSnackBar(
+            context,
+            isGift ? 'Gift deleted' : 'Income deleted',
+            actionLabel: 'Undo',
+            onAction: () => incomeNotifier.addIncome(income),
+          );
         },
         child: ListTile(
           leading: CircleAvatar(
