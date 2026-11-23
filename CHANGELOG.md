@@ -1,5 +1,78 @@
 # Changelog
 
+## 2.7.0 (+31) — 2026-11-23
+
+"Your year" on Stats: a year of eggs as rings, a day-by-day sunburst and a
+light-and-laying loop; a UX and style polish pass across the app; and a fix
+for bird histories that made flock sizes and lay rates wrong (#1, #55–#70,
+#88).
+
+### Added
+
+- **Your year** (#1) — a "Your year" card on Stats opens a full-screen
+  view of the year:
+  - **Years:** one ring per year, one block per week from January at the
+    top. Colour is lay rate; ring thickness is how many laying-age hens
+    there were. A thin band shows daylight where you live.
+  - **Hens:** one ring per hen, for flocks that log eggs to hens.
+  - **Days:** a sunburst with the year's daylight as a gold egg and a ray
+    of eggs for every day; scrub through the year, with a forecast for the
+    days ahead.
+  - **Light and laying:** each week's lay rate against its daylight. At the
+    same daylight spring usually beats autumn, and the card says by how
+    much for your flock. Not shown near the equator, where day length
+    barely changes.
+  - Each hen's Eggs tab shows her own year rings.
+  - The reasoning and sums sit in bottom sheets (ⓘ), not on screen.
+  - Short gaps in logging count as zero eggs; 7+ days with nothing logged
+    are left blank and kept out of rates.
+- **Fraunces headings** (#67) — a warm serif for titles and headings;
+  numbers stay in the system font with even-width digits.
+- **Light motion** (#69) — bird photos fly into their detail page, today's
+  count counts up, and the spark line grows in.
+
+### Improved
+
+- **Home** (#68) — today's eggs is the hero; the Flock Spotlight leads
+  with the hen's photo; the rest is quieter.
+- **One-tap choices** (#62) — short choices (2–5 options) are segmented
+  buttons or chips instead of dropdowns.
+- **Birds filters** (#61) — compact chips that show the active filter, so
+  roosters and retired hens no longer look missing.
+- **Swipe to delete with Undo everywhere** (#65) — expenses, income, gifts
+  and medication records, matching flocks.
+- **Tap feedback** (#66) — tappable banners and cards ripple and announce
+  as buttons to screen readers.
+- **One stat tile** (#63) — Home, Stats and bird detail share one stat
+  card; bird detail's "Since" stat now shows her age honestly.
+- **Consistent names** (#58) — screen titles match their tabs; Achievements
+  is called Achievements everywhere.
+- **Flocks and Recipients where you use them** (#59) — "Manage flocks…" in
+  the flock dropdown.
+- **Flock History icon** (#60) and **the hen icon instead of a paw print**
+  (#64).
+- **Forecast month table** (#70) — readable at large text sizes.
+- **Sample data** (debug builds) now peaks in summer, not winter, and its
+  birds' histories hold together.
+
+### Fixed
+
+- **Bird histories** (#88) — a bird's "joined" record was dated when she
+  was entered in the app, not when she joined, and older imports wrote one
+  after real deaths ("died 2022, joined 2026"). Flock sizes, lay rates and
+  the forecast's per-hen rate were wrong for anyone who logged or imported
+  eggs before entering their birds. New birds now join on their acquired
+  date; editing it moves the record; database migration v8 and every
+  import repair existing histories.
+- **Dark mode** (#55) — banners, badges and medication boxes no longer
+  show as bright pastel blocks.
+- **Bird detail app bar** (#56) — icons were white on white once the photo
+  header collapsed; the bar now gets a title and readable icons.
+- **Friendly errors** (#57) — load and save failures show a plain message
+  and Retry instead of raw exception text.
+- **Unreadable chips** (#62) — unselected chip labels were near-white on
+  light backgrounds.
+
 ## 2.6.0 (+30) — 2026-11-20
 
 Store review prompt, achievement requirements, spreading a batch of eggs
