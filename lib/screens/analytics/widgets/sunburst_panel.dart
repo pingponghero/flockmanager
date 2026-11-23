@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../providers/year_rings_provider.dart';
 import '../../../utils/year_rings.dart';
+import '../../../widgets/chart_center_text.dart';
 import '../../../widgets/sunburst_chart.dart';
 import '../../../widgets/year_rings_chart.dart';
 import 'year_info_sheets.dart';
@@ -81,7 +82,7 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
                 days: days,
                 selectedDay: day,
                 southernHemisphere: value.latitude < 0,
-                centerValue: fmt.format(total),
+                centerValue: formatCenterCount(total),
                 centerLabel: todayDoy != null ? 'eggs so far' : 'eggs',
               ),
             ),

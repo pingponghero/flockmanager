@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../models/bird.dart';
 import '../../../providers/year_rings_provider.dart';
+import '../../../widgets/chart_center_text.dart';
 import '../../../widgets/year_rings_chart.dart';
 
 /// A hen's own years as rings, at the top of her Eggs tab (#1): one ring
@@ -47,7 +48,7 @@ class HenYearsCard extends ConsumerWidget {
                   child: YearRingsChart(
                     data: data,
                     selected: data.rings.length > 1 ? data.rings.length - 1 : null,
-                    centerValue: fmt.format(latest.eggs),
+                    centerValue: formatCenterCount(latest.eggs),
                     centerLabel: 'eggs in ${latest.label}',
                   ),
                 ),

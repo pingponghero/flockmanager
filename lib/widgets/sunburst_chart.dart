@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../utils/year_rings.dart';
+import 'chart_center_text.dart';
 import 'year_rings_chart.dart';
 
 /// The sunburst (#1): one ray per day of the year on a night-sky disc.
@@ -173,8 +174,13 @@ class _SunburstPainter extends CustomPainter {
         fontSize: (rIn * 0.2).clamp(7.0, 11.0),
         color: SunburstChart.nightMuted,
       );
-      _text(canvas, centerValue!, c - Offset(0, rIn * 0.14), valueStyle);
-      if (centerLabel != null) _text(canvas, centerLabel!, c + Offset(0, rIn * 0.34), labelStyle);
+      // Shrinks to fit the dark disc, so long totals don't spill onto the rays.
+      final value = fitCenterText(centerValue!, valueStyle, maxWidth: rIn * 1.7);
+      value.paint(canvas, c - Offset(0, rIn * 0.14) - Offset(value.width / 2, value.height / 2));
+      if (centerLabel != null) {
+        final label = fitCenterText(centerLabel!, labelStyle, maxWidth: rIn * 1.7, minFontSize: 6);
+        label.paint(canvas, c + Offset(0, rIn * 0.34) - Offset(label.width / 2, label.height / 2));
+      }
     }
   }
 

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../utils/year_rings.dart';
+import 'chart_center_text.dart';
 
 /// Ring chart for a year of egg logs (#1).
 ///
@@ -277,20 +278,18 @@ class _YearRingsPainter extends CustomPainter {
   void _paintCenter(Canvas canvas) {
     if (centerValue == null) return;
     final c = geometry.center;
-    final maxWidth = geometry.inner * 1.9;
-    final value = TextPainter(
-      text: TextSpan(
-        text: centerValue,
-        style: textStyle.copyWith(
-          fontSize: (geometry.inner * 0.42).clamp(10.0, 20.0),
-          fontWeight: FontWeight.w700,
-          color: scheme.onSurface,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
+    final maxWidth = geometry.inner * 1.8;
+    // Shrinks to fit, so six- and seven-digit totals stay inside the circle.
+    final value = fitCenterText(
+      centerValue!,
+      textStyle.copyWith(
+        fontSize: (geometry.inner * 0.42).clamp(10.0, 20.0),
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface,
+        fontFeatures: const [FontFeature.tabularFigures()],
       ),
-      textDirection: TextDirection.ltr,
-      maxLines: 1,
-    )..layout(maxWidth: maxWidth);
+      maxWidth: maxWidth,
+    );
     final label = centerLabel == null
         ? null
         : (TextPainter(

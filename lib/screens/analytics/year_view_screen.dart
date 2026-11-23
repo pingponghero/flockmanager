@@ -6,6 +6,7 @@ import '../../providers/year_rings_provider.dart';
 import '../../utils/edge_insets.dart';
 import '../../utils/light_laying_loop.dart';
 import '../../utils/year_rings.dart';
+import '../../widgets/chart_center_text.dart';
 import '../../widgets/choice_chip_row.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/info_sheet.dart';
@@ -138,7 +139,7 @@ class _YearViewScreenState extends ConsumerState<YearViewScreen> {
                           child: YearRingsChart(
                             data: data,
                             selected: selected,
-                            centerValue: NumberFormat.decimalPattern().format(
+                            centerValue: formatCenterCount(
                               data.rings.fold<int>(0, (s, r) => s + r.eggs),
                             ),
                             centerLabel: data.mode == RingMode.years
