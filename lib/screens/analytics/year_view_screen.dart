@@ -4,10 +4,12 @@ import 'package:intl/intl.dart';
 
 import '../../providers/year_rings_provider.dart';
 import '../../utils/edge_insets.dart';
+import '../../utils/light_laying_loop.dart';
 import '../../utils/year_rings.dart';
 import '../../widgets/choice_chip_row.dart';
 import '../../widgets/error_state.dart';
 import '../../widgets/year_rings_chart.dart';
+import 'widgets/light_laying_loop_card.dart';
 
 /// Full-screen year view (#1): the year rings chart with a switch between
 /// one ring per year and one ring per hen, and a detail card for the ring
@@ -110,6 +112,7 @@ class _YearViewScreenState extends ConsumerState<YearViewScreen> {
                 const SizedBox(height: 12),
                 _RingDetail(data: data, ring: data.rings[selected]),
               ],
+              if (data.mode == RingMode.years) ..._loopFor(data, selected),
               const SizedBox(height: 12),
               _Notes(data: data),
             ],
@@ -118,6 +121,20 @@ class _YearViewScreenState extends ConsumerState<YearViewScreen> {
       ),
     );
   }
+}
+
+/// The light-and-laying card for the selected year (or the latest one).
+List<Widget> _loopFor(YearRingsData data, int? selected) {
+  final i = selected ?? data.rings.length - 1;
+  if (i < 0 || i >= data.rings.length) return const [];
+  final ring = data.rings[i];
+  final loop = buildLightLayingLoop(ring, data.weeklyDaylight);
+  final year = int.tryParse(ring.id);
+  if (loop == null || year == null) return const [];
+  return [
+    const SizedBox(height: 12),
+    LightLayingLoopCard(loop: loop, year: year, isCurrentYear: year == data.today.year),
+  ];
 }
 
 class _Legend extends StatelessWidget {
