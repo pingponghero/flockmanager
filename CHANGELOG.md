@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.7.0 (+32) — 2026-11-23
+## 2.7.0 (+33) — 2026-11-23
 
 "Your year" on Stats: a year of eggs as rings, a day-by-day sunburst and a
 light-and-laying loop; a UX and style polish pass across the app; and a fix
@@ -22,6 +22,9 @@ for bird histories that made flock sizes and lay rates wrong (#1, #55–#70,
     same daylight spring usually beats autumn, and the card says by how
     much for your flock. Not shown near the equator, where day length
     barely changes.
+  - **Year by year:** a table under the rings compares the years (eggs,
+    lay rate, average hens, days counted) with an All row; tap a year to
+    select its ring.
   - Each hen's Eggs tab shows her own year rings.
   - The reasoning and sums sit in bottom sheets (ⓘ), not on screen.
   - The sunburst's daylight glows from cream to a warm colour, on a
@@ -55,6 +58,8 @@ for bird histories that made flock sizes and lay rates wrong (#1, #55–#70,
 - **Flock History icon** (#60) and **the hen icon instead of a paw print**
   (#64).
 - **Forecast month table** (#70) — readable at large text sizes.
+- **Dependencies** (#100) — minor and patch updates (go_router, fl_chart,
+  image_picker, url_launcher, shared_preferences, intl and others).
 - **Sample data** (debug builds) now peaks in summer, not winter, and its
   birds' histories hold together.
 
@@ -73,6 +78,8 @@ for bird histories that made flock sizes and lay rates wrong (#1, #55–#70,
   header collapsed; the bar now gets a title and readable icons.
 - **Friendly errors** (#57) — load and save failures show a plain message
   and Retry instead of raw exception text.
+- **Value screen** (#99) — Your Cost and Net Impact were in the heading
+  font next to Egg Value; the cards no longer flash when you switch period.
 - **Unreadable chips** (#62) — unselected chip labels were near-white on
   light backgrounds.
 
