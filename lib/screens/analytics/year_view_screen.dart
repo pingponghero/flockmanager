@@ -13,6 +13,7 @@ import '../../widgets/info_sheet.dart';
 import '../../widgets/year_rings_chart.dart';
 import 'widgets/light_laying_loop_card.dart';
 import 'widgets/sunburst_panel.dart';
+import 'widgets/year_table_card.dart';
 import 'widgets/year_info_sheets.dart';
 
 /// Full-screen year view (#1): rings by year or by hen, or the day-by-day
@@ -165,7 +166,17 @@ class _YearViewScreenState extends ConsumerState<YearViewScreen> {
                     text: n.text,
                     onTap: () => showHowYearIsCounted(context, data),
                   ),
-                if (selected != null && selected < data.rings.length) ...[
+                if (data.mode == RingMode.years) ...[
+                  const SizedBox(height: 12),
+                  YearTableCard(
+                    data: data,
+                    selected: selected,
+                    onSelect: (i) => setState(() {
+                      _selectionTouched = true;
+                      _selected = i;
+                    }),
+                  ),
+                ] else if (selected != null && selected < data.rings.length) ...[
                   const SizedBox(height: 12),
                   _RingDetail(data: data, ring: data.rings[selected]),
                 ],
