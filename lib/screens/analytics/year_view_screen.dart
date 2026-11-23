@@ -122,7 +122,7 @@ class _YearViewScreenState extends ConsumerState<YearViewScreen> {
                             centerValue: NumberFormat.decimalPattern()
                                 .format(data.rings.fold<int>(0, (s, r) => s + r.eggs)),
                             centerLabel: data.mode == RingMode.years
-                                ? 'eggs since ${data.rings.first.label}'
+                                ? 'since ${data.rings.first.label}'
                                 : 'eggs in ${data.year}',
                             onRingTap: (i) => setState(() {
                               _selectionTouched = true;
@@ -312,6 +312,16 @@ class _Notes extends StatelessWidget {
           Text(
             '${fmt.format(data.unassignedEggs)} eggs in ${data.year} were logged as flock '
             'totals, so they aren’t on any hen’s ring.',
+            style: style,
+          ),
+          const SizedBox(height: 6),
+        ],
+        if (data.implausibleWeeks > 0) ...[
+          Text(
+            'Lay rate is hidden for ${data.implausibleWeeks} '
+            '${data.implausibleWeeks == 1 ? 'week' : 'weeks'} where more eggs were '
+            'logged than there were hens in the flock. Setting each hen\u2019s '
+            'acquired date fixes this.',
             style: style,
           ),
           const SizedBox(height: 6),

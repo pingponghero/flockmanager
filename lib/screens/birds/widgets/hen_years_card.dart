@@ -16,7 +16,12 @@ class HenYearsCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(henYearRingsProvider(bird.id)).value;
-    if (data == null || data.isEmpty || data.rings.every((r) => r.knownDays == 0)) {
+    // Mostly flock totals: her ring would only show the few eggs logged to
+    // her by name and make a good layer look idle, so leave it out.
+    if (data == null ||
+        data.isEmpty ||
+        !data.henRingsMeaningful ||
+        data.rings.every((r) => r.knownDays == 0)) {
       return const SizedBox.shrink();
     }
     final theme = Theme.of(context);

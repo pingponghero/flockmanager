@@ -85,7 +85,10 @@ class _SunburstPainter extends CustomPainter {
     final maxEggs = days
         .map((d) => d.state == RingBlockState.logged ? d.eggs.toDouble() : (d.expected ?? 0))
         .fold<double>(1, math.max);
-    final eggScale = (radius * 0.74 - rIn) / maxEggs;
+    // The busiest day reaches just inside the shortest day's daylight, so
+    // the gold egg always shows around the eggs.
+    final minLight = days.map((d) => d.daylight).reduce(math.min);
+    final eggScale = (rMax * minLight / maxLight * 0.92 - rIn) / maxEggs;
     final width = math.max(1.0, 2 * math.pi * rMax / n * 0.62);
 
     Offset dir(int doy) {
@@ -93,13 +96,41 @@ class _SunburstPainter extends CustomPainter {
       return Offset(math.cos(a), math.sin(a));
     }
 
-    final light = Paint()..strokeWidth = width;
-    final eggs = Paint()..strokeWidth = width;
+    // Daylight as one filled egg (drawn as rays it moirés where they meet):
+    // brighter for days gone, dimmer for days ahead.
+    Offset edge(DayPoint d) => c + dir(d.dayOfYear) * (rMax * d.daylight / maxLight);
+    final gone = days.where((d) => d.state != RingBlockState.future).toList();
+    final coming = days.where((d) => d.state == RingBlockState.future).toList();
+    final past = Path()..moveTo(c.dx, c.dy);
+    for (final d in gone) {
+      final p = edge(d);
+      past.lineTo(p.dx, p.dy);
+    }
+    if (coming.isEmpty && gone.isNotEmpty) {
+      final p = edge(gone.first);
+      past.lineTo(p.dx, p.dy);
+    }
+    final ahead = Path()..moveTo(c.dx, c.dy);
+    if (gone.isNotEmpty && coming.isNotEmpty) {
+      final p = edge(gone.last);
+      ahead.lineTo(p.dx, p.dy);
+    }
+    for (final d in coming) {
+      final p = edge(d);
+      ahead.lineTo(p.dx, p.dy);
+    }
+    final anyAhead = coming.isNotEmpty;
+    past.close();
+    ahead.close();
+    canvas.drawPath(past, Paint()..color = SunburstChart.sun.withValues(alpha: 0.42));
+    if (anyAhead) {
+      canvas.drawPath(ahead, Paint()..color = SunburstChart.sun.withValues(alpha: 0.16));
+    }
+
+    final eggs = Paint()..strokeWidth = math.max(0.8, width * 0.55);
     for (final d in days) {
       final u = dir(d.dayOfYear);
       final ahead = d.state == RingBlockState.future;
-      light.color = SunburstChart.sun.withValues(alpha: ahead ? 0.18 : 0.42);
-      canvas.drawLine(c + u * rIn, c + u * (rMax * d.daylight / maxLight), light);
 
       final count = d.state == RingBlockState.logged ? d.eggs.toDouble() : (ahead ? d.expected : null);
       if (count != null && count > 0.05) {

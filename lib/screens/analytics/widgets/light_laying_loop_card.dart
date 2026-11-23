@@ -31,9 +31,14 @@ class LightLayingLoopCard extends StatelessWidget {
     final hours = ((pair.rising.daylight + pair.falling.daylight) / 2).round();
     final up = (pair.rising.layRate * 100).round();
     final down = (pair.falling.layRate * 100).round();
+    final m1 = _month(pair.rising.week), m2 = _month(pair.falling.week);
+    if ((up - down).abs() < 5) {
+      return 'With about $hours hours of daylight, your hens laid about the same '
+          'in $m1 and $m2 ($up% and $down%).';
+    }
     final link = up > down ? 'but only' : 'and';
     return 'With about $hours hours of daylight, your hens laid $up% in '
-        '${_month(pair.rising.week)} $link $down% in ${_month(pair.falling.week)}.';
+        '$m1 $link $down% in $m2.';
   }
 
   @override
@@ -178,6 +183,7 @@ class _LoopPainter extends CustomPainter {
       ..strokeWidth = 1.4
       ..color = color;
     var lastMonth = '';
+    final placed = <Rect>[];
     for (var i = 0; i < pts.length; i++) {
       final m = monthLetter(pts[i].week);
       final key = '${monthOf(pts[i].week)}';
@@ -188,6 +194,10 @@ class _LoopPainter extends CustomPainter {
       canvas.drawCircle(p, 3, ring);
       final out = p - mid;
       final dir = out.distance == 0 ? const Offset(0, -1) : out / out.distance;
+      // Where the loop crosses itself, skip a letter rather than overprint.
+      final spot = Rect.fromCenter(center: p + dir * 12, width: 12, height: 14);
+      if (placed.any((r) => r.overlaps(spot))) continue;
+      placed.add(spot);
       _text(canvas, m, p + dir * 12 - const Offset(0, 6),
           label.copyWith(fontWeight: FontWeight.w600, color: scheme.onSurface),
           center: true);

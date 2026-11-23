@@ -54,6 +54,17 @@ const kLayingAgeDays = 140;
 /// Lay rate drawn as the darkest block colour.
 const kFullLayRate = 0.85;
 
+/// A week with more eggs than this many per counted hen-day means the
+/// headcount is wrong (birds entered after their eggs were logged), so its
+/// lay rate is hidden rather than shown above 100%.
+const kMaxPlausibleLayRate = 1.1;
+
+/// Share of a year's eggs logged to hens needed to offer hens mode at all.
+const kMinHenAttribution = 0.3;
+
+/// Share needed to open on hens mode, or to show one hen's own rings.
+const kAutoHensAttribution = 0.6;
+
 /// Year rings mode shows at most this many recent years.
 const kMaxYearRings = 6;
 
@@ -101,8 +112,15 @@ class RingSeries {
   final int eggs;
   final int knownDays;
 
-  /// Sum of laying-age hens over known days.
+  /// Laying-age hens summed over known days, in weeks where the headcount
+  /// is plausible.
   final int henDays;
+
+  /// Eggs in those same weeks, so [layRate] compares like with like.
+  final int rateEggs;
+
+  /// Weeks whose lay rate was hidden because the headcount was too low.
+  final int implausibleWeeks;
 
   /// Set in hens mode.
   final Bird? bird;
@@ -114,12 +132,22 @@ class RingSeries {
     required this.eggs,
     required this.knownDays,
     required this.henDays,
+    this.rateEggs = 0,
+    this.implausibleWeeks = 0,
     this.bird,
   });
 
-  double? get layRate => henDays > 0 ? eggs / henDays : null;
+  double? get layRate => henDays > 0 ? rateEggs / henDays : null;
   double get eggsPerDay => knownDays > 0 ? eggs / knownDays : 0;
-  double get averageHens => knownDays > 0 ? henDays / knownDays : 0;
+  double get averageHens {
+    var sum = 0.0, days = 0;
+    for (final b in blocks) {
+      if (b.state != RingBlockState.logged) continue;
+      sum += b.hens * b.knownDays;
+      days += b.knownDays;
+    }
+    return days > 0 ? sum / days : 0;
+  }
 }
 
 class YearRingsData {
@@ -168,8 +196,16 @@ class YearRingsData {
 
   bool get isEmpty => rings.isEmpty;
 
-  /// Whether hens mode would have anything meaningful to show for [year].
-  bool get canShowHens => attributedShare > 0;
+  /// Weeks (across all rings) whose lay rate was hidden for a too-low
+  /// headcount.
+  int get implausibleWeeks => rings.fold(0, (s, r) => s + r.implausibleWeeks);
+
+  /// Whether hens mode would be meaningful for [year]: below this share,
+  /// most eggs sit in flock totals and every hen looks like she barely lays.
+  bool get canShowHens => attributedShare >= kMinHenAttribution;
+
+  /// Whether a single hen's rings are worth showing (her Eggs tab).
+  bool get henRingsMeaningful => attributedShare >= kAutoHensAttribution;
 }
 
 /// One day of the sunburst view (#1).
@@ -241,6 +277,15 @@ List<_Span> _layingSpans(Bird bird, List<BirdStatusEvent> events) {
       }
     }
     if (from != null) spans.add(_Span(from, null));
+    // The app dates a bird's first 'active' event when she was entered, not
+    // when she joined. An earlier acquired date is the better start.
+    final acquired = bird.acquiredDate;
+    if (acquired != null &&
+        spans.isNotEmpty &&
+        sorted.first.status == 'active' &&
+        dayNumber(acquired) < spans.first.start) {
+      spans[0] = _Span(dayNumber(acquired), spans.first.end);
+    }
   } else {
     final start = dayNumber(bird.acquiredDate ?? bird.createdAt);
     final end = bird.status == BirdStatus.active || bird.statusDate == null
@@ -428,7 +473,7 @@ class YearRingsBuilder {
 
   /// Picks hens mode when most of the year's eggs were logged to hens.
   RingMode autoMode(int year) =>
-      _attribution(year).share >= 0.6 ? RingMode.hens : RingMode.years;
+      _attribution(year).share >= kAutoHensAttribution ? RingMode.hens : RingMode.years;
 
   YearRingsData build({RingMode? mode, int? year}) {
     final y = year ?? today.year;
@@ -509,6 +554,8 @@ class YearRingsBuilder {
           eggs: r.eggs,
           knownDays: r.knownDays,
           henDays: r.henDays,
+          rateEggs: r.rateEggs,
+          implausibleWeeks: r.implausibleWeeks,
           bird: r.bird,
           blocks: [
             for (final b in r.blocks)
@@ -606,7 +653,7 @@ class YearRingsBuilder {
     Bird? bird,
   }) {
     final blocks = <RingBlock>[];
-    var eggs = 0, known = 0, henDays = 0;
+    var eggs = 0, known = 0, henDays = 0, rateEggs = 0, implausible = 0;
     for (var w = 0; w < weeks.length; w++) {
       var bEggs = 0, bKnown = 0, bHenDays = 0, bHensSum = 0, bScope = 0;
       var anyUnknown = false, anyFuture = false, futureHens = 0;
@@ -644,17 +691,22 @@ class YearRingsBuilder {
           ? futureHens.toDouble()
           : (bScope > 0 ? bHensSum / bScope : 0.0);
 
+      final plausible = bHenDays > 0 && bEggs <= bHenDays * kMaxPlausibleLayRate;
+      if (bHenDays > 0 && !plausible) implausible++;
       blocks.add(RingBlock(
         week: w,
         state: state,
         eggs: bEggs,
         knownDays: bKnown,
         hens: hens,
-        layRate: bHenDays > 0 ? bEggs / bHenDays : null,
+        layRate: plausible ? bEggs / bHenDays : null,
       ));
       eggs += bEggs;
       known += bKnown;
-      henDays += bHenDays;
+      if (plausible) {
+        henDays += bHenDays;
+        rateEggs += bEggs;
+      }
     }
     return RingSeries(
       id: id,
@@ -663,6 +715,8 @@ class YearRingsBuilder {
       eggs: eggs,
       knownDays: known,
       henDays: henDays,
+      rateEggs: rateEggs,
+      implausibleWeeks: implausible,
       bird: bird,
     );
   }

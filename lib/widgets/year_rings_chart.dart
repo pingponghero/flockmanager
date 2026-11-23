@@ -277,7 +277,7 @@ class _YearRingsPainter extends CustomPainter {
   void _paintCenter(Canvas canvas) {
     if (centerValue == null) return;
     final c = geometry.center;
-    final maxWidth = geometry.inner * 1.7;
+    final maxWidth = geometry.inner * 1.9;
     final value = TextPainter(
       text: TextSpan(
         text: centerValue,

@@ -59,7 +59,8 @@ class _SunburstPanelState extends ConsumerState<SunburstPanel> {
           '~${point.expected!.toStringAsFixed(1)}',
           'eggs expected',
         ),
-      _ => ('–', 'no count'),
+      _ when point.dayOfYear == todayDoy => ('–', 'not logged yet'),
+      _ => ('–', 'not logged'),
     };
 
     return Container(

@@ -268,4 +268,56 @@ void main() {
       expect(days[dayOfYear(DateTime(2026, 12, 1)) - 1].expected, 9);
     });
   });
+
+  group('headcount sanity', () {
+    test('an acquired date earlier than the app entry counts her from then', () {
+      final birds = [_hen('a', acquired: DateTime(2025, 1, 1))];
+      // Entered into the app (first event) long after she joined.
+      final events = [_event('a', 'active', DateTime(2026, 9, 1))];
+      final logs = [
+        for (var d = DateTime(2026, 3, 1);
+            d.isBefore(DateTime(2026, 3, 15));
+            d = d.add(const Duration(days: 1)))
+          _log(d, 1),
+      ];
+      final ring = _builder(logs: logs, birds: birds, events: events)
+          .build(mode: RingMode.years)
+          .rings
+          .single;
+      expect(ring.blocks[9].hens, 1); // early March
+      expect(ring.layRate, closeTo(1.0, 0.001));
+      expect(ring.implausibleWeeks, 0);
+    });
+
+    test('more eggs than hens hides the lay rate instead of passing 100%', () {
+      final birds = [_hen('a')];
+      final events = [_event('a', 'active', DateTime(2026, 1, 1))];
+      final logs = [
+        for (var d = DateTime(2026, 3, 1);
+            d.isBefore(DateTime(2026, 3, 15));
+            d = d.add(const Duration(days: 1)))
+          _log(d, 5),
+      ];
+      final data = _builder(logs: logs, birds: birds, events: events)
+          .build(mode: RingMode.years);
+      final ring = data.rings.single;
+      expect(ring.blocks[9].layRate, isNull);
+      expect(ring.layRate, isNull);
+      expect(data.implausibleWeeks, greaterThan(0));
+      expect(data.colorScale, RingColorScale.eggsPerDay);
+    });
+  });
+
+  group('when per-hen views make sense', () {
+    test('mostly flock totals hides hens mode and the hen card', () {
+      final birds = [_hen('a', acquired: DateTime(2025))];
+      final logs = [
+        _log(DateTime(2026, 4, 1), 1, birdId: 'a'),
+        _log(DateTime(2026, 4, 1), 9),
+      ];
+      final b = _builder(logs: logs, birds: birds);
+      expect(b.build().canShowHens, isFalse);
+      expect(b.buildForHen('a').henRingsMeaningful, isFalse);
+    });
+  });
 }
