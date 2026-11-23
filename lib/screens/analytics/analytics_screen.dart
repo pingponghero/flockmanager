@@ -18,6 +18,7 @@ import '../../widgets/flock_dropdown.dart';
 import '../../utils/edge_insets.dart';
 import '../../widgets/scaffold_with_nav_bar.dart';
 import '../../app/status_colors.dart';
+import 'widgets/monthly_forecast_table.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
@@ -1203,112 +1204,13 @@ class _ForecastCard extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
 
-              // Header row
-              Row(
-                children: [
-                  const SizedBox(width: 48, child: Text('Month', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                  const Expanded(child: Text('Eggs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                  const SizedBox(width: 60, child: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                  const SizedBox(width: 48, child: Text('Light', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                  const SizedBox(width: 56, child: Text('Source', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.right)),
-                ],
-              ),
-              const Divider(),
-
-              ...forecast.monthlyForecasts.map((m) {
-                final isPast = m.month < now.month;
-                final isCurrent = m.month == now.month;
-                final eggs = isPast ? m.actualEggs : m.forecastEggs;
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 48,
-                        child: Text(
-                          monthNames[m.month - 1],
-                          style: TextStyle(
-                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          '$eggs',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 60,
-                        child: Text(
-                          m.perHenRate > 0 ? m.perHenRate.toStringAsFixed(2) : '-',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 48,
-                        child: Text(
-                          '${m.daylightHours.toStringAsFixed(1)}h',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 56,
-                        child: Text(
-                          isPast
-                              ? 'actual'
-                              : isCurrent
-                                  ? 'partial'
-                                  : 'forecast',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontStyle: isPast ? FontStyle.normal : FontStyle.italic,
-                            color: isPast
-                                ? Theme.of(context).colorScheme.primary
-                                : StatusColors.of(context).warning.onContainerMuted,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-
-              const SizedBox(height: 16),
-              // Total row
-              const Divider(),
-              Row(
-                children: [
-                  const SizedBox(
-                    width: 48,
-                    child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '${NumberFormat('#,###').format(forecast.projectedYear)}',
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                  ),
-                  const SizedBox(width: 60),
-                  const SizedBox(width: 48),
-                  const SizedBox(width: 56),
-                ],
+              // Columns size to their content (Eggs takes the slack) and use
+              // theme text styles, so the table copes with larger accessibility
+              // text instead of clipping fixed 48–60px columns (#70).
+              MonthlyForecastTable(
+                forecast: forecast,
+                monthNames: monthNames,
+                currentMonth: now.month,
               ),
             ],
           ],
@@ -1441,3 +1343,4 @@ class _MonthlyForecastBars extends StatelessWidget {
     );
   }
 }
+
