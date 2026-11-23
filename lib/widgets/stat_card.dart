@@ -84,7 +84,10 @@ class StatCard extends StatelessWidget {
                     Text(label, style: muted),
                     Text(
                       value,
-                      style: theme.textTheme.headlineSmall?.copyWith(
+                      // titleLarge, not headlineSmall: headlines use the
+                      // serif heading font, numbers stay tabular (#67)
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                         fontFeatures: _tabular,
                       ),
