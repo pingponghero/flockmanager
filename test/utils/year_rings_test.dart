@@ -379,4 +379,46 @@ void main() {
       expect(feb29.expected, isNotNull);
     });
   });
+
+  group('contradictory histories (#88, seen in real exports)', () {
+    // Older imports wrote an 'active' event for every bird at import time,
+    // after real deaths: [deceased 2022, active 2026] for a hen acquired 2020.
+    final logs = [
+      for (var d = DateTime(2021, 3, 1); d.isBefore(DateTime(2021, 3, 15)); d = d.add(const Duration(days: 1)))
+        _log(d, 1),
+    ];
+
+    test('an active event after her death is ignored; she counts from acquisition to death', () {
+      final hen = _hen('a', acquired: DateTime(2020, 6, 1)).copyWith(status: BirdStatus.deceased);
+      final events = [
+        _event('a', 'deceased', DateTime(2022, 5, 1)),
+        _event('a', 'active', DateTime(2026, 5, 23)),
+      ];
+      final data = _builder(logs: logs, birds: [hen], events: events, today: DateTime(2026, 6, 3))
+          .build(mode: RingMode.years);
+      expect(data.rings.first.blocks[9].hens, 1); // March 2021: alive
+      expect(data.implausibleWeeks, 0);
+    });
+
+    test('a history that starts with a death means she was there before it', () {
+      final hen = _hen('a', acquired: DateTime(2020, 6, 1)).copyWith(status: BirdStatus.sold);
+      final events = [_event('a', 'sold', DateTime(2022, 5, 1))];
+      final data = _builder(logs: logs, birds: [hen], events: events, today: DateTime(2026, 6, 3))
+          .build(mode: RingMode.years);
+      expect(data.rings.first.blocks[9].hens, 1);
+    });
+
+    test('a hen who really came back stays counted', () {
+      // Sold, then returned: active now, so the later 'active' event is real.
+      final hen = _hen('a', acquired: DateTime(2020, 6, 1));
+      final events = [
+        _event('a', 'active', DateTime(2020, 6, 1)),
+        _event('a', 'sold', DateTime(2021, 1, 1)),
+        _event('a', 'active', DateTime(2021, 2, 1)),
+      ];
+      final data = _builder(logs: logs, birds: [hen], events: events, today: DateTime(2026, 6, 3))
+          .build(mode: RingMode.years);
+      expect(data.rings.first.blocks[9].hens, 1); // March 2021: back
+    });
+  });
 }

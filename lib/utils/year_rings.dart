@@ -262,11 +262,33 @@ class _Span {
 }
 
 /// Spans when [bird] was in the flock and of laying age.
+/// Her acquired date when set and not in the future, otherwise when she was
+/// entered in the app. (Matches `Bird.joinedDate` from #88.)
+DateTime _joinedDate(Bird bird) {
+  final acquired = bird.acquiredDate;
+  return acquired != null && !acquired.isAfter(DateTime.now()) ? acquired : bird.createdAt;
+}
+
 List<_Span> _layingSpans(Bird bird, List<BirdStatusEvent> events) {
   final spans = <_Span>[];
   if (events.isNotEmpty) {
-    final sorted = [...events]..sort((a, b) => a.eventDate.compareTo(b.eventDate));
-    int? from;
+    var sorted = [...events]..sort((a, b) => a.eventDate.compareTo(b.eventDate));
+    // When she joined, by her own record: acquired date, else when entered.
+    final joinedN = dayNumber(_joinedDate(bird));
+
+    // Older imports wrote an 'active' event for every bird at import time,
+    // after real deaths and sales. If she isn't active now, an 'active'
+    // event after her last status change is spurious (#88).
+    if (bird.status != BirdStatus.active) {
+      final lastChange = sorted.lastIndexWhere((e) => e.status != 'active');
+      if (lastChange >= 0) sorted = sorted.sublist(0, lastChange + 1);
+    }
+
+    // A history that starts with a death or sale means she was active before
+    // it, from when she joined.
+    int? from = sorted.first.status != 'active' && joinedN < dayNumber(sorted.first.eventDate)
+        ? joinedN
+        : null;
     for (final e in sorted) {
       final n = dayNumber(e.eventDate);
       if (e.status == 'active') {
@@ -278,13 +300,9 @@ List<_Span> _layingSpans(Bird bird, List<BirdStatusEvent> events) {
     }
     if (from != null) spans.add(_Span(from, null));
     // The app dates a bird's first 'active' event when she was entered, not
-    // when she joined. An earlier acquired date is the better start.
-    final acquired = bird.acquiredDate;
-    if (acquired != null &&
-        spans.isNotEmpty &&
-        sorted.first.status == 'active' &&
-        dayNumber(acquired) < spans.first.start) {
-      spans[0] = _Span(dayNumber(acquired), spans.first.end);
+    // when she joined. Her joined date is the better start (#88).
+    if (spans.isNotEmpty && sorted.first.status == 'active' && joinedN < spans.first.start) {
+      spans[0] = _Span(joinedN, spans.first.end);
     }
   } else {
     final start = dayNumber(bird.acquiredDate ?? bird.createdAt);
